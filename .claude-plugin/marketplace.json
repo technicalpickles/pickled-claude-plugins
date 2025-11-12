@@ -1,0 +1,20 @@
+{
+  "name": "technicalpickles-marketplace",
+  "description": "Personal skills marketplace for Josh Nichols",
+  "owner": {
+    "name": "Josh Nichols",
+    "email": "josh@technicalpickles.com"
+  },
+  "plugins": [
+    {
+      "name": "technicalpickles",
+      "description": "Personal collection of Claude Code skills",
+      "version": "1.0.0",
+      "source": "./",
+      "author": {
+        "name": "Josh Nichols",
+        "email": "josh@technicalpickles.com"
+      }
+    }
+  ]
+}
