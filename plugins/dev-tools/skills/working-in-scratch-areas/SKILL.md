@@ -55,9 +55,10 @@ If the symlink exists, verify gitignore is configured (see below), then you're r
 When no scratch area exists:
 
 1. **Detect:** "I notice this repository doesn't have a scratch area set up."
-2. **Offer:** "I can set one up using the setup script. This will create a persistent scratch area that survives even if the repository is moved or deleted. Would you like me to?"
-3. **User accepts:** Follow setup steps below
-4. **User declines:** "No problem. I can create scripts in another location if you prefer."
+2. **Check CLAUDE.md:** Check if scratch areas location is configured in `~/.claude/CLAUDE.md`
+3. **If not configured:** Ask user where they want scratch areas with AskUserQuestion tool
+4. **Run setup script** with the chosen location
+5. **Optionally save** the location to CLAUDE.md for future use
 
 **Setup Steps:**
 
@@ -66,20 +67,55 @@ When no scratch area exists:
 git rev-parse --show-toplevel
 # Output: /Users/josh/workspace/some-repo
 
-# 2. Run setup from repo root
-cd /Users/josh/workspace/some-repo && ~/workspace/pickled-scratch-area/setup-scratch-area.sh
+# 2. Check if configured in CLAUDE.md
+grep -i "scratch areas:" ~/.claude/CLAUDE.md
 
-# 3. Verify gitignore (see Gitignore Setup section below)
+# 3a. If configured, run setup (reads from CLAUDE.md automatically)
+cd /Users/josh/workspace/some-repo && ~/.claude/skills/working-in-scratch-areas/scripts/setup-scratch-area.sh
+
+# 3b. If not configured, ask user for location and run with --areas-root
+cd /Users/josh/workspace/some-repo && ~/.claude/skills/working-in-scratch-areas/scripts/setup-scratch-area.sh --areas-root ~/workspace/scratch-areas
+
+# 3c. If user wants to save preference, add --save-to-claude-md flag
+cd /Users/josh/workspace/some-repo && ~/.claude/skills/working-in-scratch-areas/scripts/setup-scratch-area.sh --areas-root ~/workspace/scratch-areas --save-to-claude-md
+
+# 4. Verify gitignore (see Gitignore Setup section below)
 ```
 
 **What the script does:**
 
-- Creates `~/workspace/pickled-scratch-area/areas/{repo-name}/`
+- Checks `~/.claude/CLAUDE.md` for configured scratch areas location (or accepts --areas-root flag)
+- Creates scratch areas root directory and repository-specific subdirectory
 - Creates symlink `{repo-root}/.scratch` → scratch area
-- Copies README template with usage guidelines
-- Uses .scratch-root-exclusions for repo filtering
+- Creates README from template with repository-specific information
+- Optionally saves location to CLAUDE.md with --save-to-claude-md flag
 
-**Script Location:** `~/workspace/pickled-scratch-area/setup-scratch-area.sh`
+**Script Location:** `~/.claude/skills/working-in-scratch-areas/scripts/setup-scratch-area.sh`
+
+**Script Options:**
+- `--areas-root PATH` - Specify scratch areas root directory (required if not in CLAUDE.md)
+- `--save-to-claude-md` - Save the areas root to ~/.claude/CLAUDE.md for future use
+- `--help` - Show help message
+
+### Configuring Scratch Areas Location
+
+The setup script checks `~/.claude/CLAUDE.md` for your preferred scratch areas location. If not found, you must provide --areas-root flag.
+
+**To configure in CLAUDE.md, add:**
+
+```markdown
+## Scratch Areas
+
+When using the `dev-tools:working-in-scratch-areas` skill, create scratch areas in `~/workspace/scratch-areas` directory.
+```
+
+**Suggested locations to offer user:**
+
+- `~/workspace/scratch-areas` - Central location for all scratch areas
+- `~/workspace/pickled-scratch-area/areas` - If using the full pickled-scratch-area repository
+- `$(dirname "$REPO_ROOT")/scratch-areas` - Sibling to current repository (for project-specific scratch areas)
+
+**Use AskUserQuestion to present these options when not configured.**
 
 ### Gitignore Setup
 
@@ -546,20 +582,35 @@ For consistency:
 - **`scratch areas`** - The overall system of centralized scratch directories
 - **`pickled-scratch-area`** - The central repository managing all scratch areas
 
+## Advanced Features
+
+This skill provides the core functionality for working with scratch areas. For additional features like migration scripts and testing utilities, see the full repository:
+
+**Repository:** `~/workspace/pickled-scratch-area/`
+
+**Available tools:**
+- `migrate-scratch-areas.sh` - Migrate existing scratch areas to new structure
+- `migrate-to-dot-scratch.sh` - Rename `scratch` symlinks to `.scratch`
+- `migrate-all-scratch-areas.sh` - Batch migration across multiple repositories
+- `test-setup-scenarios.sh` - Comprehensive test suite for setup script
+- `rename-scratch-areas.sh` - Legacy renaming utilities
+
+These are typically one-time operations and not needed for day-to-day scratch area usage.
+
 ## Quick Reference
 
-| Task                    | Command                                                                                          |
-| ----------------------- | ------------------------------------------------------------------------------------------------ |
-| Check if scratch exists | `test -L .scratch && echo "exists" \|\| echo "missing"`                                          |
-| Setup scratch area      | Get repo root, then `cd /path/to/repo && ~/workspace/pickled-scratch-area/setup-scratch-area.sh` |
-| Check gitignore         | `git config --global core.excludesfile` or `grep .scratch .gitignore`                            |
-| List subdirectories     | `ls -la .scratch/`                                                                               |
-| Create subdirectory     | Use Write tool to create `.scratch/subdir-name/README.md`                                        |
-| Create script           | Write tool with shebang + header                                                                 |
-| Make executable         | `~/.claude/skills/working-in-scratch-areas/scripts/make-executable .scratch/subdir/script.sh`    |
-| Run script              | `./.scratch/subdir/script-name.sh` (not `bash .scratch/...`)                                     |
-| Archive script          | Add `[RESOLVED]` retrospective header, don't delete                                              |
-| Git add files           | ALWAYS use explicit paths, NEVER `git add .` or `git add -A`                                     |
+| Task                    | Command                                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------------------- |
+| Check if scratch exists | `test -L .scratch && echo "exists" \|\| echo "missing"`                                       |
+| Setup scratch area      | Get repo root, then `cd /path/to/repo && ~/.claude/skills/working-in-scratch-areas/scripts/setup-scratch-area.sh` |
+| Check gitignore         | `git config --global core.excludesfile` or `grep .scratch .gitignore`                         |
+| List subdirectories     | `ls -la .scratch/`                                                                            |
+| Create subdirectory     | Use Write tool to create `.scratch/subdir-name/README.md`                                     |
+| Create script           | Write tool with shebang + header                                                              |
+| Make executable         | `~/.claude/skills/working-in-scratch-areas/scripts/make-executable .scratch/subdir/script.sh` |
+| Run script              | `./.scratch/subdir/script-name.sh` (not `bash .scratch/...`)                                  |
+| Archive script          | Add `[RESOLVED]` retrospective header, don't delete                                           |
+| Git add files           | ALWAYS use explicit paths, NEVER `git add .` or `git add -A`                                  |
 
 ## Remember
 
