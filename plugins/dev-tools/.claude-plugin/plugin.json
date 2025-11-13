@@ -1,0 +1,11 @@
+{
+  "name": "dev-tools",
+  "version": "1.0.0",
+  "description": "Developer productivity tools and utilities",
+  "author": {
+    "name": "Josh Nichols",
+    "email": "josh@technicalpickles.com"
+  },
+  "repository": "https://github.com/technicalpickles/pickled-claude-plugins",
+  "license": "MIT"
+}

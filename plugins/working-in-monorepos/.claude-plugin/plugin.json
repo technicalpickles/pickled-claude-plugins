@@ -1,0 +1,11 @@
+{
+  "name": "working-in-monorepos",
+  "version": "1.0.0",
+  "description": "Navigate and execute commands in monorepo subprojects",
+  "author": {
+    "name": "Josh Nichols",
+    "email": "josh@technicalpickles.com"
+  },
+  "repository": "https://github.com/technicalpickles/pickled-claude-plugins",
+  "license": "MIT"
+}

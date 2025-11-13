@@ -1,0 +1,12 @@
+{
+  "hooks": [
+    {
+      "name": "detect-monorepo",
+      "description": "Auto-detect monorepo structure on session start",
+      "event": "SessionStart",
+      "type": "command",
+      "command": "bash",
+      "args": ["{{hooksDir}}/scripts/detect-monorepo.sh"]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "git-workflows",
+  "version": "1.0.0",
+  "description": "Git workflow best practices and pull request management",
+  "author": {
+    "name": "Josh Nichols",
+    "email": "josh@technicalpickles.com"
+  },
+  "repository": "https://github.com/technicalpickles/pickled-claude-plugins",
+  "license": "MIT"
+}
