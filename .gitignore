@@ -9,3 +9,6 @@
 *.swp
 *.swo
 *~
+
+# Git worktrees
+.worktrees/
