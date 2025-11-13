@@ -1,13 +1,13 @@
 {
   "name": "technicalpickles",
-  "description": "Personal collection of Claude Code skills: Buildkite workflows, monorepo helpers, Git practices, and development tools",
+  "description": "Personal plugin marketplace: Buildkite workflows, monorepo helpers, Git practices, and development tools",
   "version": "1.0.0",
   "author": {
     "name": "Josh Nichols",
     "email": "josh@technicalpickles.com"
   },
-  "homepage": "https://github.com/technicalpickles/claude-skills",
-  "repository": "https://github.com/technicalpickles/claude-skills",
+  "homepage": "https://github.com/technicalpickles/pickled-claude-plugins",
+  "repository": "https://github.com/technicalpickles/pickled-claude-plugins",
   "license": "MIT",
   "keywords": ["buildkite", "monorepo", "git", "workflow", "development"]
 }
