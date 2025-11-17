@@ -53,7 +53,22 @@ Edit `hooks/tool-routes.json`:
 }
 ```
 
+**Testing:**
+
+Run tests from the dev-tools directory:
+```bash
+cd plugins/dev-tools
+python3 hooks/test_tool_routing.py
+```
+
+Tests verify:
+- Atlassian URLs are blocked with MCP tool suggestion
+- GitHub PR URLs are blocked with gh pr view suggestion
+- Other URLs pass through normally
+- Fail-open behavior for errors
+
 **Files:**
 - `hooks/tool-routes.json` - Service patterns and messages (edit this)
 - `hooks/check-tool-routing.py` - Hook implementation (no need to edit)
 - `hooks/hooks.json` - Hook registration (automatic)
+- `hooks/test_tool_routing.py` - Test suite

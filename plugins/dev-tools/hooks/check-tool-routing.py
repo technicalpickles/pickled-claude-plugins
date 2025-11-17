@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3 -u
 """
 Tool Routing Hook for Claude Code
 Suggests better tools when WebFetch is used for services with alternatives.
