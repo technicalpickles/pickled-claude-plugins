@@ -9,23 +9,34 @@ import os
 import re
 from pathlib import Path
 
+# Debug mode controlled by environment variable
+DEBUG = os.environ.get('TOOL_ROUTING_DEBUG', '').lower() in ('1', 'true', 'yes')
+
+def debug_log(message):
+    """Print debug message if debug mode is enabled."""
+    if DEBUG:
+        print(f"[DEBUG] {message}", file=sys.stderr)
+
 def load_config():
     """Load routing configuration from plugin hooks directory."""
     plugin_root = os.environ.get('CLAUDE_PLUGIN_ROOT', '')
     if not plugin_root:
-        print("⚠️  CLAUDE_PLUGIN_ROOT not set, allowing WebFetch", file=sys.stderr)
+        debug_log("CLAUDE_PLUGIN_ROOT not set, allowing WebFetch")
         return None
 
     config_path = Path(plugin_root) / 'hooks' / 'tool-routes.json'
+    debug_log(f"Loading config from: {config_path}")
 
     try:
         with open(config_path, 'r') as f:
-            return json.load(f)
+            config = json.load(f)
+            debug_log(f"Loaded {len(config.get('routes', {}))} routes")
+            return config
     except FileNotFoundError:
-        print(f"⚠️  Config not found: {config_path}, allowing WebFetch", file=sys.stderr)
+        debug_log(f"Config not found: {config_path}, allowing WebFetch")
         return None
     except json.JSONDecodeError as e:
-        print(f"⚠️  Invalid JSON in config: {e}, allowing WebFetch", file=sys.stderr)
+        debug_log(f"Invalid JSON in config: {e}, allowing WebFetch")
         return None
 
 def get_tool_data():
@@ -38,7 +49,10 @@ def get_tool_data():
 def check_url_patterns(url, routes):
     """Check if URL matches any routing patterns."""
     if not url:
+        debug_log("No URL in tool input")
         return None
+
+    debug_log(f"Checking URL: {url}")
 
     for route_name, route_config in routes.items():
         pattern = route_config.get('pattern', '')
@@ -47,15 +61,17 @@ def check_url_patterns(url, routes):
 
         try:
             if re.search(pattern, url, re.IGNORECASE):
+                debug_log(f"Matched route: {route_name}")
                 return {
                     'route_name': route_name,
                     'message': route_config.get('message', 'Use alternative tool'),
                     'matched_url': url
                 }
         except re.error as e:
-            print(f"⚠️  Invalid regex in route '{route_name}': {e}", file=sys.stderr)
+            debug_log(f"Invalid regex in route '{route_name}': {e}")
             continue
 
+    debug_log("No routes matched")
     return None
 
 def main():
@@ -64,19 +80,24 @@ def main():
     config = load_config()
     if not config:
         # Fail open - allow WebFetch if config issues
+        debug_log("No config loaded, allowing tool use")
         sys.exit(0)
 
     routes = config.get('routes', {})
     if not routes:
         # No routes configured, allow WebFetch
+        debug_log("No routes configured, allowing tool use")
         sys.exit(0)
 
     # Get tool data from stdin
     tool_data = get_tool_data()
     tool_name = tool_data.get('tool_name', '')
 
+    debug_log(f"Tool: {tool_name}")
+
     # Only check WebFetch calls
     if tool_name != 'WebFetch':
+        debug_log("Not WebFetch, allowing tool use")
         sys.exit(0)
 
     # Extract URL from tool input
@@ -101,5 +122,5 @@ if __name__ == '__main__':
         main()
     except Exception as e:
         # Fail open on unexpected errors
-        print(f"⚠️  Error in tool routing hook: {e}", file=sys.stderr)
+        debug_log(f"Error in tool routing hook: {e}")
         sys.exit(0)

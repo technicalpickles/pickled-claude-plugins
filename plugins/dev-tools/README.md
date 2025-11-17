@@ -53,12 +53,31 @@ Edit `hooks/tool-routes.json`:
 }
 ```
 
+**Debug Mode:**
+
+By default, the hook is silent (no warnings). Enable debug output:
+
+```bash
+export TOOL_ROUTING_DEBUG=1
+```
+
+Debug mode shows:
+- Config loading status
+- Which routes are being checked
+- Match results
+- Why tools are allowed/blocked
+
 **Testing:**
 
 Run tests from the dev-tools directory:
 ```bash
 cd plugins/dev-tools
 python3 hooks/test_tool_routing.py
+```
+
+Run with debug output:
+```bash
+TOOL_ROUTING_DEBUG=1 python3 hooks/test_tool_routing.py
 ```
 
 Tests verify:
