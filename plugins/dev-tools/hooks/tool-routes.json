@@ -1,0 +1,12 @@
+{
+  "routes": {
+    "atlassian": {
+      "pattern": "https?://[^/]*\\.atlassian\\.net",
+      "message": "Use Atlassian MCP tools for Jira/Confluence.\n\nCall: mcp__MCPProxy__retrieve_tools\nQuery: 'jira confluence atlassian issue'\n\nMCP tools provide authentication and structured data."
+    },
+    "github-pr": {
+      "pattern": "github\\.com/[^/]+/[^/]+/pull/\\d+",
+      "message": "Use `gh pr view <number>` for GitHub PRs.\n\nThis works for both public and private PRs and provides better formatting than HTML scraping."
+    }
+  }
+}
