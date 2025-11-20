@@ -14,6 +14,8 @@ Use when creating one-off scripts, debug tools, analysis reports, or temporary d
 
 Automatically suggests better tools when Claude tries to WebFetch certain services.
 
+**📖 See [docs/tool-routing-hook.md](docs/tool-routing-hook.md) for design principles and implementation details.**
+
 **What it does:**
 - Intercepts WebFetch calls before execution
 - Checks URLs against configured patterns

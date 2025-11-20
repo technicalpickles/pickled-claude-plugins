@@ -2,6 +2,9 @@
 """
 Simple test runner for tool routing hook
 Run from plugins/dev-tools: python3 hooks/test_tool_routing.py
+
+For design principles and implementation details, see:
+docs/tool-routing-hook.md
 """
 import subprocess
 import json
@@ -17,7 +20,7 @@ os.environ['CLAUDE_PLUGIN_ROOT'] = PLUGIN_DIR
 passed = 0
 failed = 0
 
-def test(name, input_data, expected_exit, should_contain=None):
+def test(name, input_data, expected_exit, should_contain=None, should_not_contain=None, debug_mode=False):
     """Run a single test case."""
     global passed, failed
 
@@ -26,6 +29,17 @@ def test(name, input_data, expected_exit, should_contain=None):
     print(f"Expected exit: {expected_exit}")
     if should_contain:
         print(f"Should contain: '{should_contain}'")
+    if should_not_contain:
+        print(f"Should NOT contain: '{should_not_contain}'")
+    if debug_mode:
+        print(f"Debug mode: enabled")
+
+    # Setup environment
+    env = os.environ.copy()
+    if debug_mode:
+        env['TOOL_ROUTING_DEBUG'] = '1'
+    elif 'TOOL_ROUTING_DEBUG' in env:
+        del env['TOOL_ROUTING_DEBUG']
 
     # Run the hook
     try:
@@ -34,7 +48,8 @@ def test(name, input_data, expected_exit, should_contain=None):
             input=json.dumps(input_data),
             capture_output=True,
             text=True,
-            timeout=2
+            timeout=2,
+            env=env
         )
 
         actual_exit = result.returncode
@@ -52,6 +67,13 @@ def test(name, input_data, expected_exit, should_contain=None):
         # Check output contains expected text
         if should_contain and should_contain not in output:
             print(f"❌ FAILED - Output doesn't contain expected text")
+            print(f"\nOutput:\n{output}")
+            failed += 1
+            return
+
+        # Check output does NOT contain text
+        if should_not_contain and should_not_contain in output:
+            print(f"❌ FAILED - Output contains text that should be excluded")
             print(f"\nOutput:\n{output}")
             failed += 1
             return
@@ -152,6 +174,68 @@ def main():
         },
         expected_exit=1,
         should_contain="gh pr view"
+    )
+
+    # Test 9: Normal mode should NOT include debug info
+    test(
+        "Normal mode excludes matched URL",
+        {
+            "tool_name": "WebFetch",
+            "tool_input": {"url": "https://github.com/user/repo/pull/42"}
+        },
+        expected_exit=1,
+        should_contain="gh pr view",
+        should_not_contain="Matched URL:",
+        debug_mode=False
+    )
+
+    # Test 10: Normal mode should NOT include route name
+    test(
+        "Normal mode excludes route name",
+        {
+            "tool_name": "WebFetch",
+            "tool_input": {"url": "https://company.atlassian.net/browse/PROJ-123"}
+        },
+        expected_exit=1,
+        should_contain="Atlassian MCP tools",
+        should_not_contain="Tool Routing:",
+        debug_mode=False
+    )
+
+    # Test 11: Debug mode SHOULD include matched URL
+    test(
+        "Debug mode includes matched URL",
+        {
+            "tool_name": "WebFetch",
+            "tool_input": {"url": "https://github.com/user/repo/pull/42"}
+        },
+        expected_exit=1,
+        should_contain="Matched URL: https://github.com/user/repo/pull/42",
+        debug_mode=True
+    )
+
+    # Test 12: Debug mode SHOULD include route name
+    test(
+        "Debug mode includes route name",
+        {
+            "tool_name": "WebFetch",
+            "tool_input": {"url": "https://company.atlassian.net/browse/PROJ-123"}
+        },
+        expected_exit=1,
+        should_contain="Tool Routing: atlassian",
+        debug_mode=True
+    )
+
+    # Test 13: Debug mode SHOULD include pattern
+    test(
+        "Debug mode includes pattern",
+        {
+            "tool_name": "WebFetch",
+            "tool_input": {"url": "https://github.com/user/repo/pull/42"}
+        },
+        expected_exit=1,
+        should_contain="Pattern:",
+        debug_mode=True
     )
 
     # Summary

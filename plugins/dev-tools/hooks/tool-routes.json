@@ -1,4 +1,5 @@
 {
+  "_comment": "Tool routing configuration. See docs/tool-routing-hook.md for design principles and examples.",
   "routes": {
     "atlassian": {
       "pattern": "https?://[^/]*\\.atlassian\\.net",

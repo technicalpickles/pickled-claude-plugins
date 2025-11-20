@@ -2,6 +2,9 @@
 """
 Tool Routing Hook for Claude Code
 Suggests better tools when WebFetch is used for services with alternatives.
+
+For design principles and implementation details, see:
+docs/tool-routing-hook.md
 """
 import json
 import sys
@@ -65,7 +68,8 @@ def check_url_patterns(url, routes):
                 return {
                     'route_name': route_name,
                     'message': route_config.get('message', 'Use alternative tool'),
-                    'matched_url': url
+                    'matched_url': url,
+                    'pattern': pattern
                 }
         except re.error as e:
             debug_log(f"Invalid regex in route '{route_name}': {e}")
@@ -108,10 +112,16 @@ def main():
 
     if match:
         # Found a match - block and provide message
-        print(f"\n❌ Tool Routing: {match['route_name']}", file=sys.stderr)
-        print(f"\nMatched URL: {match['matched_url']}", file=sys.stderr)
-        print(f"\n{match['message']}", file=sys.stderr)
-        print("", file=sys.stderr)
+        if DEBUG:
+            # Debug mode: show full details
+            print(f"❌ Tool Routing: {match['route_name']}", file=sys.stderr)
+            print(f"Matched URL: {match['matched_url']}", file=sys.stderr)
+            print(f"Pattern: {match['pattern']}", file=sys.stderr)
+            print("", file=sys.stderr)
+            print(match['message'], file=sys.stderr)
+        else:
+            # Normal mode: minimal output to save tokens
+            print(match['message'], file=sys.stderr)
         sys.exit(1)  # Block the tool use
 
     # No match - allow WebFetch
