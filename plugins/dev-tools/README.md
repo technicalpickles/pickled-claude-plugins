@@ -69,17 +69,26 @@ Debug mode shows:
 - Match results
 - Why tools are allowed/blocked
 
+**Requirements:**
+
+The hook uses `uv` for automatic Python version management:
+- `uv` automatically installs Python >=3.9 if needed
+- No external dependencies (uses Python stdlib only)
+- Inline script metadata tracks dependencies if added later
+
+Install uv: https://docs.astral.sh/uv/
+
 **Testing:**
 
 Run tests from the dev-tools directory:
 ```bash
 cd plugins/dev-tools
-python3 hooks/test_tool_routing.py
+uv run hooks/test_tool_routing.py
 ```
 
 Run with debug output:
 ```bash
-TOOL_ROUTING_DEBUG=1 python3 hooks/test_tool_routing.py
+TOOL_ROUTING_DEBUG=1 uv run hooks/test_tool_routing.py
 ```
 
 Tests verify:
@@ -90,6 +99,6 @@ Tests verify:
 
 **Files:**
 - `hooks/tool-routes.json` - Service patterns and messages (edit this)
-- `hooks/check-tool-routing.py` - Hook implementation (no need to edit)
-- `hooks/hooks.json` - Hook registration (automatic)
+- `hooks/check_tool_routing.py` - Hook implementation with PEP 723 inline script metadata
+- `hooks/hooks.json` - Hook registration (uses `uv run`)
 - `hooks/test_tool_routing.py` - Test suite

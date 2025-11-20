@@ -1,4 +1,8 @@
 #!/usr/bin/env python3 -u
+# /// script
+# requires-python = ">=3.9"
+# dependencies = []
+# ///
 """
 Tool Routing Hook for Claude Code
 Suggests better tools when WebFetch is used for services with alternatives.

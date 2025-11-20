@@ -140,6 +140,44 @@ export TOOL_ROUTING_DEBUG=1
 
 ## Implementation Details
 
+### Dependency Management
+
+The hook uses **PEP 723 inline script metadata** for dependency tracking:
+
+```python
+# /// script
+# requires-python = ">=3.9"
+# dependencies = []
+# ///
+```
+
+**Benefits:**
+- **Automatic Python installation:** `uv run` will download and install Python 3.9+ if not available
+- **Zero external dependencies:** Currently uses only Python stdlib (json, sys, os, re, pathlib)
+- **Future-proof:** Adding dependencies is as simple as updating the metadata block
+- **Portable:** No separate requirements.txt or virtual environment setup needed
+
+**Execution:**
+```bash
+uv run hooks/check_tool_routing.py
+```
+
+The hook is invoked via `hooks/hooks.json` which uses `uv run` to ensure Python is always available.
+
+**Adding dependencies later:**
+If the hook needs external packages, update the metadata:
+```python
+# /// script
+# requires-python = ">=3.9"
+# dependencies = [
+#   "pyyaml>=6.0",
+#   "requests>=2.31.0"
+# ]
+# ///
+```
+
+`uv run` will automatically create an isolated environment and install the dependencies.
+
 ### Hook Flow
 
 ```
@@ -235,7 +273,7 @@ test(
 
 **5. Verify:**
 ```bash
-python3 hooks/test_tool_routing.py
+uv run hooks/test_tool_routing.py
 ```
 
 ## Future Considerations

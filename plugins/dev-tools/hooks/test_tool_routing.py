@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.9"
+# dependencies = []
+# ///
 """
 Simple test runner for tool routing hook
-Run from plugins/dev-tools: python3 hooks/test_tool_routing.py
+Run from plugins/dev-tools: uv run hooks/test_tool_routing.py
 
 For design principles and implementation details, see:
 docs/tool-routing-hook.md
@@ -14,7 +18,7 @@ import sys
 # Setup
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PLUGIN_DIR = os.path.dirname(SCRIPT_DIR)
-HOOK_SCRIPT = os.path.join(SCRIPT_DIR, 'check-tool-routing.py')
+HOOK_SCRIPT = os.path.join(SCRIPT_DIR, 'check_tool_routing.py')
 os.environ['CLAUDE_PLUGIN_ROOT'] = PLUGIN_DIR
 
 passed = 0
@@ -44,7 +48,7 @@ def test(name, input_data, expected_exit, should_contain=None, should_not_contai
     # Run the hook
     try:
         result = subprocess.run(
-            ['python3', HOOK_SCRIPT],
+            ['uv', 'run', HOOK_SCRIPT],
             input=json.dumps(input_data),
             capture_output=True,
             text=True,
