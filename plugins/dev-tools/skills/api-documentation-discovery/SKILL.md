@@ -77,6 +77,8 @@ If framework-specific reference exists, load it for curated patterns:
 
 **Path issues:** Some languages need tool managers (mise, asdf). If `go` or `bundle` not found, try `mise exec -- <command>`.
 
+**Extending this skill:** To add a new language reference, see `references/WRITING.md` for principles and template.
+
 ## Navigation: Framework References
 
 **Available framework cheat sheets:**
