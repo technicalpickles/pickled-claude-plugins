@@ -126,7 +126,7 @@ def main():
         else:
             # Normal mode: minimal output to save tokens
             print(match['message'], file=sys.stderr)
-        sys.exit(1)  # Block the tool use
+        sys.exit(2)  # Block the tool use
 
     # No match - allow WebFetch
     sys.exit(0)

@@ -106,7 +106,7 @@ def main():
             "tool_name": "WebFetch",
             "tool_input": {"url": "https://company.atlassian.net/browse/PROJ-123"}
         },
-        expected_exit=1,
+        expected_exit=2,
         should_contain="Atlassian MCP tools"
     )
 
@@ -117,7 +117,7 @@ def main():
             "tool_name": "WebFetch",
             "tool_input": {"url": "https://github.com/user/repo/pull/42"}
         },
-        expected_exit=1,
+        expected_exit=2,
         should_contain="gh pr view"
     )
 
@@ -165,7 +165,7 @@ def main():
             "tool_name": "WebFetch",
             "tool_input": {"url": "https://myteam.atlassian.net/wiki/spaces/TEAM"}
         },
-        expected_exit=1,
+        expected_exit=2,
         should_contain="Atlassian MCP tools"
     )
 
@@ -176,7 +176,7 @@ def main():
             "tool_name": "WebFetch",
             "tool_input": {"url": "https://github.com/user/repo/pull/123"}
         },
-        expected_exit=1,
+        expected_exit=2,
         should_contain="gh pr view"
     )
 
@@ -187,7 +187,7 @@ def main():
             "tool_name": "WebFetch",
             "tool_input": {"url": "https://github.com/user/repo/pull/42"}
         },
-        expected_exit=1,
+        expected_exit=2,
         should_contain="gh pr view",
         should_not_contain="Matched URL:",
         debug_mode=False
@@ -200,7 +200,7 @@ def main():
             "tool_name": "WebFetch",
             "tool_input": {"url": "https://company.atlassian.net/browse/PROJ-123"}
         },
-        expected_exit=1,
+        expected_exit=2,
         should_contain="Atlassian MCP tools",
         should_not_contain="Tool Routing:",
         debug_mode=False
@@ -213,7 +213,7 @@ def main():
             "tool_name": "WebFetch",
             "tool_input": {"url": "https://github.com/user/repo/pull/42"}
         },
-        expected_exit=1,
+        expected_exit=2,
         should_contain="Matched URL: https://github.com/user/repo/pull/42",
         debug_mode=True
     )
@@ -225,7 +225,7 @@ def main():
             "tool_name": "WebFetch",
             "tool_input": {"url": "https://company.atlassian.net/browse/PROJ-123"}
         },
-        expected_exit=1,
+        expected_exit=2,
         should_contain="Tool Routing: atlassian",
         debug_mode=True
     )
@@ -237,7 +237,7 @@ def main():
             "tool_name": "WebFetch",
             "tool_input": {"url": "https://github.com/user/repo/pull/42"}
         },
-        expected_exit=1,
+        expected_exit=2,
         should_contain="Pattern:",
         debug_mode=True
     )
