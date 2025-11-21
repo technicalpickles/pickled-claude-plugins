@@ -1,6 +1,6 @@
 ---
 name: using-mcpproxy-tools
-description: Use when MCPProxy is configured and you need to discover or call tools - checks if mcp__MCPProxy__ tools are available, suggests /mcp reconnect if missing, explains when to use MCP tools vs HTTP API for debugging
+description: Use when user mentions MCPProxy/MCP tools (e.g., "check buildkite mcp", "use slack mcp") or when you need to discover or call tools through MCPProxy - immediately checks if mcp__MCPProxy__* tools are available, suggests /mcp reconnect if missing (MCPProxy MCP server not connected), explains when to use MCP tools vs HTTP API for debugging
 ---
 
 # Using MCPProxy Tools
@@ -13,23 +13,66 @@ MCPProxy can be accessed two ways:
 
 **This skill is for #1.** For #2, use `debugging-tools:mcpproxy-debug`.
 
-## Core Decision Tree
+## FIRST: Detect MCPProxy Connection
 
-This is your decision tree. Use it every time:
+**When user mentions MCPProxy or MCP tools:**
+- "check buildkite mcp"
+- "use slack mcp tools"
+- Any MCPProxy tool request
+
+**YOU MUST IMMEDIATELY:**
+
+1. **Look at your available tools** (passive observation - don't run commands)
+2. **Scan for tools starting with `mcp__MCPProxy__`**
+
+**Examples of what you're looking for:**
+```
+mcp__MCPProxy__retrieve_tools
+mcp__MCPProxy__call_tool
+mcp__MCPProxy__upstream_servers
+```
+
+**Decision:**
+- ✅ **See `mcp__MCPProxy__*` tools?** → MCPProxy is connected, use them
+- ❌ **Don't see `mcp__MCPProxy__*` tools?** → MCPProxy MCP server not connected
+
+**If tools are missing, IMMEDIATELY tell user:**
+
+> "MCPProxy MCP tools aren't available in this session. The MCPProxy MCP server isn't connected.
+>
+> Try the `/mcp` command and select MCPProxy to reconnect. Once reconnected, you'll have access to the `mcp__MCPProxy__*` tools."
+
+**DO NOT:**
+- Try bash commands like `claude mcp list` or `mcpproxy list-tools`
+- Try HTTP API with curl
+- Make multiple attempts with different approaches
+- Try to work around the issue
+
+**Missing `mcp__MCPProxy__*` tools = MCPProxy MCP server not connected = Suggest `/mcp reconnect`. That's it.**
+
+## Core Decision Tree (Passive Observation)
+
+**This is passive observation - look at tools you already have, don't run commands.**
 
 ```
-Are mcp__MCPProxy__* tools in your tool list?
+Look at your available tools (the tool list in this session)
+  ↓
+Do you see ANY tools starting with mcp__MCPProxy__*?
 │
-├─ YES → Use MCP tools
+├─ YES → MCPProxy is connected
 │         ├─ Discover: mcp__MCPProxy__retrieve_tools
 │         └─ Call: mcp__MCPProxy__call_tool
 │
-└─ NO → Is MCPProxy configured as MCP server?
-          ├─ YES → Suggest: "Try /mcp command to reconnect"
-          └─ NO → Can't use either approach
+└─ NO → MCPProxy MCP server not connected
+          └─ Tell user: "Try /mcp command to reconnect"
 ```
 
-**Never fall back to HTTP API when MCP tools should exist.** Missing tools = connection issue, not "tools don't exist."
+**Key points:**
+- This is OBSERVATION, not execution
+- Don't run `claude mcp list` or any bash command
+- Just scan your available tool list
+- Missing tools = connection issue, not "tools don't exist"
+- Never fall back to HTTP API
 
 ## When to Use This Skill
 
@@ -41,6 +84,37 @@ Are mcp__MCPProxy__* tools in your tool list?
 **Do NOT use when:**
 - Debugging MCPProxy itself (connection failures, config issues) → Use `debugging-tools:mcpproxy-debug`
 - MCPProxy not configured at all → Can't use either approach
+
+## What You're Looking For
+
+**When MCPProxy IS connected, your tool list includes:**
+```
+Available tools:
+- Bash
+- Read
+- Write
+- mcp__MCPProxy__retrieve_tools    ← Look for these
+- mcp__MCPProxy__call_tool          ← Look for these
+- mcp__MCPProxy__upstream_servers   ← Look for these
+- mcp__ide__getDiagnostics
+- mcp__ide__executeCode
+```
+
+**When MCPProxy is NOT connected:**
+```
+Available tools:
+- Bash
+- Read
+- Write
+- mcp__ide__getDiagnostics
+- mcp__ide__executeCode
+← No mcp__MCPProxy__* tools = Connection issue
+```
+
+**Key distinction:**
+- `mcp__ide__*` = Different MCP server (IDE integration)
+- `mcp__MCPProxy__*` = MCPProxy tools for upstream servers
+- Only `mcp__MCPProxy__*` tools indicate MCPProxy connection
 
 ## Core Pattern: Discover Then Call
 
