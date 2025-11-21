@@ -2,14 +2,20 @@
 
 ## Intent
 
-The Tool Routing Hook intercepts tool calls before execution to suggest better alternatives for specific services. It prevents Claude from using WebFetch when more appropriate tools exist (MCP servers, CLI tools, etc.).
+The Tool Routing Hook intercepts tool calls before execution to suggest better alternatives. It prevents Claude from:
+1. Using WebFetch when more appropriate tools exist (MCP servers, CLI tools, etc.)
+2. Using Bash to call MCP commands that don't exist or using MCP tool names as Bash commands
 
-**Core problem:** Claude may attempt to use WebFetch for services that:
-- Require authentication WebFetch can't provide
-- Have better-structured alternatives (MCP servers, CLI tools)
-- Return HTML that requires scraping when structured APIs exist
+**Core problems:**
+- Claude may attempt to use WebFetch for services that:
+  - Require authentication WebFetch can't provide
+  - Have better-structured alternatives (MCP servers, CLI tools)
+  - Return HTML that requires scraping when structured APIs exist
+- Claude may confuse MCP tools with Bash commands:
+  - Trying to call `mcp list-tools` via Bash (no such CLI exists)
+  - Trying to call `mcp__MCPProxy__retrieve_tools` via Bash (it's a tool call, not a command)
 
-**Solution:** Block WebFetch at the hook level and provide actionable guidance toward better tools.
+**Solution:** Block problematic tool uses at the hook level and provide actionable guidance toward correct tools.
 
 ## Design Principles
 
@@ -88,6 +94,8 @@ Route patterns and messages live in `tool-routes.json`, not Python code.
 - Messages can be iterated quickly
 
 **Format:**
+
+For WebFetch URL routing:
 ```json
 {
   "routes": {
@@ -98,6 +106,24 @@ Route patterns and messages live in `tool-routes.json`, not Python code.
   }
 }
 ```
+
+For Bash command routing:
+```json
+{
+  "routes": {
+    "bash-command-name": {
+      "tool_pattern": "Bash",
+      "command_pattern": "regex-pattern-for-command",
+      "message": "Actionable guidance with correct tool usage"
+    }
+  }
+}
+```
+
+**Pattern types:**
+- `pattern`: Matches against WebFetch URL parameter
+- `command_pattern`: Matches against Bash command parameter
+- `tool_pattern`: (Optional) Specifies which tool to apply the pattern to
 
 ### 5. Comprehensive Testing
 
@@ -182,21 +208,27 @@ If the hook needs external packages, update the metadata:
 
 ```
 1. Load config from hooks/tool-routes.json
-   └─> If error: Allow WebFetch (fail open)
+   └─> If error: Allow tool use (fail open)
 
 2. Extract tool_name from stdin
-   └─> If not WebFetch: Allow (optimization)
+   └─> If not WebFetch or Bash: Allow (optimization)
 
-3. Extract URL from tool_input
-   └─> If no URL: Allow
+3. For WebFetch:
+   ├─> Extract URL from tool_input
+   ├─> If no URL: Allow
+   └─> Check URL against route patterns
 
-4. Check URL against each route pattern
-   └─> If match found: Block with message
+4. For Bash:
+   ├─> Extract command from tool_input
+   ├─> If no command: Allow
+   └─> Check command against route command_patterns
+
+5. If match found: Block with message
    └─> If no match: Allow
 
-5. Exit code determines behavior
+6. Exit code determines behavior
    └─> 0: Allow tool execution
-   └─> 1: Block tool execution (show stderr)
+   └─> 2: Block tool execution (show stderr message)
 ```
 
 ### Pattern Matching
@@ -268,6 +300,46 @@ test(
     },
     expected_exit=1,
     should_contain="Linear MCP tools"
+)
+```
+
+**5. Verify:**
+```bash
+uv run hooks/test_tool_routing.py
+```
+
+### Example: Adding Bash Command Guard
+
+**1. Identify pattern:**
+- Claude tries to call `kubectl get pods` but should use MCP kubernetes tools
+- Pattern: `^\\s*kubectl\\s+`
+
+**2. Determine alternative:**
+- Use Kubernetes MCP server via MCPProxy
+
+**3. Add route:**
+```json
+{
+  "routes": {
+    "bash-kubectl": {
+      "tool_pattern": "Bash",
+      "command_pattern": "^\\s*kubectl\\s+",
+      "message": "Don't use Bash kubectl commands.\n\nUse Kubernetes MCP tools instead:\n\nCall: mcp__MCPProxy__retrieve_tools\nQuery: 'kubernetes pod deployment'\n\nMCP tools provide structured cluster access."
+    }
+  }
+}
+```
+
+**4. Add test:**
+```python
+test(
+    "Bash kubectl command blocks",
+    {
+        "tool_name": "Bash",
+        "tool_input": {"command": "kubectl get pods -n production"}
+    },
+    expected_exit=2,
+    should_contain="Kubernetes MCP tools"
 )
 ```
 

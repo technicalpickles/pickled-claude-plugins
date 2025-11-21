@@ -5,9 +5,23 @@
       "pattern": "https?://[^/]*\\.atlassian\\.net",
       "message": "Use Atlassian MCP tools for Jira/Confluence.\n\nCall: mcp__MCPProxy__retrieve_tools\nQuery: 'jira confluence atlassian issue'\n\nMCP tools provide authentication and structured data."
     },
+    "buildkite": {
+      "pattern": "https?://buildkite\\.com/[^/]+/[^/]+/builds/\\d+",
+      "message": "Use Buildkite MCP tools for build information.\n\nCall: mcp__MCPProxy__retrieve_tools\nQuery: 'buildkite build status pipeline'\n\nMCP tools provide authentication and structured build data."
+    },
     "github-pr": {
       "pattern": "github\\.com/[^/]+/[^/]+/pull/\\d+",
       "message": "Use `gh pr view <number>` for GitHub PRs.\n\nThis works for both public and private PRs and provides better formatting than HTML scraping."
+    },
+    "bash-mcp-cli": {
+      "tool_pattern": "Bash",
+      "command_pattern": "^\\s*mcp\\s+",
+      "message": "Don't use Bash to call the 'mcp' CLI.\n\nThe 'mcp' command is not available. Use MCP tools directly:\n\n1. Discover tools: mcp__MCPProxy__retrieve_tools\n2. Call a tool: mcp__MCPProxy__call_tool\n\nExample:\nmcp__MCPProxy__retrieve_tools(query=\"buildkite build status\")\nmcp__MCPProxy__call_tool(name=\"buildkite:get_build\", args_json=...)"
+    },
+    "bash-mcp-tool": {
+      "tool_pattern": "Bash",
+      "command_pattern": "^\\s*mcp__",
+      "message": "Don't use Bash to call MCP tool functions.\n\nMCP tools like 'mcp__MCPProxy__retrieve_tools' are tool calls, not Bash commands.\n\nUse the tool directly:\n- mcp__MCPProxy__retrieve_tools (tool call)\n- mcp__MCPProxy__call_tool (tool call)\n\nNOT as Bash commands."
     }
   }
 }

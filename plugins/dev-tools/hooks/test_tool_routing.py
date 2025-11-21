@@ -121,7 +121,29 @@ def main():
         should_contain="gh pr view"
     )
 
-    # Test 3: Random URL should allow
+    # Test 3: Buildkite build URL should block
+    test(
+        "Buildkite build URL blocks",
+        {
+            "tool_name": "WebFetch",
+            "tool_input": {"url": "https://buildkite.com/gusto/zenpayroll-deployment/builds/180747"}
+        },
+        expected_exit=2,
+        should_contain="Buildkite MCP tools"
+    )
+
+    # Test 4: Buildkite build URL with different org/pipeline
+    test(
+        "Buildkite different org blocks",
+        {
+            "tool_name": "WebFetch",
+            "tool_input": {"url": "https://buildkite.com/myorg/my-pipeline/builds/123"}
+        },
+        expected_exit=2,
+        should_contain="Buildkite MCP tools"
+    )
+
+    # Test 5: Random URL should allow
     test(
         "Random URL allows",
         {
@@ -131,7 +153,7 @@ def main():
         expected_exit=0
     )
 
-    # Test 4: Non-WebFetch tool ignores
+    # Test 6: Non-WebFetch tool ignores
     test(
         "Non-WebFetch tool ignores",
         {
@@ -141,7 +163,7 @@ def main():
         expected_exit=0
     )
 
-    # Test 5: WebFetch with no URL allows
+    # Test 7: WebFetch with no URL allows
     test(
         "WebFetch with no URL allows",
         {
@@ -151,14 +173,14 @@ def main():
         expected_exit=0
     )
 
-    # Test 6: Empty input allows (fail-open)
+    # Test 8: Empty input allows (fail-open)
     test(
         "Empty input allows (fail-open)",
         {},
         expected_exit=0
     )
 
-    # Test 7: Atlassian subdomain
+    # Test 9: Atlassian subdomain
     test(
         "Atlassian subdomain blocks",
         {
@@ -169,7 +191,7 @@ def main():
         should_contain="Atlassian MCP tools"
     )
 
-    # Test 8: GitHub issues URL
+    # Test 10: GitHub issues URL
     test(
         "GitHub issues URL blocks",
         {
@@ -180,7 +202,7 @@ def main():
         should_contain="gh pr view"
     )
 
-    # Test 9: Normal mode should NOT include debug info
+    # Test 11: Normal mode should NOT include debug info
     test(
         "Normal mode excludes matched URL",
         {
@@ -193,7 +215,7 @@ def main():
         debug_mode=False
     )
 
-    # Test 10: Normal mode should NOT include route name
+    # Test 12: Normal mode should NOT include route name
     test(
         "Normal mode excludes route name",
         {
@@ -206,7 +228,7 @@ def main():
         debug_mode=False
     )
 
-    # Test 11: Debug mode SHOULD include matched URL
+    # Test 13: Debug mode SHOULD include matched URL
     test(
         "Debug mode includes matched URL",
         {
@@ -218,7 +240,7 @@ def main():
         debug_mode=True
     )
 
-    # Test 12: Debug mode SHOULD include route name
+    # Test 14: Debug mode SHOULD include route name
     test(
         "Debug mode includes route name",
         {
@@ -230,7 +252,7 @@ def main():
         debug_mode=True
     )
 
-    # Test 13: Debug mode SHOULD include pattern
+    # Test 15: Debug mode SHOULD include pattern
     test(
         "Debug mode includes pattern",
         {
@@ -240,6 +262,169 @@ def main():
         expected_exit=2,
         should_contain="Pattern:",
         debug_mode=True
+    )
+
+    # Test 16: Bash with 'mcp list-tools' should block
+    test(
+        "Bash 'mcp list-tools' blocks",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "mcp list-tools 2>&1 | grep -i buildkite"}
+        },
+        expected_exit=2,
+        should_contain="mcp__MCPProxy__retrieve_tools"
+    )
+
+    # Test 17: Bash with 'mcp search' should block
+    test(
+        "Bash 'mcp search' blocks",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "mcp search buildkite"}
+        },
+        expected_exit=2,
+        should_contain="Don't use Bash to call the 'mcp' CLI"
+    )
+
+    # Test 18: Bash with 'mcp__MCPProxy__retrieve_tools' should block
+    test(
+        "Bash 'mcp__MCPProxy__retrieve_tools' blocks",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "mcp__MCPProxy__retrieve_tools buildkite"}
+        },
+        expected_exit=2,
+        should_contain="Don't use Bash to call MCP tool functions"
+    )
+
+    # Test 19: Bash with 'mcp__MCPProxy__call_tool' should block
+    test(
+        "Bash 'mcp__MCPProxy__call_tool' blocks",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "mcp__MCPProxy__call_tool buildkite:get_build"}
+        },
+        expected_exit=2,
+        should_contain="MCP tools like 'mcp__MCPProxy__retrieve_tools' are tool calls"
+    )
+
+    # Test 20: Normal bash command should allow
+    test(
+        "Normal bash command allows",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "git status"}
+        },
+        expected_exit=0
+    )
+
+    # Test 21: Bash with 'echo' should allow
+    test(
+        "Bash 'echo' allows",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "echo 'mcp is mentioned but not as command'"}
+        },
+        expected_exit=0
+    )
+
+    # Test 22: Bash with spaces before 'mcp' should block
+    test(
+        "Bash with leading spaces 'mcp' blocks",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "  mcp list-tools"}
+        },
+        expected_exit=2,
+        should_contain="Don't use Bash to call the 'mcp' CLI"
+    )
+
+    # Test 23: Debug mode for Bash command should show command
+    test(
+        "Debug mode shows matched command",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "mcp__MCPProxy__retrieve_tools buildkite"}
+        },
+        expected_exit=2,
+        should_contain="Matched Command:",
+        debug_mode=True
+    )
+
+    # Test 24: Bash 'mcp' with pipes should block
+    test(
+        "Bash 'mcp' with pipes blocks",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "mcp list-tools 2>&1 | grep -i buildkite"}
+        },
+        expected_exit=2,
+        should_contain="Don't use Bash to call the 'mcp' CLI"
+    )
+
+    # Test 25: Bash 'mcp' with redirects should block
+    test(
+        "Bash 'mcp' with redirects blocks",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "mcp search github > /tmp/output.txt"}
+        },
+        expected_exit=2,
+        should_contain="Don't use Bash to call the 'mcp' CLI"
+    )
+
+    # Test 26: Bash 'mcp__' with pipes should block
+    test(
+        "Bash 'mcp__' with pipes blocks",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "mcp__MCPProxy__retrieve_tools github | jq ."}
+        },
+        expected_exit=2,
+        should_contain="Don't use Bash to call MCP tool functions"
+    )
+
+    # Test 27: Bash with command substitution containing 'mcp' should block
+    test(
+        "Bash command substitution with 'mcp' blocks",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "mcp list-tools | head -n 5"}
+        },
+        expected_exit=2,
+        should_contain="Don't use Bash to call the 'mcp' CLI"
+    )
+
+    # Test 28: Bash 'mcp' in middle of pipeline should allow (not at start)
+    test(
+        "Bash 'mcp' in middle of command allows",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "echo 'test mcp stuff' | grep mcp"}
+        },
+        expected_exit=0
+    )
+
+    # Test 29: Bash with tab characters before 'mcp' should block
+    test(
+        "Bash with tabs before 'mcp' blocks",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "\t\tmcp search test"}
+        },
+        expected_exit=2,
+        should_contain="Don't use Bash to call the 'mcp' CLI"
+    )
+
+    # Test 30: Bash 'mcp' with complex shell syntax should block
+    test(
+        "Bash 'mcp' with complex syntax blocks",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "mcp list-tools 2>&1 | grep buildkite | wc -l"}
+        },
+        expected_exit=2,
+        should_contain="Don't use Bash to call the 'mcp' CLI"
     )
 
     # Summary

@@ -19,10 +19,22 @@ from pathlib import Path
 # Debug mode controlled by environment variable
 DEBUG = os.environ.get('TOOL_ROUTING_DEBUG', '').lower() in ('1', 'true', 'yes')
 
+# Log file for debugging
+DEBUG_LOG_FILE = os.path.expanduser('~/.claude/tool-routing-debug.log') if DEBUG else None
+
 def debug_log(message):
     """Print debug message if debug mode is enabled."""
     if DEBUG:
         print(f"[DEBUG] {message}", file=sys.stderr)
+        # Also write to file
+        if DEBUG_LOG_FILE:
+            try:
+                with open(DEBUG_LOG_FILE, 'a') as f:
+                    import datetime
+                    timestamp = datetime.datetime.now().isoformat()
+                    f.write(f"[{timestamp}] {message}\n")
+            except:
+                pass  # Fail silently if can't write to log
 
 def load_config():
     """Load routing configuration from plugin hooks directory."""
@@ -49,8 +61,13 @@ def load_config():
 def get_tool_data():
     """Extract tool use data from stdin."""
     try:
-        return json.load(sys.stdin)
-    except json.JSONDecodeError:
+        raw_input = sys.stdin.read()
+        debug_log(f"Raw stdin input: {raw_input[:500]}")  # Log first 500 chars
+        data = json.loads(raw_input)
+        debug_log(f"Parsed tool data: {json.dumps(data, indent=2)}")
+        return data
+    except json.JSONDecodeError as e:
+        debug_log(f"Failed to parse JSON: {e}")
         return {}
 
 def check_url_patterns(url, routes):
@@ -82,44 +99,82 @@ def check_url_patterns(url, routes):
     debug_log("No routes matched")
     return None
 
+def check_bash_command_patterns(command, routes):
+    """Check if Bash command matches any routing patterns."""
+    if not command:
+        debug_log("No command in tool input")
+        return None
+
+    debug_log(f"Checking Bash command: {command}")
+
+    for route_name, route_config in routes.items():
+        command_pattern = route_config.get('command_pattern', '')
+        if not command_pattern:
+            continue
+
+        try:
+            if re.search(command_pattern, command):
+                debug_log(f"Matched route: {route_name}")
+                return {
+                    'route_name': route_name,
+                    'message': route_config.get('message', 'Use alternative tool'),
+                    'matched_command': command,
+                    'pattern': command_pattern
+                }
+        except re.error as e:
+            debug_log(f"Invalid regex in route '{route_name}': {e}")
+            continue
+
+    debug_log("No routes matched")
+    return None
+
 def main():
     """Main hook execution."""
     # Load configuration
     config = load_config()
     if not config:
-        # Fail open - allow WebFetch if config issues
+        # Fail open - allow tool use if config issues
         debug_log("No config loaded, allowing tool use")
         sys.exit(0)
 
     routes = config.get('routes', {})
     if not routes:
-        # No routes configured, allow WebFetch
+        # No routes configured, allow tool use
         debug_log("No routes configured, allowing tool use")
         sys.exit(0)
 
     # Get tool data from stdin
     tool_data = get_tool_data()
     tool_name = tool_data.get('tool_name', '')
+    tool_input = tool_data.get('tool_input', {})
 
     debug_log(f"Tool: {tool_name}")
 
-    # Only check WebFetch calls
-    if tool_name != 'WebFetch':
-        debug_log("Not WebFetch, allowing tool use")
+    match = None
+
+    # Check WebFetch URL patterns
+    if tool_name == 'WebFetch':
+        url = tool_input.get('url', '')
+        match = check_url_patterns(url, routes)
+
+    # Check Bash command patterns
+    elif tool_name == 'Bash':
+        command = tool_input.get('command', '')
+        match = check_bash_command_patterns(command, routes)
+
+    else:
+        debug_log(f"Tool '{tool_name}' not monitored, allowing tool use")
         sys.exit(0)
-
-    # Extract URL from tool input
-    url = tool_data.get('tool_input', {}).get('url', '')
-
-    # Check against routing patterns
-    match = check_url_patterns(url, routes)
 
     if match:
         # Found a match - block and provide message
         if DEBUG:
             # Debug mode: show full details
             print(f"❌ Tool Routing: {match['route_name']}", file=sys.stderr)
-            print(f"Matched URL: {match['matched_url']}", file=sys.stderr)
+            if 'matched_url' in match:
+                print(f"Matched URL: {match['matched_url']}", file=sys.stderr)
+            if 'matched_command' in match:
+                print(f"Matched Command: {match['matched_command']}", file=sys.stderr)
             print(f"Pattern: {match['pattern']}", file=sys.stderr)
             print("", file=sys.stderr)
             print(match['message'], file=sys.stderr)
@@ -128,7 +183,8 @@ def main():
             print(match['message'], file=sys.stderr)
         sys.exit(2)  # Block the tool use
 
-    # No match - allow WebFetch
+    # No match - allow tool use
+    debug_log("No routes matched, allowing tool use")
     sys.exit(0)
 
 if __name__ == '__main__':
