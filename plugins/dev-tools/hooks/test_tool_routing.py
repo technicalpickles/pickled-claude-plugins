@@ -427,6 +427,70 @@ def main():
         should_contain="Don't use Bash to call the 'mcp' CLI"
     )
 
+    # Test 31: Bash cat with heredoc and redirect should block
+    test(
+        "Bash cat heredoc with redirect blocks",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "cat > file.txt << 'EOF'\nHello world\nEOF"}
+        },
+        expected_exit=2,
+        should_contain="Use the Write tool"
+    )
+
+    # Test 32: Bash cat with heredoc (no redirect) should block
+    test(
+        "Bash cat heredoc without redirect blocks",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "cat << EOF\nSome content\nEOF"}
+        },
+        expected_exit=2,
+        should_contain="displaying text to the user"
+    )
+
+    # Test 33: Bash cat with heredoc and append should block
+    test(
+        "Bash cat heredoc with append blocks",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "cat <<-EOF >> file.log\nLog entry\nEOF"}
+        },
+        expected_exit=2,
+        should_contain="Use the Write tool"
+    )
+
+    # Test 34: Bash cat heredoc reversed order should block
+    test(
+        "Bash cat heredoc reversed order blocks",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "cat << 'DATA' > output.txt\nContent here\nDATA"}
+        },
+        expected_exit=2,
+        should_contain="Use the Write tool"
+    )
+
+    # Test 35: Bash cat heredoc with pipe should allow
+    test(
+        "Bash cat heredoc with pipe allows",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "cat <<EOF | jq .\n{\"key\": \"value\"}\nEOF"}
+        },
+        expected_exit=0
+    )
+
+    # Test 36: Bash cat heredoc piped to grep should allow
+    test(
+        "Bash cat heredoc piped to grep allows",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "cat <<'DATA' | grep foo\nfoo bar\nDATA"}
+        },
+        expected_exit=0
+    )
+
     # Summary
     print(f"\n{'='*60}")
     print(f"RESULTS: {passed} passed, {failed} failed")

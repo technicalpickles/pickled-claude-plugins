@@ -348,6 +348,76 @@ test(
 uv run hooks/test_tool_routing.py
 ```
 
+### Example: Preventing Heredoc File Creation
+
+**1. Identify pattern:**
+- Claude uses `cat` with heredocs to create files or display progress
+- Issues: Shell compatibility (Fish vs Bash), escaping risks, wrong tool choice
+- Pattern: `cat\s+.*<<[-]?\s*['\"]?\w+['\"]?(?!.*\|)` (matches cat with heredoc, but not when piping)
+
+**2. Determine alternatives:**
+- For files: Use Write tool (safer, no escaping issues)
+- For display: Output text directly to user
+- Allow pipes: `cat <<EOF | jq` is legitimate
+
+**3. Add route:**
+```json
+{
+  "routes": {
+    "bash-cat-heredoc": {
+      "command_pattern": "cat\\s+.*<<[-]?\\s*['\"]?\\w+['\"]?(?!.*\\|)",
+      "message": "Don't use cat with heredocs for file creation or display.\n\nFor writing to files:\n  Use the Write tool instead of cat with redirection.\n  Example: Write(file_path=\"/path/to/file\", content=\"...\")\n\nFor displaying text to the user:\n  Output text directly in your response.\n  Don't use cat or echo - just write the text.\n\nValid heredoc use:\n  Only use cat <<EOF when piping to another command:\n  cat <<EOF | jq ."
+    }
+  }
+}
+```
+
+**4. Add tests:**
+```python
+# Should block - file creation
+test(
+    "Bash cat heredoc with redirect blocks",
+    {
+        "tool_name": "Bash",
+        "tool_input": {"command": "cat > file.txt << 'EOF'\nHello world\nEOF"}
+    },
+    expected_exit=2,
+    should_contain="Use the Write tool"
+)
+
+# Should block - display only
+test(
+    "Bash cat heredoc without redirect blocks",
+    {
+        "tool_name": "Bash",
+        "tool_input": {"command": "cat << EOF\nSome content\nEOF"}
+    },
+    expected_exit=2,
+    should_contain="displaying text to the user"
+)
+
+# Should allow - piping is valid
+test(
+    "Bash cat heredoc with pipe allows",
+    {
+        "tool_name": "Bash",
+        "tool_input": {"command": "cat <<EOF | jq .\n{\"key\": \"value\"}\nEOF"}
+    },
+    expected_exit=0
+)
+```
+
+**5. Verify:**
+```bash
+uv run hooks/test_tool_routing.py
+```
+
+**Pattern details:**
+- `cat\s+.*<<[-]?` - Matches `cat` with heredoc (including `<<-` variant)
+- `\s*['\"]?\w+['\"]?` - Matches delimiter with optional quotes
+- `(?!.*\|)` - Negative lookahead: don't match if pipe exists anywhere in command
+- This allows `cat <<EOF | jq` but blocks `cat <<EOF > file` and `cat <<EOF`
+
 ## Future Considerations
 
 ### Potential Enhancements
