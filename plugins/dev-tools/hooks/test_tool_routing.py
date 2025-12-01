@@ -491,6 +491,58 @@ def main():
         expected_exit=0
     )
 
+    # Test 37: Bash triple echo chain should block
+    test(
+        "Bash triple echo chain blocks",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "echo \"=== SUMMARY ===\" && echo \"\" && echo \"✅ Task complete\""}
+        },
+        expected_exit=2,
+        should_contain="Output text directly"
+    )
+
+    # Test 38: Bash single echo should allow
+    test(
+        "Bash single echo allows",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "echo 'test' > file.txt"}
+        },
+        expected_exit=0
+    )
+
+    # Test 39: Bash conditional echo with || should allow
+    test(
+        "Bash conditional echo allows",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "test -f file.txt && echo 'found' || echo 'not found'"}
+        },
+        expected_exit=0
+    )
+
+    # Test 40: Bash double echo chain should allow (requires 3+ to block)
+    test(
+        "Bash double echo chain allows",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "echo 'Step 1' && echo 'Step 2'"}
+        },
+        expected_exit=0
+    )
+
+    # Test 41: Bash very long echo chain should block
+    test(
+        "Bash long echo chain blocks",
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "echo \"Line 1\" && echo \"Line 2\" && echo \"Line 3\" && echo \"Line 4\" && echo \"Line 5\""}
+        },
+        expected_exit=2,
+        should_contain="Don't use chained echo commands"
+    )
+
     # Summary
     print(f"\n{'='*60}")
     print(f"RESULTS: {passed} passed, {failed} failed")

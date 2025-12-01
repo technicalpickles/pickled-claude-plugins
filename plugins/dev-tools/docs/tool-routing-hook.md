@@ -418,6 +418,76 @@ uv run hooks/test_tool_routing.py
 - `(?!.*\|)` - Negative lookahead: don't match if pipe exists anywhere in command
 - This allows `cat <<EOF | jq` but blocks `cat <<EOF > file` and `cat <<EOF`
 
+### Example: Preventing Chained Echo for Communication
+
+**1. Identify pattern:**
+- Claude chains multiple `echo` commands with `&&` to display multi-line progress/summaries
+- Issues: Wrong tool for communication, verbose, error-prone
+- Pattern: `echo\s+["'].*&&\s+echo.*&&\s+echo` (matches 3+ chained echoes)
+
+**2. Determine alternatives:**
+- For user communication: Output text directly in response
+- For scripts: Use heredoc with `cat <<EOF`
+- Allow single echo: Legitimate for shell operations
+- Allow `||` patterns: Legitimate error handling like `test -f file && echo 'found' || echo 'missing'`
+
+**3. Add route:**
+```json
+{
+  "routes": {
+    "bash-echo-chained": {
+      "command_pattern": "echo\\s+[\"'].*&&\\s+echo.*&&\\s+echo",
+      "message": "Don't use chained echo commands for multi-line output or communication.\n\nFor displaying information to the user:\n  Output text directly in your response.\n  Don't use echo with && chains - just write the text.\n\nFor shell scripting:\n  If you need multi-line output in a script, use a heredoc:\n  cat <<EOF\n  line 1\n  line 2\n  EOF\n\nThe echo command should only be used for:\n  - Single simple outputs in legitimate shell operations\n  - Testing or debugging actual shell behavior"
+    }
+  }
+}
+```
+
+**4. Add tests:**
+```python
+# Should block - three chained echoes for display
+test(
+    "Bash triple echo chain blocks",
+    {
+        "tool_name": "Bash",
+        "tool_input": {"command": "echo \"=== SUMMARY ===\" && echo \"\" && echo \"✅ Task complete\""}
+    },
+    expected_exit=2,
+    should_contain="Output text directly"
+)
+
+# Should allow - single echo
+test(
+    "Bash single echo allows",
+    {
+        "tool_name": "Bash",
+        "tool_input": {"command": "echo 'test' > file.txt"}
+    },
+    expected_exit=0
+)
+
+# Should allow - conditional with ||
+test(
+    "Bash conditional echo allows",
+    {
+        "tool_name": "Bash",
+        "tool_input": {"command": "test -f file.txt && echo 'found' || echo 'not found'"}
+    },
+    expected_exit=0
+)
+```
+
+**5. Verify:**
+```bash
+uv run hooks/test_tool_routing.py
+```
+
+**Pattern rationale:**
+- Requires 3+ `echo` commands with `&&` to clearly indicate display/communication intent
+- Doesn't match `||` patterns which are legitimate error handling
+- Single or double echoes are allowed as they may be legitimate shell operations
+- Three chained echoes strongly indicate using Bash for user communication
+
 ## Future Considerations
 
 ### Potential Enhancements

@@ -26,6 +26,10 @@
     "bash-cat-heredoc": {
       "command_pattern": "cat\\s+.*<<[-]?\\s*['\"]?\\w+['\"]?(?!.*\\|)",
       "message": "Don't use cat with heredocs for file creation or display.\n\nFor writing to files:\n  Use the Write tool instead of cat with redirection.\n  Example: Write(file_path=\"/path/to/file\", content=\"...\")\n\nFor displaying text to the user:\n  Output text directly in your response.\n  Don't use cat or echo - just write the text.\n\nValid heredoc use:\n  Only use cat <<EOF when piping to another command:\n  cat <<EOF | jq ."
+    },
+    "bash-echo-chained": {
+      "command_pattern": "echo\\s+[\"'].*&&\\s+echo.*&&\\s+echo",
+      "message": "Don't use chained echo commands for multi-line output or communication.\n\nFor displaying information to the user:\n  Output text directly in your response.\n  Don't use echo with && chains - just write the text.\n\nFor shell scripting:\n  If you need multi-line output in a script, use a heredoc:\n  cat <<EOF\n  line 1\n  line 2\n  EOF\n\nThe echo command should only be used for:\n  - Single simple outputs in legitimate shell operations\n  - Testing or debugging actual shell behavior"
     }
   }
 }
