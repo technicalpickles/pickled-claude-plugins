@@ -23,6 +23,14 @@
       "command_pattern": "^\\s*mcp__",
       "message": "Don't use Bash to call MCP tool functions.\n\nMCP tools like 'mcp__MCPProxy__retrieve_tools' are tool calls, not Bash commands.\n\nUse the tool directly:\n- mcp__MCPProxy__retrieve_tools (tool call)\n- mcp__MCPProxy__call_tool (tool call)\n\nNOT as Bash commands."
     },
+    "git-commit-multiline": {
+      "command_pattern": "git\\s+commit\\s+.*(?:(?:-m\\s+[\"'][^\"']*[\"'].*-m)|(?:\\$\\(cat\\s*<<)|(?:<<[-]?\\s*['\"]?\\w+['\"]?))",
+      "message": "Don't use multiple -m flags or heredocs for git commit messages.\n\nFor multiline commit messages:\n  1. Use Write tool to create a commit message file\n  2. Use git commit -F <file> to read from the file\n\nExample:\n  Write(file_path=\"/tmp/commit-msg.txt\", content=\"Title\\n\\nBody paragraph 1\\n\\nBody paragraph 2\")\n  git commit -F /tmp/commit-msg.txt\n\nThis approach:\n  - Makes commit messages easier to review before committing\n  - Avoids complex shell quoting issues\n  - Provides better error handling"
+    },
+    "gh-pr-create-multiline": {
+      "command_pattern": "gh\\s+pr\\s+create\\s+.*(?:(?:--body\\s+[\"']\\$\\(cat\\s*<<)|(?:<<[-]?\\s*['\"]?\\w+['\"]?))",
+      "message": "Don't use heredocs or command substitution for gh pr create body.\n\nFor multiline PR descriptions:\n  1. Use Write tool to create a PR body file\n  2. Use gh pr create --body-file <file>\n\nExample:\n  Write(file_path=\"/tmp/pr-body.md\", content=\"## Summary\\n...\")\n  gh pr create --title \"Title\" --body-file /tmp/pr-body.md\n\nThis approach:\n  - Makes PR descriptions easier to review before creating\n  - Avoids complex shell quoting issues\n  - Allows you to use proper markdown formatting\n  - Provides better error handling"
+    },
     "bash-cat-heredoc": {
       "command_pattern": "cat\\s+.*<<[-]?\\s*['\"]?\\w+['\"]?(?!.*\\|)",
       "message": "Don't use cat with heredocs for file creation or display.\n\nFor writing to files:\n  Use the Write tool instead of cat with redirection.\n  Example: Write(file_path=\"/path/to/file\", content=\"...\")\n\nFor displaying text to the user:\n  Output text directly in your response.\n  Don't use cat or echo - just write the text.\n\nValid heredoc use:\n  Only use cat <<EOF when piping to another command:\n  cat <<EOF | jq ."

@@ -241,6 +241,56 @@ Patterns use Python's `re.search()` with case-insensitive matching.
 - Escape special regex characters (`[](){}+*?|^$`)
 - Test patterns against various URL formats
 
+### Route Ordering
+
+**Route order matters.** The hook returns on the **first match**, so routes are checked in the order they appear in `tool-routes.json`.
+
+**Critical principle:** More specific patterns must come before generic patterns.
+
+**Why:**
+- Python 3.7+ maintains dictionary insertion order
+- `check_bash_command_patterns()` returns immediately on first match (line 118)
+- Generic patterns placed first will "shadow" specific patterns
+
+**Example ordering:**
+```json
+{
+  "routes": {
+    "git-commit-multiline": {
+      "command_pattern": "git\\s+commit\\s+.*(?:(?:-m\\s+[\"'][^\"']*[\"'].*-m)|...)",
+      "message": "Use Write + git commit -F for multiline commits"
+    },
+    "gh-pr-create-multiline": {
+      "command_pattern": "gh\\s+pr\\s+create\\s+.*(?:(?:--body\\s+[\"']\\$\\(cat\\s*<<)|...)",
+      "message": "Use Write + gh pr create --body-file for PRs"
+    },
+    "bash-cat-heredoc": {
+      "command_pattern": "cat\\s+.*<<[-]?\\s*['\"]?\\w+['\"]?(?!.*\\|)",
+      "message": "Generic: Use Write tool instead of cat heredocs"
+    }
+  }
+}
+```
+
+**Correct behavior:**
+- `git commit -m "$(cat <<EOF...)"` → Matches `git-commit-multiline` (specific git guidance)
+- `gh pr create --body "$(cat <<EOF...)"` → Matches `gh-pr-create-multiline` (specific gh guidance)
+- `cat <<EOF > file.txt` → Matches `bash-cat-heredoc` (generic fallback)
+
+**Incorrect ordering would cause:**
+- `git commit` with heredoc → Matches `bash-cat-heredoc` (wrong message, missing git-specific guidance)
+
+**Testing route order:**
+Use the test script with debug mode to verify which route matches:
+```bash
+TOOL_ROUTING_DEBUG=1 CLAUDE_PLUGIN_ROOT="$PWD/plugins/dev-tools" \
+  uv run plugins/dev-tools/hooks/check_tool_routing.py <<'EOF'
+{"tool_name": "Bash", "tool_input": {"command": "git commit -m \"$(cat <<EOF...)\""}}
+EOF
+```
+
+Look for `[DEBUG] Matched route: <route_name>` to confirm the correct route triggered.
+
 **Examples:**
 
 Match any Atlassian subdomain:
@@ -487,6 +537,162 @@ uv run hooks/test_tool_routing.py
 - Doesn't match `||` patterns which are legitimate error handling
 - Single or double echoes are allowed as they may be legitimate shell operations
 - Three chained echoes strongly indicate using Bash for user communication
+
+### Example: Git Commit with File-Based Messages
+
+**1. Identify pattern:**
+- Claude uses multiple `-m` flags or heredocs for multiline git commit messages
+- Issues: Hard to review before committing, complex shell quoting, error-prone
+- Pattern: `git\s+commit\s+.*(?:(?:-m\s+["'][^"']*["'].*-m)|(?:\$\(cat\s*<<)|(?:<<[-]?\s*['"]?\w+['"]?))`
+
+**2. Determine alternative:**
+- Use Write tool to create commit message file
+- Use `git commit -F <file>` to read from file
+- Allows review before committing, cleaner commands
+
+**3. Add route:**
+```json
+{
+  "routes": {
+    "git-commit-multiline": {
+      "command_pattern": "git\\s+commit\\s+.*(?:(?:-m\\s+[\"'][^\"']*[\"'].*-m)|(?:\\$\\(cat\\s*<<)|(?:<<[-]?\\s*['\"]?\\w+['\"]?))",
+      "message": "Don't use multiple -m flags or heredocs for git commit messages.\n\nFor multiline commit messages:\n  1. Use Write tool to create a commit message file\n  2. Use git commit -F <file> to read from the file\n\nExample:\n  Write(file_path=\"/tmp/commit-msg.txt\", content=\"Title\\n\\nBody paragraph 1\\n\\nBody paragraph 2\")\n  git commit -F /tmp/commit-msg.txt\n\nThis approach:\n  - Makes commit messages easier to review before committing\n  - Avoids complex shell quoting issues\n  - Provides better error handling"
+    }
+  }
+}
+```
+
+**4. Add tests:**
+```python
+# Should block - multiple -m flags
+test(
+    "Git commit with multiple -m flags blocks",
+    {
+        "tool_name": "Bash",
+        "tool_input": {"command": "git commit -m \"Title\" -m \"Body para 1\" -m \"Body para 2\""}
+    },
+    expected_exit=2,
+    should_contain="Use Write tool"
+)
+
+# Should block - heredoc in command substitution
+test(
+    "Git commit with heredoc blocks",
+    {
+        "tool_name": "Bash",
+        "tool_input": {"command": "git commit -m \"$(cat <<'EOF'\nTitle\n\nBody\nEOF\n)\""}
+    },
+    expected_exit=2,
+    should_contain="git commit -F"
+)
+
+# Should allow - single -m flag
+test(
+    "Git commit with single -m allows",
+    {
+        "tool_name": "Bash",
+        "tool_input": {"command": "git commit -m \"Simple commit message\""}
+    },
+    expected_exit=0
+)
+
+# Should allow - commit -F with file
+test(
+    "Git commit with -F allows",
+    {
+        "tool_name": "Bash",
+        "tool_input": {"command": "git commit -F /tmp/commit-msg.txt"}
+    },
+    expected_exit=0
+)
+```
+
+**5. Verify:**
+```bash
+uv run hooks/test_tool_routing.py
+```
+
+**Pattern details:**
+- `git\s+commit\s+.*` - Matches git commit with any flags
+- `(?:-m\s+["'][^"']*["'].*-m)` - Matches multiple -m flags (2+)
+- `(?:\$\(cat\s*<<)` - Matches command substitution with cat heredoc
+- `(?:<<[-]?\s*['"]?\w+['"]?)` - Matches direct heredoc usage
+- Matches any of these patterns in the git commit command
+
+**Ordering consideration:**
+This route must appear **before** `bash-cat-heredoc` in the configuration to ensure git-specific guidance is provided instead of generic heredoc messages.
+
+### Example: GitHub PR Creation with Body Files
+
+**1. Identify pattern:**
+- Claude uses heredocs or command substitution for PR body text
+- Issues: Hard to review before creating PR, complex escaping, wrong tool choice
+- Pattern: `gh\s+pr\s+create\s+.*(?:(?:--body\s+["']\$\(cat\s*<<)|(?:<<[-]?\s*['"]?\w+['"]?))`
+
+**2. Determine alternative:**
+- Use Write tool to create PR body markdown file
+- Use `gh pr create --body-file <file>` to read from file
+- Allows review before creating, proper markdown formatting
+
+**3. Add route:**
+```json
+{
+  "routes": {
+    "gh-pr-create-multiline": {
+      "command_pattern": "gh\\s+pr\\s+create\\s+.*(?:(?:--body\\s+[\"']\\$\\(cat\\s*<<)|(?:<<[-]?\\s*['\"]?\\w+['\"]?))",
+      "message": "Don't use heredocs or command substitution for gh pr create body.\n\nFor multiline PR descriptions:\n  1. Use Write tool to create a PR body file\n  2. Use gh pr create --body-file <file>\n\nExample:\n  Write(file_path=\"/tmp/pr-body.md\", content=\"## Summary\\n...\")\n  gh pr create --title \"Title\" --body-file /tmp/pr-body.md\n\nThis approach:\n  - Makes PR descriptions easier to review before creating\n  - Avoids complex shell quoting issues\n  - Allows you to use proper markdown formatting\n  - Provides better error handling"
+    }
+  }
+}
+```
+
+**4. Add tests:**
+```python
+# Should block - heredoc in --body
+test(
+    "gh pr create with heredoc blocks",
+    {
+        "tool_name": "Bash",
+        "tool_input": {"command": "gh pr create --title \"Title\" --body \"$(cat <<'EOF'\n## Summary\nDetails\nEOF\n)\""}
+    },
+    expected_exit=2,
+    should_contain="--body-file"
+)
+
+# Should allow - --body-file
+test(
+    "gh pr create with --body-file allows",
+    {
+        "tool_name": "Bash",
+        "tool_input": {"command": "gh pr create --title \"Title\" --body-file /tmp/pr-body.md"}
+    },
+    expected_exit=0
+)
+
+# Should allow - simple inline body
+test(
+    "gh pr create with simple --body allows",
+    {
+        "tool_name": "Bash",
+        "tool_input": {"command": "gh pr create --title \"Title\" --body \"Simple description\""}
+    },
+    expected_exit=0
+)
+```
+
+**5. Verify:**
+```bash
+uv run hooks/test_tool_routing.py
+```
+
+**Pattern details:**
+- `gh\s+pr\s+create\s+.*` - Matches gh pr create with any flags
+- `(?:--body\s+["']\$\(cat\s*<<)` - Matches --body with command substitution heredoc
+- `(?:<<[-]?\s*['"]?\w+['"]?)` - Matches direct heredoc usage in command
+- Detects when PR body uses shell heredocs instead of file-based approach
+
+**Ordering consideration:**
+This route must appear **before** `bash-cat-heredoc` in the configuration to ensure gh-specific guidance is provided instead of generic heredoc messages.
 
 ## Future Considerations
 

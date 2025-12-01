@@ -12,23 +12,36 @@ Use when creating one-off scripts, debug tools, analysis reports, or temporary d
 
 ### Tool Routing Hook
 
-Automatically suggests better tools when Claude tries to WebFetch certain services.
+Automatically suggests better tools when Claude tries to use suboptimal approaches for common operations.
 
 **📖 See [docs/tool-routing-hook.md](docs/tool-routing-hook.md) for design principles and implementation details.**
 
 **What it does:**
-- Intercepts WebFetch calls before execution
-- Checks URLs against configured patterns
-- Blocks and suggests alternatives for matched services
+- Intercepts WebFetch and Bash tool calls before execution
+- Checks URLs and commands against configured patterns
+- Blocks and suggests alternatives for matched patterns
 
-**Configured services:**
+**Configured routes:**
+
+**WebFetch routing:**
 - **Atlassian (Jira/Confluence)** → Suggests MCP tools via `mcp__MCPProxy__retrieve_tools`
+- **Buildkite builds** → Suggests Buildkite MCP tools
 - **GitHub PRs** → Suggests `gh pr view <number>` for both public and private PRs
+
+**Bash command routing:**
+- **MCP CLI calls** → Blocks `mcp` command (doesn't exist), suggests MCP tool calls
+- **MCP tools as bash** → Blocks `mcp__*` as bash commands, suggests proper tool calls
+- **Cat heredocs** → Blocks `cat <<EOF` for file creation/display, suggests Write tool or direct output
+- **Chained echo** → Blocks 3+ chained echoes for communication, suggests direct output
+- **Git commit multiline** → Blocks multiple `-m` flags or heredocs, suggests Write + `git commit -F`
+- **gh pr create multiline** → Blocks heredocs for PR body, suggests Write + `gh pr create --body-file`
 
 **Benefits:**
 - MCP tools provide authentication and structured data
 - `gh pr view` works for private repos (WebFetch doesn't)
 - Better formatting than HTML scraping
+- Write tool is cleaner than heredocs for file creation
+- File-based git/gh messages are reviewable before execution
 - Automatic enforcement (doesn't rely on Claude remembering)
 
 **To add a service:**
