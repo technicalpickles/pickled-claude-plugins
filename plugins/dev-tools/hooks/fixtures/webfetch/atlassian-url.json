@@ -1,0 +1,13 @@
+{
+  "name": "Atlassian URL blocks",
+  "tool_call": {
+    "tool_name": "WebFetch",
+    "tool_input": {
+      "url": "https://company.atlassian.net/browse/PROJ-123"
+    }
+  },
+  "expected_exit": 2,
+  "assertions": {
+    "should_contain": "Atlassian MCP tools"
+  }
+}

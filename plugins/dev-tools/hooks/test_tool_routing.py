@@ -14,22 +14,60 @@ import subprocess
 import json
 import os
 import sys
+from pathlib import Path
 
 # Setup
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PLUGIN_DIR = os.path.dirname(SCRIPT_DIR)
 HOOK_SCRIPT = os.path.join(SCRIPT_DIR, 'check_tool_routing.py')
+FIXTURES_DIR = os.path.join(SCRIPT_DIR, 'fixtures')
 os.environ['CLAUDE_PLUGIN_ROOT'] = PLUGIN_DIR
 
 passed = 0
 failed = 0
 
-def test(name, input_data, expected_exit, should_contain=None, should_not_contain=None, debug_mode=False):
+def load_fixtures():
+    """Load all fixture files from the fixtures directory."""
+    fixtures = []
+    fixtures_path = Path(FIXTURES_DIR)
+
+    if not fixtures_path.exists():
+        print(f"Warning: Fixtures directory not found: {FIXTURES_DIR}")
+        return fixtures
+
+    # Recursively find all .json files
+    for fixture_file in fixtures_path.rglob('*.json'):
+        try:
+            with open(fixture_file, 'r') as f:
+                fixture = json.load(f)
+                fixture['_source'] = str(fixture_file.relative_to(fixtures_path))
+                fixtures.append(fixture)
+        except Exception as e:
+            print(f"Warning: Failed to load fixture {fixture_file}: {e}")
+
+    return fixtures
+
+def test_from_fixture(fixture, debug_mode=False):
+    """Run a test from a fixture definition."""
+    assertions = fixture.get('assertions', {})
+    test(
+        name=fixture['name'],
+        input_data=fixture['tool_call'],
+        expected_exit=fixture['expected_exit'],
+        should_contain=assertions.get('should_contain'),
+        should_not_contain=assertions.get('should_not_contain'),
+        debug_mode=debug_mode,
+        source=fixture.get('_source')
+    )
+
+def test(name, input_data, expected_exit, should_contain=None, should_not_contain=None, debug_mode=False, source=None):
     """Run a single test case."""
     global passed, failed
 
     print(f"\n{'='*60}")
     print(f"Test: {name}")
+    if source:
+        print(f"Source: {source}")
     print(f"Expected exit: {expected_exit}")
     if should_contain:
         print(f"Should contain: '{should_contain}'")
@@ -98,6 +136,21 @@ def main():
     print("Tool Routing Hook Test Suite")
     print(f"Plugin root: {os.environ['CLAUDE_PLUGIN_ROOT']}")
     print(f"Hook script: {HOOK_SCRIPT}")
+
+    # Load and run fixture-based tests
+    print("\n" + "="*60)
+    print("FIXTURE-BASED TESTS")
+    print("="*60)
+    fixtures = load_fixtures()
+    print(f"Loaded {len(fixtures)} fixtures from {FIXTURES_DIR}")
+
+    for fixture in fixtures:
+        test_from_fixture(fixture)
+
+    # Legacy inline tests below
+    print("\n" + "="*60)
+    print("INLINE TESTS (Legacy)")
+    print("="*60)
 
     # Test 1: Atlassian URL should block
     test(

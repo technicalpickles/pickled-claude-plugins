@@ -1,0 +1,13 @@
+{
+  "name": "Buildkite build URL blocks",
+  "tool_call": {
+    "tool_name": "WebFetch",
+    "tool_input": {
+      "url": "https://buildkite.com/gusto/zenpayroll-deployment/builds/180747"
+    }
+  },
+  "expected_exit": 2,
+  "assertions": {
+    "should_contain": "Buildkite MCP tools"
+  }
+}

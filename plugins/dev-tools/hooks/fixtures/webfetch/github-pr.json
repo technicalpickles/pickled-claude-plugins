@@ -1,0 +1,13 @@
+{
+  "name": "GitHub PR URL blocks",
+  "tool_call": {
+    "tool_name": "WebFetch",
+    "tool_input": {
+      "url": "https://github.com/user/repo/pull/42"
+    }
+  },
+  "expected_exit": 2,
+  "assertions": {
+    "should_contain": "gh pr view"
+  }
+}

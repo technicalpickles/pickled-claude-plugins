@@ -1,0 +1,11 @@
+{
+  "name": "Random URL allows",
+  "tool_call": {
+    "tool_name": "WebFetch",
+    "tool_input": {
+      "url": "https://example.com/page"
+    }
+  },
+  "expected_exit": 0,
+  "assertions": {}
+}

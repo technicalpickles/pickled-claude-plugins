@@ -1,0 +1,13 @@
+{
+  "name": "Bash 'mcp list-tools' blocks",
+  "tool_call": {
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "mcp list-tools 2>&1 | grep -i buildkite"
+    }
+  },
+  "expected_exit": 2,
+  "assertions": {
+    "should_contain": "mcp__MCPProxy__retrieve_tools"
+  }
+}

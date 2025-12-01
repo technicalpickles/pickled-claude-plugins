@@ -1,0 +1,11 @@
+{
+  "name": "Normal bash command allows",
+  "tool_call": {
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "git status"
+    }
+  },
+  "expected_exit": 0,
+  "assertions": {}
+}

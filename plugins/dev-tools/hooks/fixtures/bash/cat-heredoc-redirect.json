@@ -1,0 +1,13 @@
+{
+  "name": "Bash cat heredoc with redirect blocks",
+  "tool_call": {
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "cat > file.txt << 'EOF'\nHello world\nEOF"
+    }
+  },
+  "expected_exit": 2,
+  "assertions": {
+    "should_contain": "Use the Write tool"
+  }
+}
