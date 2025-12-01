@@ -169,12 +169,16 @@ def main():
     if match:
         # Found a match - block and provide message
         if DEBUG:
-            # Debug mode: show full details
+            # Debug mode: show full details (but truncate long values)
             print(f"❌ Tool Routing: {match['route_name']}", file=sys.stderr)
             if 'matched_url' in match:
-                print(f"Matched URL: {match['matched_url']}", file=sys.stderr)
+                url = match['matched_url']
+                display = url if len(url) <= 200 else url[:200] + '...'
+                print(f"Matched URL: {display}", file=sys.stderr)
             if 'matched_command' in match:
-                print(f"Matched Command: {match['matched_command']}", file=sys.stderr)
+                cmd = match['matched_command']
+                display = cmd if len(cmd) <= 200 else cmd[:200] + '...'
+                print(f"Matched Command: {display}", file=sys.stderr)
             print(f"Pattern: {match['pattern']}", file=sys.stderr)
             print("", file=sys.stderr)
             print(match['message'], file=sys.stderr)
