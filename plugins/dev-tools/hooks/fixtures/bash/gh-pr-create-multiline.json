@@ -1,0 +1,15 @@
+{
+  "name": "GitHub PR create with heredoc should redirect to Write + gh pr create --body-file",
+  "tool_call": {
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "gh pr create --title \"Add feature\" --body \"$(cat <<'EOF'\n## Summary\nThis PR adds a new feature\n\n## Test plan\n- Test 1\n- Test 2\nEOF\n)\"",
+      "description": "Create PR with multiline body"
+    }
+  },
+  "expected_exit": 2,
+  "assertions": {
+    "should_contain": ".tmp/pr-body-",
+    "should_not_contain": "/tmp/"
+  }
+}

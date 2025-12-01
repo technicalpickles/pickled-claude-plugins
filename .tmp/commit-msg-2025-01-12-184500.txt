@@ -1,0 +1,19 @@
+Fix tool routing to use .tmp/ with timestamps to avoid worktree collisions
+
+Updates git-commit-multiline and gh-pr-create-multiline routing rules to use
+project-local .tmp/ directory with timestamped filenames instead of /tmp.
+
+Changes:
+- Redirect to .tmp/commit-msg-YYYY-MM-DD-HHMMSS.txt (was /tmp/commit-msg.txt)
+- Redirect to .tmp/pr-body-YYYY-MM-DD-HHMMSS.md (was /tmp/pr-body.md)
+- Add test fixtures for both routing rules
+- Document .tmp/ usage and global gitignore setup
+- Add design document in docs/plans/
+
+Benefits:
+- No collisions when working across multiple worktrees/projects
+- Chronological history preserved in .tmp/
+- Human-readable timestamps for debugging
+- Files stay local to project (easier to find)
+
+All 53 tests pass including new fixtures.

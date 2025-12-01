@@ -694,6 +694,49 @@ uv run hooks/test_tool_routing.py
 **Ordering consideration:**
 This route must appear **before** `bash-cat-heredoc` in the configuration to ensure gh-specific guidance is provided instead of generic heredoc messages.
 
+## Temporary File Management
+
+### Project-Local `.tmp/` Directory
+
+The tool routing rules use `.tmp/` for temporary files (commit messages, PR bodies, etc.) with timestamped filenames to avoid collisions across worktrees and projects.
+
+**Filename pattern:** `.tmp/{operation}-{YYYY-MM-DD-HHMMSS}.{ext}`
+
+**Examples:**
+- `.tmp/commit-msg-2025-01-12-143022.txt`
+- `.tmp/pr-body-2025-01-12-143045.md`
+
+**Benefits:**
+- No collisions between worktrees or projects
+- Easy to debug (can see which operation and when)
+- Chronological sorting in directory listings
+- Files stay local to the project (easier to find)
+
+### Global Gitignore Setup
+
+Add `.tmp/` to your global gitignore to prevent these temporary files from appearing in git status across all projects.
+
+**Setup:**
+
+1. Create/edit `~/.gitignore_global`:
+   ```bash
+   echo ".tmp/" >> ~/.gitignore_global
+   ```
+
+2. Configure git to use it (if not already set):
+   ```bash
+   git config --global core.excludesfile ~/.gitignore_global
+   ```
+
+### Manual Cleanup
+
+Temporary files accumulate in `.tmp/`. Clean them up periodically:
+```bash
+rm -rf .tmp/
+```
+
+These files are useful for debugging failed commits/PRs, so we don't auto-delete them.
+
 ## Future Considerations
 
 ### Potential Enhancements

@@ -1,0 +1,15 @@
+{
+  "name": "Git commit with multiple -m flags should redirect to Write + git commit -F",
+  "tool_call": {
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "git commit -m \"Title line\" -m \"Body paragraph 1\" -m \"Body paragraph 2\"",
+      "description": "Create multiline commit message"
+    }
+  },
+  "expected_exit": 2,
+  "assertions": {
+    "should_contain": ".tmp/commit-msg-",
+    "should_not_contain": "/tmp/"
+  }
+}
