@@ -38,6 +38,10 @@
     "bash-echo-chained": {
       "command_pattern": "echo\\s+[\"'].*&&\\s+echo.*&&\\s+echo",
       "message": "Don't use chained echo commands for multi-line output or communication.\n\nFor displaying information to the user:\n  Output text directly in your response.\n  Don't use echo with && chains - just write the text.\n\nFor shell scripting:\n  If you need multi-line output in a script, use a heredoc:\n  cat <<EOF\n  line 1\n  line 2\n  EOF\n\nThe echo command should only be used for:\n  - Single simple outputs in legitimate shell operations\n  - Testing or debugging actual shell behavior"
+    },
+    "bash-echo-redirect": {
+      "command_pattern": "^echo\\s+[\\s\\S]*>\\s*/",
+      "message": "Don't use echo with file redirection to write files.\n\nUse Write tool instead:\n  Write(file_path=\"/path/to/file\", content=\"...\")\n\nAdvantages:\n  - Clearer intent and better error handling\n  - No shell quoting issues\n  - Content is visible in tool call for review\n  - Consistent with other file operations\n\nThe echo command should only be used for:\n  - Displaying output to stdout in legitimate shell operations\n  - Testing or debugging actual shell behavior"
     }
   }
 }

@@ -1,0 +1,14 @@
+{
+  "name": "Bash 'echo > file' should redirect to Write tool",
+  "tool_call": {
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "echo \"test: add E2E tests for URL injection workaround in OAuth flow\n\n      Adds comprehensive test coverage for the URL parameter injection workaround\n      (connection.go:1846-1866) that enables RFC 8707 resource parameters without\n      upstream mcp-go support.\n\n      Test Coverage:\n      - Auto-detected resource parameter injection from zero-config OAuth\n      - Manual extra_params with multiple custom parameters\n      - Empty extraParams does not modify URLs\n      - Special characters are properly URL encoded\n\n      All 4 test cases pass and verify the workaround correctly injects parameters\n      into OAuth authorization URLs before browser launch.\n\n      Resolves the E2E test coverage gap identified in PR review.\" > /tmp/commit-msg.txt",
+      "description": "Write commit message to temporary file"
+    }
+  },
+  "expected_exit": 2,
+  "assertions": {
+    "should_contain": "Use Write tool instead"
+  }
+}
