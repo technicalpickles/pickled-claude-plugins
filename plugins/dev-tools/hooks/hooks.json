@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "TOOL_ROUTING_DEBUG=1 uv run ${CLAUDE_PLUGIN_ROOT}/hooks/check_tool_routing.py"
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/check_tool_routing.py"
           }
         ]
       }
