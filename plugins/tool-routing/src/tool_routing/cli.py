@@ -97,9 +97,27 @@ def cmd_test(args: argparse.Namespace) -> int:
 
 def cmd_list(args: argparse.Namespace) -> int:
     """List merged routes."""
-    # TODO: Implement in Task 8
-    print("list command not yet implemented", file=sys.stderr)
-    return 1
+    plugin_root = get_plugin_root()
+
+    # Load routes from plugin's hooks directory
+    routes_file = plugin_root / "hooks" / "tool-routes.yaml"
+    routes = load_routes_file(routes_file)
+
+    if not routes:
+        print("No routes found")
+        return 0
+
+    print(f"Routes (from {routes_file}):\n")
+
+    for name, route in routes.items():
+        print(f"{name}")
+        print(f"  tool: {route.tool}")
+        print(f"  pattern: {route.pattern}")
+        if route.tests:
+            print(f"  tests: {len(route.tests)}")
+        print()
+
+    return 0
 
 
 def main() -> int:

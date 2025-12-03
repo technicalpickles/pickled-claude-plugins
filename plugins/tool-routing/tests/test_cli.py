@@ -158,3 +158,36 @@ routes:
 
     assert result.returncode == 1
     assert "failed" in result.stdout.lower() or "FAIL" in result.stdout
+
+
+def test_cli_list_shows_routes(tmp_path):
+    """CLI list shows all routes with their sources."""
+    hooks_dir = tmp_path / "hooks"
+    hooks_dir.mkdir()
+    (hooks_dir / "tool-routes.yaml").write_text("""
+routes:
+  route-a:
+    tool: WebFetch
+    pattern: "a\\\\.com"
+    message: "Use A"
+  route-b:
+    tool: Bash
+    pattern: "^command-b"
+    message: "Use B"
+""")
+
+    result = subprocess.run(
+        [sys.executable, "-m", "tool_routing", "list"],
+        capture_output=True,
+        text=True,
+        env={
+            "CLAUDE_PLUGIN_ROOT": str(tmp_path),
+            "PATH": "",
+        },
+    )
+
+    assert result.returncode == 0
+    assert "route-a" in result.stdout
+    assert "route-b" in result.stdout
+    assert "WebFetch" in result.stdout
+    assert "Bash" in result.stdout
