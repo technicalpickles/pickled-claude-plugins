@@ -1,0 +1,216 @@
+# Route Discovery
+
+The tool-routing plugin discovers and merges routes from multiple sources, allowing plugins and projects to contribute their own routing rules.
+
+## Discovery Order
+
+Routes are discovered and merged in this order:
+
+1. **This plugin's routes** - `<plugin_root>/hooks/tool-routes.yaml`
+2. **Other plugins' routes** - `<plugins_dir>/*/hooks/tool-routes.yaml`
+3. **Project-local routes** - `<project_root>/.claude/tool-routes.yaml`
+
+All discovered routes are merged into a single routing table. The order affects which routes are checked first, but any match blocks the call.
+
+## Environment Variables
+
+The plugin uses these environment variables to locate route files:
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `CLAUDE_PLUGIN_ROOT` | This plugin's directory | Current working directory |
+| `CLAUDE_PLUGINS_DIR` | Directory containing all plugins | (none) |
+| `CLAUDE_PROJECT_ROOT` | Project root for local routes | Current working directory |
+| `TOOL_ROUTING_DEBUG` | Enable debug output | (disabled) |
+
+Claude Code sets these automatically when invoking hooks.
+
+## Route Sources
+
+### Plugin Routes
+
+Plugins contribute routes by placing a `hooks/tool-routes.yaml` file in their plugin directory:
+
+```
+plugins/
+├── tool-routing/
+│   └── hooks/
+│       └── tool-routes.yaml    ← This plugin's routes
+├── my-plugin/
+│   └── hooks/
+│       └── tool-routes.yaml    ← Another plugin's routes
+└── other-plugin/
+    └── hooks/
+        └── tool-routes.yaml    ← Yet another plugin's routes
+```
+
+All `hooks/tool-routes.yaml` files found in `$CLAUDE_PLUGINS_DIR/*/` are loaded.
+
+### Project Routes
+
+Projects can define local routes in `.claude/tool-routes.yaml`:
+
+```
+my-project/
+├── .claude/
+│   └── tool-routes.yaml    ← Project-specific routes
+├── src/
+└── ...
+```
+
+Project routes let you:
+- Block patterns specific to your codebase
+- Redirect to project-specific tools or workflows
+- Enforce team conventions
+
+### Example Project Routes
+
+```yaml
+# .claude/tool-routes.yaml
+routes:
+  # Block fetching internal docs - use local copies
+  internal-docs:
+    tool: WebFetch
+    pattern: "docs\\.internal\\.mycompany\\.com"
+    message: |
+      Internal docs are available locally.
+
+      Use: Read("docs/internal/...")
+    tests:
+      - input:
+          tool_name: WebFetch
+          tool_input:
+            url: "https://docs.internal.mycompany.com/api"
+        expect: block
+
+  # Enforce team commit convention
+  no-wip-commits:
+    tool: Bash
+    pattern: "git\\s+commit.*-m\\s+[\"']WIP"
+    message: |
+      Don't commit with WIP messages.
+
+      Use a descriptive commit message instead.
+    tests:
+      - input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit -m \"WIP: stuff\""
+        expect: block
+      - input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit -m \"Add feature X\""
+        expect: allow
+```
+
+## Route Merging
+
+### How Merging Works
+
+Routes from all sources are combined into a single dictionary keyed by route name:
+
+```
+Source 1: {github-pr: ..., atlassian: ...}
+Source 2: {my-route: ...}
+Source 3: {project-route: ...}
+         ↓
+Merged:  {github-pr: ..., atlassian: ..., my-route: ..., project-route: ...}
+```
+
+Each route retains a `source` field indicating which file it came from.
+
+### Conflict Detection
+
+If two sources define a route with the same name, the plugin raises a `RouteConflictError`:
+
+```
+Configuration error: Route 'github-pr' defined in multiple sources:
+  '/path/to/plugins/tool-routing/hooks/tool-routes.yaml' and
+  '/path/to/project/.claude/tool-routes.yaml'
+```
+
+**To resolve conflicts:**
+- Rename one of the routes to be unique
+- Remove the duplicate definition
+
+Route names must be globally unique across all sources.
+
+### Fail-Open Behavior
+
+The plugin is designed to fail open - if something goes wrong, tool calls are allowed rather than blocked:
+
+| Scenario | Behavior |
+|----------|----------|
+| YAML parse error | Route file skipped, other routes still work |
+| Missing route file | File skipped silently |
+| Invalid regex pattern | Route skipped, logs warning |
+| Route conflict error | Error logged, all routes skipped |
+| JSON parse error (stdin) | Tool call allowed |
+
+This prevents configuration errors from breaking your workflow.
+
+## Viewing Merged Routes
+
+Use `tool-routing list` to see all routes and their sources:
+
+```bash
+cd plugins/tool-routing
+uv run tool-routing list
+```
+
+Output:
+
+```
+Routes (merged from 2 sources):
+
+github-pr (from: /path/to/plugins/tool-routing/hooks/tool-routes.yaml)
+  tool: WebFetch
+  pattern: github\.com/[^/]+/[^/]+/pull/\d+
+  tests: 3
+
+atlassian (from: /path/to/plugins/tool-routing/hooks/tool-routes.yaml)
+  tool: WebFetch
+  pattern: https?://[^/]*\.atlassian\.net
+  tests: 2
+
+project-route (from: /path/to/project/.claude/tool-routes.yaml)
+  tool: Bash
+  pattern: ...
+  tests: 1
+```
+
+## Debugging Route Discovery
+
+Enable debug mode to see which routes match:
+
+```bash
+export TOOL_ROUTING_DEBUG=1
+```
+
+When a route blocks a call, debug output shows:
+
+```
+❌ Tool Routing: github-pr
+Matched: https://github.com/foo/bar/pull/123
+Pattern: github\.com/[^/]+/[^/]+/pull/\d+
+
+Use `gh pr view <number>` for GitHub PRs.
+...
+```
+
+## Best Practices
+
+### For Plugin Authors
+
+1. **Use descriptive route names** - Prefix with your plugin name if generic: `myplugin-no-curl`
+2. **Include comprehensive tests** - Cover both block and allow cases
+3. **Write helpful messages** - Explain why and what to do instead
+4. **Avoid overly broad patterns** - Be specific to minimize false positives
+
+### For Project Routes
+
+1. **Document your routes** - Add comments explaining team conventions
+2. **Keep routes focused** - One concern per route
+3. **Test locally first** - Run `tool-routing test` before committing
+4. **Coordinate with plugins** - Avoid naming conflicts with installed plugins
