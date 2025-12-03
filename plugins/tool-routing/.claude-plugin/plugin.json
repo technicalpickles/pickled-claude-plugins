@@ -1,0 +1,11 @@
+{
+  "name": "tool-routing",
+  "version": "1.0.0",
+  "description": "Route tool calls to better alternatives (e.g., gh CLI instead of WebFetch for GitHub PRs)",
+  "author": {
+    "name": "Josh Nichols",
+    "email": "josh@technicalpickles.com"
+  },
+  "repository": "https://github.com/technicalpickles/pickled-claude-plugins",
+  "license": "MIT"
+}
