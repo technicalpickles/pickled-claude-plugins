@@ -1,0 +1,26 @@
+{
+  "hooks": [
+    {
+      "matcher": {
+        "tool_name": "WebFetch"
+      },
+      "hooks": [
+        {
+          "type": "preToolUse",
+          "command": "uv run --project $CLAUDE_PLUGIN_ROOT tool-routing check"
+        }
+      ]
+    },
+    {
+      "matcher": {
+        "tool_name": "Bash"
+      },
+      "hooks": [
+        {
+          "type": "preToolUse",
+          "command": "uv run --project $CLAUDE_PLUGIN_ROOT tool-routing check"
+        }
+      ]
+    }
+  ]
+}
