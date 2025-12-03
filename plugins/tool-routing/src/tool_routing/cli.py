@@ -61,9 +61,38 @@ def cmd_check(args: argparse.Namespace) -> int:
 
 def cmd_test(args: argparse.Namespace) -> int:
     """Run inline test fixtures."""
-    # TODO: Implement in Task 7
-    print("test command not yet implemented", file=sys.stderr)
-    return 1
+    from tool_routing.test_runner import format_results, run_route_tests
+
+    plugin_root = get_plugin_root()
+
+    # Load routes from plugin's hooks directory
+    routes_file = plugin_root / "hooks" / "tool-routes.yaml"
+    routes = load_routes_file(routes_file)
+
+    if not routes:
+        print("No routes found", file=sys.stderr)
+        return 1
+
+    # Count tests
+    total_tests = sum(len(r.tests) for r in routes.values())
+    if total_tests == 0:
+        print("No tests found in routes")
+        return 0
+
+    # Run tests
+    results = run_route_tests(routes)
+
+    # Format and print results
+    print(format_results(results, str(routes_file)))
+    print()
+
+    # Summary
+    passed = sum(1 for r in results if r.passed)
+    failed = len(results) - passed
+
+    print(f"{passed} passed, {failed} failed")
+
+    return 0 if failed == 0 else 1
 
 
 def cmd_list(args: argparse.Namespace) -> int:
