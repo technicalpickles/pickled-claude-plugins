@@ -1,4 +1,12 @@
-from tool_routing.config import load_routes_file
+import pytest
+
+from tool_routing.config import (
+    Route,
+    RouteConflictError,
+    load_routes_file,
+    merge_routes,
+    merge_routes_dicts,
+)
 
 
 def test_load_routes_file_basic(tmp_path):
@@ -34,3 +42,43 @@ def test_load_routes_file_invalid_yaml(tmp_path):
 
     routes = load_routes_file(routes_file)
     assert routes == {}
+
+
+def test_merge_routes_no_conflict(tmp_path):
+    """Merge routes from multiple files without conflicts."""
+    file1 = tmp_path / "routes1.yaml"
+    file1.write_text("""
+routes:
+  route-a:
+    tool: WebFetch
+    pattern: "a\\\\.com"
+    message: "Use A"
+""")
+
+    file2 = tmp_path / "routes2.yaml"
+    file2.write_text("""
+routes:
+  route-b:
+    tool: Bash
+    pattern: "^command-b"
+    message: "Use B"
+""")
+
+    merged = merge_routes([file1, file2])
+
+    assert len(merged) == 2
+    assert "route-a" in merged
+    assert "route-b" in merged
+
+
+def test_merge_routes_conflict_raises():
+    """Duplicate route names raise RouteConflictError."""
+    routes1 = {"same-name": Route(tool="WebFetch", pattern="a", message="A")}
+    routes2 = {"same-name": Route(tool="Bash", pattern="b", message="B")}
+
+    with pytest.raises(RouteConflictError) as exc_info:
+        merge_routes_dicts([routes1, routes2], ["file1.yaml", "file2.yaml"])
+
+    assert "same-name" in str(exc_info.value)
+    assert "file1.yaml" in str(exc_info.value)
+    assert "file2.yaml" in str(exc_info.value)

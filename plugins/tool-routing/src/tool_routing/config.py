@@ -7,6 +7,12 @@ from typing import Optional
 import yaml
 
 
+class RouteConflictError(Exception):
+    """Raised when two sources define the same route name."""
+
+    pass
+
+
 @dataclass
 class TestCase:
     """Inline test case for a route."""
@@ -67,3 +73,59 @@ def load_routes_file(path: Path) -> dict[str, Route]:
         )
 
     return routes
+
+
+def merge_routes_dicts(
+    route_dicts: list[dict[str, Route]], sources: list[str]
+) -> dict[str, Route]:
+    """Merge multiple route dictionaries, erroring on conflicts.
+
+    Args:
+        route_dicts: List of route dictionaries to merge
+        sources: List of source file paths (parallel to route_dicts)
+
+    Returns:
+        Merged dictionary of routes
+
+    Raises:
+        RouteConflictError: If same route name appears in multiple sources
+    """
+    merged = {}
+    route_sources = {}  # Track which source defined each route
+
+    for routes, source in zip(route_dicts, sources):
+        for name, route in routes.items():
+            if name in merged:
+                raise RouteConflictError(
+                    f"Route '{name}' defined in multiple sources: "
+                    f"'{route_sources[name]}' and '{source}'"
+                )
+            merged[name] = route
+            route.source = source
+            route_sources[name] = source
+
+    return merged
+
+
+def merge_routes(paths: list[Path]) -> dict[str, Route]:
+    """Load and merge routes from multiple YAML files.
+
+    Args:
+        paths: List of paths to tool-routes.yaml files
+
+    Returns:
+        Merged dictionary of routes
+
+    Raises:
+        RouteConflictError: If same route name appears in multiple files
+    """
+    route_dicts = []
+    sources = []
+
+    for path in paths:
+        routes = load_routes_file(path)
+        if routes:
+            route_dicts.append(routes)
+            sources.append(str(path))
+
+    return merge_routes_dicts(route_dicts, sources)
