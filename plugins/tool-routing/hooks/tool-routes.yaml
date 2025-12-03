@@ -108,3 +108,210 @@ routes:
           tool_input:
             command: "mcp__MCPProxy__retrieve_tools"
         expect: block
+
+  # Buildkite - use MCP tools
+  buildkite:
+    tool: WebFetch
+    pattern: "https?://buildkite\\.com/[^/]+/[^/]+/builds/\\d+"
+    message: |
+      Use Buildkite MCP tools for build information.
+
+      Call: mcp__MCPProxy__retrieve_tools
+      Query: 'buildkite build status pipeline'
+
+      MCP tools provide authentication and structured build data.
+    tests:
+      - desc: "build URL should block"
+        input:
+          tool_name: WebFetch
+          tool_input:
+            url: "https://buildkite.com/myorg/mypipeline/builds/123"
+        expect: block
+      - desc: "pipeline URL should allow"
+        input:
+          tool_name: WebFetch
+          tool_input:
+            url: "https://buildkite.com/myorg/mypipeline"
+        expect: allow
+
+  # Git commit - use Write + -F for multiline
+  git-commit-multiline:
+    tool: Bash
+    pattern: "git\\s+commit\\s+.*(?:(?:-m\\s+[\"'][^\"']*[\"'].*-m)|(?:\\$\\(cat\\s*<<)|(?:<<[-]?\\s*['\"]?\\w+['\"]?))"
+    message: |
+      Don't use multiple -m flags or heredocs for git commit messages.
+
+      For multiline commit messages:
+        1. Use Write tool to create a commit message file in .tmp/
+        2. Use git commit -F <file> to read from the file
+
+      Example:
+        Write(file_path=".tmp/commit-msg-YYYY-MM-DD-HHMMSS.txt", content="Title\n\nBody paragraph 1\n\nBody paragraph 2")
+        git commit -F .tmp/commit-msg-YYYY-MM-DD-HHMMSS.txt
+
+      This approach:
+        - Avoids file collisions across worktrees/projects
+        - Makes commit messages easier to review before committing
+        - Provides chronological history in .tmp/
+        - Avoids complex shell quoting issues
+        - Provides better error handling
+    tests:
+      - desc: "multiple -m flags should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit -m \"Title\" -m \"Body\""
+        expect: block
+      - desc: "heredoc should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit -m \"$(cat <<'EOF'\nTitle\nEOF\n)\""
+        expect: block
+      - desc: "single -m should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit -m \"Simple message\""
+        expect: allow
+      - desc: "-F with file should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit -F .tmp/commit-msg.txt"
+        expect: allow
+
+  # gh pr create - use Write + --body-file for multiline
+  gh-pr-create-multiline:
+    tool: Bash
+    pattern: "gh\\s+pr\\s+create\\s+.*(?:(?:--body\\s+[\"']\\$\\(cat\\s*<<)|(?:<<[-]?\\s*['\"]?\\w+['\"]?))"
+    message: |
+      Don't use heredocs or command substitution for gh pr create body.
+
+      For multiline PR descriptions:
+        1. Use Write tool to create a PR body file in .tmp/
+        2. Use gh pr create --body-file <file>
+
+      Example:
+        Write(file_path=".tmp/pr-body-YYYY-MM-DD-HHMMSS.md", content="## Summary\n...")
+        gh pr create --title "Title" --body-file .tmp/pr-body-YYYY-MM-DD-HHMMSS.md
+
+      This approach:
+        - Avoids file collisions across worktrees/projects
+        - Makes PR descriptions easier to review before creating
+        - Provides chronological history in .tmp/
+        - Avoids complex shell quoting issues
+        - Allows you to use proper markdown formatting
+        - Provides better error handling
+    tests:
+      - desc: "heredoc body should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "gh pr create --title \"Title\" --body \"$(cat <<'EOF'\n## Summary\nEOF\n)\""
+        expect: block
+      - desc: "--body-file should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "gh pr create --title \"Title\" --body-file .tmp/pr-body.md"
+        expect: allow
+      - desc: "simple --body should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "gh pr create --title \"Title\" --body \"Simple description\""
+        expect: allow
+
+  # cat heredoc - use Write tool instead
+  bash-cat-heredoc:
+    tool: Bash
+    pattern: "cat\\s+.*<<[-]?\\s*['\"]?\\w+['\"]?(?!.*\\|)"
+    message: |
+      Don't use cat with heredocs for file creation or display.
+
+      For writing to files:
+        Use the Write tool instead of cat with redirection.
+        Example: Write(file_path="/path/to/file", content="...")
+
+      For displaying text to the user:
+        Output text directly in your response.
+        Don't use cat or echo - just write the text.
+
+      Valid heredoc use:
+        Only use cat <<EOF when piping to another command:
+        cat <<EOF | jq .
+    tests:
+      - desc: "cat heredoc to file should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "cat > file.txt << 'EOF'\nHello\nEOF"
+        expect: block
+      - desc: "cat heredoc with pipe should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "cat <<EOF | jq .\n{\"key\": \"value\"}\nEOF"
+        expect: allow
+
+  # chained echo - output directly instead
+  bash-echo-chained:
+    tool: Bash
+    pattern: "echo\\s+[\"'].*&&\\s+echo.*&&\\s+echo"
+    message: |
+      Don't use chained echo commands for multi-line output.
+
+      For displaying information to the user:
+        Output text directly in your response.
+        Don't use echo with && chains - just write the text.
+
+      The echo command should only be used for:
+        - Single simple outputs in legitimate shell operations
+        - Testing or debugging actual shell behavior
+    tests:
+      - desc: "triple echo chain should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "echo \"=== SUMMARY ===\" && echo \"\" && echo \"Done\""
+        expect: block
+      - desc: "single echo should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "echo 'test'"
+        expect: allow
+
+  # echo redirect - use Write tool instead
+  bash-echo-redirect:
+    tool: Bash
+    pattern: "^echo\\s+[\\s\\S]*>\\s*/"
+    message: |
+      Don't use echo with file redirection to write files.
+
+      Use Write tool instead:
+        Write(file_path="/path/to/file", content="...")
+
+      Advantages:
+        - Clearer intent and better error handling
+        - No shell quoting issues
+        - Content is visible in tool call for review
+        - Consistent with other file operations
+
+      The echo command should only be used for:
+        - Displaying output to stdout in legitimate shell operations
+        - Testing or debugging actual shell behavior
+    tests:
+      - desc: "echo redirect to absolute path should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "echo 'content' > /tmp/file.txt"
+        expect: block
+      - desc: "echo to stdout should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "echo 'hello'"
+        expect: allow
