@@ -1,8 +1,11 @@
+
 import pytest
 
 from tool_routing.config import (
     Route,
     RouteConflictError,
+    discover_plugin_routes,
+    discover_project_routes,
     load_routes_file,
     merge_routes,
     merge_routes_dicts,
@@ -82,3 +85,61 @@ def test_merge_routes_conflict_raises():
     assert "same-name" in str(exc_info.value)
     assert "file1.yaml" in str(exc_info.value)
     assert "file2.yaml" in str(exc_info.value)
+
+
+def test_discover_routes_from_plugins(tmp_path, monkeypatch):
+    """Discover tool-routes.yaml from plugin directories."""
+    # Create fake plugin structure
+    plugin1 = tmp_path / "plugins" / "plugin-a" / "hooks"
+    plugin1.mkdir(parents=True)
+    (plugin1 / "tool-routes.yaml").write_text("""
+routes:
+  from-plugin-a:
+    tool: WebFetch
+    pattern: "plugin-a"
+    message: "From A"
+""")
+
+    plugin2 = tmp_path / "plugins" / "plugin-b" / "hooks"
+    plugin2.mkdir(parents=True)
+    (plugin2 / "tool-routes.yaml").write_text("""
+routes:
+  from-plugin-b:
+    tool: Bash
+    pattern: "plugin-b"
+    message: "From B"
+""")
+
+    # Plugin without routes
+    plugin3 = tmp_path / "plugins" / "plugin-c"
+    plugin3.mkdir(parents=True)
+
+    paths = discover_plugin_routes(tmp_path / "plugins")
+
+    assert len(paths) == 2
+    assert any("plugin-a" in str(p) for p in paths)
+    assert any("plugin-b" in str(p) for p in paths)
+
+
+def test_discover_project_routes(tmp_path):
+    """Discover project-local tool-routes.yaml."""
+    claude_dir = tmp_path / ".claude"
+    claude_dir.mkdir()
+    (claude_dir / "tool-routes.yaml").write_text("""
+routes:
+  project-route:
+    tool: WebFetch
+    pattern: "project"
+    message: "Project route"
+""")
+
+    path = discover_project_routes(tmp_path)
+
+    assert path is not None
+    assert ".claude" in str(path)
+
+
+def test_discover_project_routes_missing(tmp_path):
+    """No project routes returns None."""
+    path = discover_project_routes(tmp_path)
+    assert path is None

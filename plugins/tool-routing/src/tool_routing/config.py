@@ -129,3 +129,67 @@ def merge_routes(paths: list[Path]) -> dict[str, Route]:
             sources.append(str(path))
 
     return merge_routes_dicts(route_dicts, sources)
+
+
+def discover_plugin_routes(plugins_dir: Path) -> list[Path]:
+    """Find all tool-routes.yaml files in plugin directories.
+
+    Args:
+        plugins_dir: Path to plugins directory
+
+    Returns:
+        List of paths to tool-routes.yaml files
+    """
+    if not plugins_dir.exists():
+        return []
+
+    paths = []
+    for plugin_dir in plugins_dir.iterdir():
+        if not plugin_dir.is_dir():
+            continue
+        routes_file = plugin_dir / "hooks" / "tool-routes.yaml"
+        if routes_file.exists():
+            paths.append(routes_file)
+
+    return sorted(paths)  # Consistent ordering
+
+
+def discover_project_routes(project_root: Path) -> Optional[Path]:
+    """Find project-local tool-routes.yaml.
+
+    Args:
+        project_root: Path to project root
+
+    Returns:
+        Path to .claude/tool-routes.yaml if it exists, None otherwise
+    """
+    routes_file = project_root / ".claude" / "tool-routes.yaml"
+    if routes_file.exists():
+        return routes_file
+    return None
+
+
+def load_all_routes(plugins_dir: Path, project_root: Path) -> dict[str, Route]:
+    """Load and merge routes from all sources.
+
+    Order:
+    1. Plugin-contributed routes (from plugins_dir/*/hooks/tool-routes.yaml)
+    2. Project-local routes (from project_root/.claude/tool-routes.yaml)
+
+    Args:
+        plugins_dir: Path to plugins directory
+        project_root: Path to project root
+
+    Returns:
+        Merged dictionary of all routes
+
+    Raises:
+        RouteConflictError: If same route name appears in multiple sources
+    """
+    paths = discover_plugin_routes(plugins_dir)
+
+    project_routes = discover_project_routes(project_root)
+    if project_routes:
+        paths.append(project_routes)
+
+    return merge_routes(paths)
