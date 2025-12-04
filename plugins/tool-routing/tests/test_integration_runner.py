@@ -3,7 +3,7 @@
 import pytest
 
 from tool_routing.config import Route, TestCase
-from tool_routing.integration_runner import list_integration_tests, evaluate_report, EvaluateResult
+from tool_routing.integration_runner import list_integration_tests, evaluate_report, EvaluateResult, format_evaluate_results
 
 
 def test_list_integration_tests_basic():
@@ -139,3 +139,41 @@ def test_evaluate_report_missing_result():
     assert result.passed == 1
     assert result.failed == 1
     assert "missing" in result.results[1].get("error", "").lower()
+
+
+def test_format_evaluate_results_human():
+    """Format produces human-readable output by default."""
+    result = EvaluateResult(
+        passed=2,
+        failed=1,
+        results=[
+            {"id": 0, "route": "r1", "desc": "d1", "passed": True},
+            {"id": 1, "route": "r2", "desc": "d2", "passed": True},
+            {"id": 2, "route": "r3", "desc": "d3", "passed": False, "expected": "block", "actual": "allow"},
+        ],
+    )
+
+    output = format_evaluate_results(result, json_output=False)
+
+    assert "✓ r1: d1" in output
+    assert "✓ r2: d2" in output
+    assert "✗ r3: d3" in output
+    assert "Expected: block, Got: allow" in output
+    assert "2 passed, 1 failed" in output
+
+
+def test_format_evaluate_results_json():
+    """Format produces JSON when json_output=True."""
+    result = EvaluateResult(
+        passed=1,
+        failed=0,
+        results=[{"id": 0, "route": "r1", "desc": "d1", "passed": True}],
+    )
+
+    output = format_evaluate_results(result, json_output=True)
+
+    import json
+    parsed = json.loads(output)
+    assert parsed["passed"] == 1
+    assert parsed["failed"] == 0
+    assert len(parsed["results"]) == 1

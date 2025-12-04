@@ -1,5 +1,6 @@
 """Integration test runner for tool routing."""
 
+import json
 from dataclasses import dataclass, field
 
 from tool_routing.config import Route
@@ -105,3 +106,37 @@ def evaluate_report(tests: list[dict], report: list[dict]) -> EvaluateResult:
         results.append(result_entry)
 
     return EvaluateResult(passed=passed, failed=failed, results=results)
+
+
+def format_evaluate_results(result: EvaluateResult, json_output: bool = False) -> str:
+    """Format evaluation results for display.
+
+    Args:
+        result: EvaluateResult from evaluate_report()
+        json_output: If True, return JSON; otherwise human-readable
+
+    Returns:
+        Formatted string
+    """
+    if json_output:
+        return json.dumps({
+            "passed": result.passed,
+            "failed": result.failed,
+            "results": result.results,
+        }, indent=2)
+
+    lines = ["Integration Test Results", "=" * 24, ""]
+
+    for r in result.results:
+        status = "✓" if r["passed"] else "✗"
+        lines.append(f"  {status} {r['route']}: {r['desc']}")
+        if not r["passed"]:
+            if "expected" in r:
+                lines.append(f"      Expected: {r['expected']}, Got: {r['actual']}")
+            elif "error" in r:
+                lines.append(f"      {r['error']}")
+
+    lines.append("")
+    lines.append(f"{result.passed} passed, {result.failed} failed")
+
+    return "\n".join(lines)
