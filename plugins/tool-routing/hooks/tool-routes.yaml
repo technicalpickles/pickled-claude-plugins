@@ -184,9 +184,9 @@ routes:
   # gh pr create - use Write + --body-file for multiline
   gh-pr-create-multiline:
     tool: Bash
-    pattern: "gh\\s+pr\\s+create\\s+.*(?:(?:--body\\s+[\"']\\$\\(cat\\s*<<)|(?:<<[-]?\\s*['\"]?\\w+['\"]?))"
+    pattern: "gh\\s+pr\\s+(?:create|edit)\\s+.*--body\\s+[\"'](?:[^\"']*\\\\n|\\$\\(cat\\s*<<)"
     message: |
-      Don't use heredocs or command substitution for gh pr create body.
+      Don't use multiline strings or heredocs for gh pr --body.
 
       For multiline PR descriptions:
         1. Use Write tool to create a PR body file in .tmp/
@@ -204,6 +204,12 @@ routes:
         - Allows you to use proper markdown formatting
         - Provides better error handling
     tests:
+      - desc: "body with literal \\n should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "gh pr create --title \"Title\" --body \"## Summary\\n\\nDetails\""
+        expect: block
       - desc: "heredoc body should block"
         input:
           tool_name: Bash
@@ -222,6 +228,12 @@ routes:
           tool_input:
             command: "gh pr create --title \"Title\" --body \"Simple description\""
         expect: allow
+      - desc: "gh pr edit with multiline body should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "gh pr edit 123 --body \"Summary\\nDetails\""
+        expect: block
 
   # cat heredoc - use Write tool instead
   bash-cat-heredoc:
