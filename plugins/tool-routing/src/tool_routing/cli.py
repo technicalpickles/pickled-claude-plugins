@@ -9,6 +9,11 @@ from typing import TYPE_CHECKING
 
 from tool_routing.checker import check_tool_call
 from tool_routing.config import RouteConflictError, load_routes_file
+from tool_routing.integration_runner import (
+    evaluate_report,
+    format_evaluate_results,
+    list_integration_tests,
+)
 
 if TYPE_CHECKING:
     from tool_routing.config import Route
@@ -180,6 +185,62 @@ def cmd_list(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_integration_test(args: argparse.Namespace) -> int:
+    """Run integration test operations."""
+    if args.list_tests:
+        return cmd_integration_list()
+    elif args.evaluate:
+        return cmd_integration_evaluate(args)
+    else:
+        print("Either --list or --evaluate is required", file=sys.stderr)
+        return 1
+
+
+def cmd_integration_list() -> int:
+    """List integration tests as JSON."""
+    try:
+        routes, sources = get_all_routes()
+    except RouteConflictError as e:
+        print(f"Configuration error: {e}", file=sys.stderr)
+        return 1
+
+    if not routes:
+        print("[]")
+        return 0
+
+    tests = list_integration_tests(routes)
+    print(json.dumps(tests, indent=2))
+    return 0
+
+
+def cmd_integration_evaluate(args: argparse.Namespace) -> int:
+    """Evaluate integration test report."""
+    if not args.tests or not args.report:
+        print("--tests and --report are required with --evaluate", file=sys.stderr)
+        return 1
+
+    # Load tests file
+    try:
+        with open(args.tests) as f:
+            tests = json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        print(f"Error reading tests file: {e}", file=sys.stderr)
+        return 1
+
+    # Load report file
+    try:
+        with open(args.report) as f:
+            report = json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        print(f"Error reading report file: {e}", file=sys.stderr)
+        return 1
+
+    result = evaluate_report(tests, report)
+    print(format_evaluate_results(result, json_output=args.json_output))
+
+    return 0 if result.failed == 0 else 1
+
+
 def main() -> int:
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -208,6 +269,40 @@ def main() -> int:
         help="List merged routes from all sources",
     )
     list_parser.set_defaults(func=cmd_list)
+
+    # integration-test subcommand
+    integration_parser = subparsers.add_parser(
+        "integration-test",
+        help="Integration testing via subagents",
+    )
+    integration_parser.add_argument(
+        "--list",
+        dest="list_tests",
+        action="store_true",
+        help="List test cases as JSON",
+    )
+    integration_parser.add_argument(
+        "--evaluate",
+        action="store_true",
+        help="Evaluate subagent report",
+    )
+    integration_parser.add_argument(
+        "--tests",
+        type=str,
+        help="Path to tests JSON file (for --evaluate)",
+    )
+    integration_parser.add_argument(
+        "--report",
+        type=str,
+        help="Path to report JSON file (for --evaluate)",
+    )
+    integration_parser.add_argument(
+        "--json",
+        dest="json_output",
+        action="store_true",
+        help="Output results as JSON",
+    )
+    integration_parser.set_defaults(func=cmd_integration_test)
 
     args = parser.parse_args()
     return args.func(args)
