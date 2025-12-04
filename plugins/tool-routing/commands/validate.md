@@ -81,6 +81,30 @@ Look for:
 | Plugin not in list | Missing manifest | Create `.claude-plugin/plugin.json` |
 | Tests fail on matcher format | Old hooks.json format | Update to object-keyed structure |
 
+## Step 6: Run Integration Tests (Optional)
+
+For full verification that hooks actually block at runtime, use subagents:
+
+1. **Get test cases:**
+   ```bash
+   uv run tool-routing integration-test --list > .tmp/integration-tests.json
+   ```
+
+2. **Spawn a subagent** to execute the tests. The subagent should:
+   - Attempt each tool call exactly as specified
+   - Report results as JSON array: `[{"id": 0, "result": "blocked", "message": "..."}, ...]`
+
+3. **Save the subagent's JSON report** to `.tmp/integration-report.json`
+
+4. **Evaluate results:**
+   ```bash
+   uv run tool-routing integration-test --evaluate \
+     --tests .tmp/integration-tests.json \
+     --report .tmp/integration-report.json
+   ```
+
+This verifies the full integration path: Claude Code → hooks → tool-routing check → block/allow.
+
 ## Copying These Tests to Other Plugins
 
 The `tests/test_plugin_structure.py` file can be adapted for any plugin with hooks. Copy it and adjust:
