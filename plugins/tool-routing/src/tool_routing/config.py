@@ -144,12 +144,18 @@ def discover_plugin_routes(plugins_dir: Path) -> list[Path]:
         return []
 
     paths = []
+
+    # Plugin-level routes: plugins/*/hooks/tool-routes.yaml
     for plugin_dir in plugins_dir.iterdir():
         if not plugin_dir.is_dir():
             continue
         routes_file = plugin_dir / "hooks" / "tool-routes.yaml"
         if routes_file.exists():
             paths.append(routes_file)
+
+    # Skill-level routes: plugins/*/skills/*/tool-routes.yaml
+    for routes_file in plugins_dir.glob("*/skills/*/tool-routes.yaml"):
+        paths.append(routes_file)
 
     return sorted(paths)  # Consistent ordering
 

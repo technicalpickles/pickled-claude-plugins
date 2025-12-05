@@ -2,6 +2,31 @@ import subprocess
 import sys
 
 
+def test_discovers_skill_level_routes(tmp_path, monkeypatch):
+    """Routes in plugins/*/skills/*/tool-routes.yaml are discovered."""
+    # Create skill-level route file
+    skill_routes = tmp_path / "plugins" / "test-plugin" / "skills" / "test-skill"
+    skill_routes.mkdir(parents=True)
+    (skill_routes / "tool-routes.yaml").write_text("""
+routes:
+  skill-route:
+    tool: Bash
+    pattern: "skill-pattern"
+    message: "Skill route message"
+""")
+
+    monkeypatch.setenv("CLAUDE_PLUGINS_DIR", str(tmp_path / "plugins"))
+    monkeypatch.setenv("CLAUDE_PLUGIN_ROOT", str(tmp_path / "tool-routing"))
+
+    from tool_routing.config import discover_plugin_routes, merge_routes
+    paths = discover_plugin_routes(tmp_path / "plugins")
+    routes = merge_routes(paths)
+
+    assert "skill-route" in routes
+    assert routes["skill-route"].tool == "Bash"
+    assert "skills/test-skill" in routes["skill-route"].source
+
+
 def test_cli_merges_multiple_sources(tmp_path):
     """CLI merges routes from plugin and project sources."""
     # Plugin routes
