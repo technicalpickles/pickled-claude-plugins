@@ -327,3 +327,53 @@ routes:
           tool_input:
             command: "echo 'hello'"
         expect: allow
+
+  # tool-routing manual test - use proper test infrastructure
+  tool-routing-manual-test:
+    tool: Bash
+    pattern: "(?:echo|printf).*\\|.*tool-routing\\s+(?:check|test)"
+    message: |
+      Don't manually test tool-routing with piped JSON.
+
+      Use the proper testing infrastructure:
+        - `uv run tool-routing test` - Pattern tests
+        - `uv run tool-routing integration-test` - Runtime tests
+
+      These commands provide:
+        - Version-controlled test fixtures
+        - Clear pass/fail reporting
+        - Repeatable results
+        - No JSON escaping issues
+
+      See: docs/writing-routes.md
+    tests:
+      - desc: "echo JSON pipe to check should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: 'echo ''{"tool_name": "Bash"}'' | uv run tool-routing check'
+        expect: block
+      - desc: "printf JSON pipe to check should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: 'printf ''%s\n'' "$json" | uv run tool-routing check'
+        expect: block
+      - desc: "echo pipe to test command should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: 'echo ''{"test": "data"}'' | uv run tool-routing test'
+        expect: block
+      - desc: "normal test command should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "uv run tool-routing test"
+        expect: allow
+      - desc: "normal integration test should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "uv run tool-routing integration-test"
+        expect: allow

@@ -330,10 +330,12 @@ routes:
 
 Before adding a route:
 
+- [ ] Check `command --help` to understand the tool's actual API (don't assume it works like similar tools)
 - [ ] Pattern uses correct regex syntax
 - [ ] Pattern is escaped properly for YAML
 - [ ] Message explains why and what to do instead
 - [ ] Tests cover the blocked case
 - [ ] Tests cover similar-but-allowed cases
 - [ ] Tests use `contains` to verify message content
-- [ ] `tool-routing test` passes
+- [ ] `uv run tool-routing test` passes (pattern validation)
+- [ ] `uv run tool-routing integration-test` passes (runtime validation with subagents)
