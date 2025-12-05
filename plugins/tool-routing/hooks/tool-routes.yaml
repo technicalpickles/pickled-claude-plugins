@@ -58,57 +58,6 @@ routes:
             url: "https://mycompany.atlassian.net/wiki/spaces/DOC/pages/123"
         expect: block
 
-  # Prevent calling nonexistent mcp CLI via Bash
-  bash-mcp-cli:
-    tool: Bash
-    pattern: "^\\s*mcp\\s+"
-    message: |
-      Don't use Bash to call the 'mcp' CLI.
-
-      The 'mcp' command is not available. Use MCP tools directly:
-
-      1. Discover tools: mcp__MCPProxy__retrieve_tools
-      2. Call a tool: mcp__MCPProxy__call_tool
-
-      Example:
-      mcp__MCPProxy__retrieve_tools(query="buildkite build status")
-      mcp__MCPProxy__call_tool(name="buildkite:get_build", args_json=...)
-    tests:
-      - desc: "mcp list-tools should block"
-        input:
-          tool_name: Bash
-          tool_input:
-            command: "mcp list-tools"
-        expect: block
-      - desc: "mcp search should block"
-        input:
-          tool_name: Bash
-          tool_input:
-            command: "  mcp search foo"
-        expect: block
-
-  # Prevent calling MCP tool names as Bash commands
-  bash-mcp-tool:
-    tool: Bash
-    pattern: "^\\s*mcp__"
-    message: |
-      Don't use Bash to call MCP tool functions.
-
-      MCP tools like 'mcp__MCPProxy__retrieve_tools' are tool calls, not Bash commands.
-
-      Use the tool directly:
-      - mcp__MCPProxy__retrieve_tools (tool call)
-      - mcp__MCPProxy__call_tool (tool call)
-
-      NOT as Bash commands.
-    tests:
-      - desc: "mcp__MCPProxy should block"
-        input:
-          tool_name: Bash
-          tool_input:
-            command: "mcp__MCPProxy__retrieve_tools"
-        expect: block
-
   # Buildkite - use MCP tools
   buildkite:
     tool: WebFetch
