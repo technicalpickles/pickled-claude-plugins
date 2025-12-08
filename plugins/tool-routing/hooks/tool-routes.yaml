@@ -3,31 +3,6 @@
 # Project-specific routes go in .claude/tool-routes.yaml.
 
 routes:
-  # Atlassian - use MCP tools
-  atlassian:
-    tool: WebFetch
-    pattern: "https?://[^/]*\\.atlassian\\.net"
-    message: |
-      Use Atlassian MCP tools for Jira/Confluence.
-
-      Call: mcp__MCPProxy__retrieve_tools
-      Query: 'jira confluence atlassian issue'
-
-      MCP tools provide authentication and structured data.
-    tests:
-      - desc: "Jira URL should block"
-        input:
-          tool_name: WebFetch
-          tool_input:
-            url: "https://mycompany.atlassian.net/browse/PROJ-123"
-        expect: block
-      - desc: "Confluence URL should block"
-        input:
-          tool_name: WebFetch
-          tool_input:
-            url: "https://mycompany.atlassian.net/wiki/spaces/DOC/pages/123"
-        expect: block
-
   # cat heredoc - use Write tool instead
   bash-cat-heredoc:
     tool: Bash
