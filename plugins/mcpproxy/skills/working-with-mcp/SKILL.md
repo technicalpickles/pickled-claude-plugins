@@ -1,9 +1,9 @@
 ---
-name: using-mcpproxy-tools
+name: working-with-mcp
 description: Use when user mentions MCPProxy/MCP tools (e.g., "check buildkite mcp", "use slack mcp") or when you need to discover or call tools through MCPProxy - immediately checks if mcp__MCPProxy__* tools are available, suggests /mcp reconnect if missing (MCPProxy MCP server not connected), explains when to use MCP tools vs HTTP API for debugging
 ---
 
-# Using MCPProxy Tools
+# Working with MCPProxy and MCP Tools
 
 ## Overview
 
@@ -11,7 +11,7 @@ MCPProxy can be accessed two ways:
 1. **MCP Tools** (`mcp__MCPProxy__*`) - When MCPProxy is configured as an MCP server in Claude Code
 2. **HTTP API** (`curl http://localhost:8080/...`) - For debugging MCPProxy itself
 
-**This skill is for #1.** For #2, use `debugging-tools:mcpproxy-debug`.
+**This skill is for #1.** For debugging MCPProxy itself, use HTTP API approach sparingly.
 
 ## FIRST: Detect MCPProxy Connection
 
@@ -80,10 +80,11 @@ Do you see ANY tools starting with mcp__MCPProxy__*?
 - You need to discover what tools MCPProxy exposes
 - You want to call a tool through MCPProxy
 - MCPProxy is configured but you're not sure if MCP tools are available
+- User mentions working with MCP servers or tools
 
 **Do NOT use when:**
-- Debugging MCPProxy itself (connection failures, config issues) → Use `debugging-tools:mcpproxy-debug`
-- MCPProxy not configured at all → Can't use either approach
+- User is asking about non-MCP topics
+- The task doesn't involve MCP tools
 
 ## What You're Looking For
 
@@ -156,7 +157,7 @@ mcp__MCPProxy__call_tool({
 |------|------------------|----------|
 | Discover tools | Are `mcp__MCPProxy__*` in tool list? | If yes: `retrieve_tools`<br>If no: Suggest `/mcp` |
 | Call a tool | Are `mcp__MCPProxy__*` in tool list? | If yes: `call_tool`<br>If no: Suggest `/mcp` |
-| Debug MCPProxy | N/A | Use `debugging-tools:mcpproxy-debug` |
+| Debug MCPProxy | N/A | Use HTTP API sparingly |
 
 ## If MCP Tools Are Missing
 
@@ -239,53 +240,52 @@ If you think any of these thoughts, **STOP**:
 - HTTP API is for debugging MCPProxy, not for normal usage
 - Running ≠ Connected. Process can run but MCP not connected.
 
-For detailed examples of these mistakes, see `references/common-mistakes.md`.
+## Debugging MCPProxy Connection Issues
 
-## Differentiation Guide
+If MCPProxy itself isn't working properly (servers won't connect, Docker issues, etc.), you can use these quick checks:
 
-| Scenario | This Skill | mcpproxy-debug |
-|----------|-----------|----------------|
-| Discover available tools | ✅ (if MCP connected) | ❌ |
-| Call a tool through MCPProxy | ✅ (if MCP connected) | ❌ |
-| MCPProxy won't start | ❌ | ✅ |
-| Connection errors | ❌ | ✅ |
-| Docker isolation issues | ❌ | ✅ |
-| Config file problems | ❌ | ✅ |
-| MCP tools missing | ✅ (suggest `/mcp`) | ⚠️ (if debugging why) |
+### Quick Health Check
 
-## References - Deep Dives
+```bash
+# 1. Is mcpproxy running?
+ps aux | grep mcpproxy | grep -v grep
 
-Load these on-demand when you need detailed examples:
+# 2. Get API key
+grep '"api_key"' ~/.mcpproxy/mcp_config.json
 
-### `references/common-mistakes.md`
-**When to read:** You're about to fall back to HTTP API or invoke MCP tools as bash commands
+# 3. Check server status
+curl -s "http://127.0.0.1:8080/api/v1/servers?apikey=YOUR_KEY" | python3 -m json.tool
 
-**Contains:**
-- Detailed ❌/✅ examples with explanations
-- How to distinguish MCP tools from bash commands
-- When HTTP API is appropriate (spoiler: almost never for you)
-- Detailed comparison of approaches
+# 4. Check for recent errors
+tail -50 ~/Library/Logs/mcpproxy/main.log | grep -i error
+```
 
-### `references/troubleshooting-guide.md`
-**When to read:** MCP tools aren't working and you need detailed diagnosis
+**Key status fields to check:**
+- `connected`: Boolean - is the server connected?
+- `status`: String - current state (connecting, ready, error)
+- `last_error`: String - most recent error message
+- `tool_count`: Number - how many tools available
 
-**Contains:**
-- Step-by-step troubleshooting workflow
-- Real-world failure examples (the HTTP API spiral)
-- How to recognize connection issues vs other problems
-- Complete walkthrough of "/mcp reconnect" workflow
+### Common MCPProxy Issues
 
-## When to Load References
+#### "the input device is not a TTY" (Docker servers)
+**Fix:** Add `"isolation": {"enabled": false}` to the Docker-based server config.
 
-**Don't load references preemptively.** Use this workflow:
+#### "unexpected argument found" (uvx/npx servers)
+**Fix:** Put package name as first arg: `["mcp-server-name", "--arg", "value"]`
 
-1. Check if `mcp__MCPProxy__*` tools are available
-2. If yes → Use them (discover then call pattern)
-3. If no → Suggest `/mcp` reconnect
-4. If unsure about approach → Read `references/common-mistakes.md`
-5. If tools not working → Read `references/troubleshooting-guide.md`
+#### "Invalid or missing API key" after restart
+**Fix:** Check `echo $MCPPROXY_API_KEY` - environment variable overrides config file.
 
-**Why:** Loading all references upfront = 2,500+ tokens. Progressive disclosure keeps it lean (~1,200 initially, +1,500 on-demand).
+### Restart MCPProxy
+
+```bash
+pkill mcpproxy
+sleep 2
+open /Applications/mcpproxy.app  # macOS
+# OR
+mcpproxy &  # Linux/headless
+```
 
 ## Summary
 
@@ -297,4 +297,4 @@ Load these on-demand when you need detailed examples:
 3. If no → Suggest `/mcp` reconnect
 4. Never fall back to HTTP API
 
-**Result:** Fast tool usage with clear error handling. ~1,200 tokens initially, load references only when needed.
+**Result:** Fast tool usage with clear error handling.
