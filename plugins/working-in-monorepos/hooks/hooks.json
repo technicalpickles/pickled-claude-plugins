@@ -5,8 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash",
-            "args": ["{{hooksDir}}/scripts/detect-monorepo.sh"]
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/detect-monorepo.sh"
           }
         ]
       }

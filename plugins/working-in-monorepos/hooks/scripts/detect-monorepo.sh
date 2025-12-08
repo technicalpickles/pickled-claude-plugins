@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # detect-monorepo.sh: SessionStart hook to detect monorepo structure
 
+# Consume stdin (hook receives JSON input that we don't need)
+cat > /dev/null
+
 # Check if we're in a git repository
 if ! git rev-parse --show-toplevel &>/dev/null; then
   exit 0
