@@ -187,3 +187,56 @@ class TestHooksJson:
                             "$CLAUDE_PLUGIN_ROOT without braces. "
                             "Use ${CLAUDE_PLUGIN_ROOT} for reliable expansion."
                         )
+
+
+class TestHooksAntiPatterns:
+    """Detect known-bad hook patterns that cause subtle runtime failures."""
+
+    def test_no_bash_with_script_args(self):
+        """Detect bash+args anti-pattern that breaks stdin handling.
+
+        Wrong: {"command": "bash", "args": ["script.sh"]}
+        Right: {"command": "script.sh"} (call script directly)
+
+        When bash receives stdin AND a script via args, the stdin
+        gets interpreted as commands by bash itself, not passed
+        to the script. This causes errors like:
+        "bash: line 1: session_id:xxx: command not found"
+        """
+        hooks_path = PLUGIN_ROOT / "hooks" / "hooks.json"
+        if not hooks_path.exists():
+            pytest.skip("hooks.json doesn't exist")
+
+        data = json.loads(hooks_path.read_text())
+        hooks = data.get("hooks", {})
+
+        if not isinstance(hooks, dict):
+            pytest.skip("hooks structure invalid")
+
+        for event_name, event_hooks in hooks.items():
+            if not isinstance(event_hooks, list):
+                continue
+
+            for i, hook_entry in enumerate(event_hooks):
+                inner_hooks = hook_entry.get("hooks", [])
+                if not isinstance(inner_hooks, list):
+                    continue
+
+                for j, inner_hook in enumerate(inner_hooks):
+                    command = inner_hook.get("command", "")
+                    args = inner_hook.get("args", [])
+
+                    # Check for bash/sh with script in args
+                    if command in ("bash", "sh", "/bin/bash", "/bin/sh"):
+                        script_args = [
+                            a for a in args
+                            if a.endswith(".sh") or "/" in a
+                        ]
+                        if script_args:
+                            pytest.fail(
+                                f"hooks['{event_name}'][{i}].hooks[{j}] uses "
+                                f"bash+args anti-pattern: command='{command}', "
+                                f"args={args}. This breaks stdin handling. "
+                                f"Call the script directly instead: "
+                                f'command="{script_args[0]}"'
+                            )
