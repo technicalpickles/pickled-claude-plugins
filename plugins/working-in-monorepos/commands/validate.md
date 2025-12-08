@@ -6,19 +6,19 @@ Run integration tests for the working-in-monorepos plugin.
 2. **Script Execution** - Runs hooks with realistic stdin
 3. **Skill Effectiveness** - Tests agent behavior in monorepo scenarios
 
-## Quick Mode (Default)
+## Full Mode (Default)
 
-Run pytest tests only:
+### Step 1: Run pytest tests
 
 ```bash
 cd plugins/working-in-monorepos && uv run pytest tests/ -v
 ```
 
-Report results and any failures.
+Report results and any failures. If tests fail, stop here.
 
-## Full Mode (with --full flag)
+### Step 2: Run subagent scenarios
 
-Additionally run subagent scenarios from `skills/working-in-monorepos/tests/baseline-scenarios.md`:
+Run scenarios from `skills/working-in-monorepos/tests/baseline-scenarios.md`:
 
 1. Set up test monorepo in /tmp with structure:
    - /tmp/test-monorepo/
@@ -31,9 +31,13 @@ Additionally run subagent scenarios from `skills/working-in-monorepos/tests/base
 
 4. Report pass/fail for each scenario
 
+## Quick Mode (with --quick flag)
+
+Run pytest tests only, skip subagent scenarios.
+
 ## Usage
 
 ```
-/working-in-monorepos:validate           # Quick mode - pytest only
-/working-in-monorepos:validate --full    # Full mode - includes subagent tests
+/working-in-monorepos:validate           # Full mode - pytest + subagent tests
+/working-in-monorepos:validate --quick   # Quick mode - pytest only
 ```
