@@ -79,3 +79,44 @@ class TestSessionStartHook:
             f"Hook script missing shebang: {script_path}. "
             "First line should be #!/usr/bin/env bash or similar"
         )
+
+    def test_hook_handles_stdin_json(self):
+        """Hook must handle JSON stdin without errors.
+
+        Claude Code passes session data as JSON on stdin.
+        The hook should consume or ignore it, not fail.
+        """
+        script_path = self.get_hook_script_path()
+        if script_path is None:
+            pytest.skip("No SessionStart hook script found")
+        if not script_path.exists():
+            pytest.skip("Script doesn't exist")
+
+        # Simulate Claude Code's stdin format
+        stdin_data = json.dumps({
+            "session_id": "test-session-123",
+            "cwd": "/tmp/test-project",
+            "timestamp": "2025-12-08T12:00:00Z"
+        })
+
+        result = subprocess.run(
+            [str(script_path)],
+            input=stdin_data,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd="/tmp"  # Run outside git repo
+        )
+
+        # Should exit 0 (success) even if it can't detect a monorepo
+        assert result.returncode == 0, (
+            f"Hook failed with stdin. Exit code: {result.returncode}\n"
+            f"stderr: {result.stderr}\n"
+            f"stdout: {result.stdout}"
+        )
+
+        # Should not have error messages about parsing stdin
+        assert "command not found" not in result.stderr, (
+            "Hook is interpreting stdin as commands. "
+            "Ensure script consumes stdin with 'cat > /dev/null' or similar."
+        )
