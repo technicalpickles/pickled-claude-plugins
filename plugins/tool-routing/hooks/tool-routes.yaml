@@ -28,31 +28,6 @@ routes:
             url: "https://mycompany.atlassian.net/wiki/spaces/DOC/pages/123"
         expect: block
 
-  # Buildkite - use MCP tools
-  buildkite:
-    tool: WebFetch
-    pattern: "https?://buildkite\\.com/[^/]+/[^/]+/builds/\\d+"
-    message: |
-      Use Buildkite MCP tools for build information.
-
-      Call: mcp__MCPProxy__retrieve_tools
-      Query: 'buildkite build status pipeline'
-
-      MCP tools provide authentication and structured build data.
-    tests:
-      - desc: "build URL should block"
-        input:
-          tool_name: WebFetch
-          tool_input:
-            url: "https://buildkite.com/myorg/mypipeline/builds/123"
-        expect: block
-      - desc: "pipeline URL should allow"
-        input:
-          tool_name: WebFetch
-          tool_input:
-            url: "https://buildkite.com/myorg/mypipeline"
-        expect: allow
-
   # cat heredoc - use Write tool instead
   bash-cat-heredoc:
     tool: Bash
