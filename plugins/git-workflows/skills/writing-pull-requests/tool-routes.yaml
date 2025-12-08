@@ -1,0 +1,137 @@
+routes:
+  # GitHub PRs - use gh CLI instead of scraping
+  github-pr:
+    tool: WebFetch
+    pattern: "github\\.com/[^/]+/[^/]+/pull/\\d+"
+    message: |
+      Use `gh pr view <number>` for GitHub PRs.
+
+      This works for both public and private PRs and
+      provides better formatting than HTML scraping.
+
+      Consider using the writing-pull-requests skill for PR workflows.
+    tests:
+      - desc: "PR URL should block"
+        input:
+          tool_name: WebFetch
+          tool_input:
+            url: "https://github.com/foo/bar/pull/123"
+        expect: block
+        contains: "gh pr view"
+      - desc: "repo URL should allow"
+        input:
+          tool_name: WebFetch
+          tool_input:
+            url: "https://github.com/foo/bar"
+        expect: allow
+      - desc: "issues URL should allow"
+        input:
+          tool_name: WebFetch
+          tool_input:
+            url: "https://github.com/foo/bar/issues/123"
+        expect: allow
+
+  # Git commit - use Write + -F for multiline
+  git-commit-multiline:
+    tool: Bash
+    pattern: "git\\s+commit\\s+.*(?:(?:-m\\s+[\"'][^\"']*[\"'].*-m)|(?:\\$\\(cat\\s*<<)|(?:<<[-]?\\s*['\"]?\\w+['\"]?))"
+    message: |
+      Don't use multiple -m flags or heredocs for git commit messages.
+
+      For multiline commit messages:
+        1. Use Write tool to create a commit message file in .tmp/
+        2. Use git commit -F <file> to read from the file
+
+      Example:
+        Write(file_path=".tmp/commit-msg-YYYY-MM-DD-HHMMSS.txt", content="Title\n\nBody paragraph 1\n\nBody paragraph 2")
+        git commit -F .tmp/commit-msg-YYYY-MM-DD-HHMMSS.txt
+
+      This approach:
+        - Avoids file collisions across worktrees/projects
+        - Makes commit messages easier to review before committing
+        - Provides chronological history in .tmp/
+        - Avoids complex shell quoting issues
+        - Provides better error handling
+
+      Consider using the writing-pull-requests skill for guidance on PR workflows.
+    tests:
+      - desc: "multiple -m flags should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit -m \"Title\" -m \"Body\""
+        expect: block
+      - desc: "heredoc should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit -m \"$(cat <<'EOF'\nTitle\nEOF\n)\""
+        expect: block
+      - desc: "single -m should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit -m \"Simple message\""
+        expect: allow
+      - desc: "-F with file should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit -F .tmp/commit-msg.txt"
+        expect: allow
+
+  # gh pr create - use Write + --body-file for multiline
+  gh-pr-create-multiline:
+    tool: Bash
+    pattern: "gh\\s+pr\\s+(?:create|edit)\\s+.*--body\\s+[\"'](?:[^\"']*\\\\n|\\$\\(cat\\s*<<)"
+    message: |
+      Don't use multiline strings or heredocs for gh pr --body.
+
+      For multiline PR descriptions:
+        1. Use Write tool to create a PR body file in .tmp/
+        2. Use gh pr create --body-file <file>
+
+      Example:
+        Write(file_path=".tmp/pr-body-YYYY-MM-DD-HHMMSS.md", content="## Summary\n...")
+        gh pr create --title "Title" --body-file .tmp/pr-body-YYYY-MM-DD-HHMMSS.md
+
+      This approach:
+        - Avoids file collisions across worktrees/projects
+        - Makes PR descriptions easier to review before creating
+        - Provides chronological history in .tmp/
+        - Avoids complex shell quoting issues
+        - Allows you to use proper markdown formatting
+        - Provides better error handling
+
+      Consider using the writing-pull-requests skill for guidance on PR workflows.
+    tests:
+      - desc: "body with literal \\n should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "gh pr create --title \"Title\" --body \"## Summary\\n\\nDetails\""
+        expect: block
+      - desc: "heredoc body should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "gh pr create --title \"Title\" --body \"$(cat <<'EOF'\n## Summary\nEOF\n)\""
+        expect: block
+      - desc: "--body-file should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "gh pr create --title \"Title\" --body-file .tmp/pr-body.md"
+        expect: allow
+      - desc: "simple --body should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "gh pr create --title \"Title\" --body \"Simple description\""
+        expect: allow
+      - desc: "gh pr edit with multiline body should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "gh pr edit 123 --body \"Summary\\nDetails\""
+        expect: block
