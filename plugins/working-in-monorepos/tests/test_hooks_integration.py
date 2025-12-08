@@ -120,3 +120,93 @@ class TestSessionStartHook:
             "Hook is interpreting stdin as commands. "
             "Ensure script consumes stdin with 'cat > /dev/null' or similar."
         )
+
+    def test_hook_succeeds_outside_git_repo(self, tmp_path):
+        """Hook should exit cleanly when not in a git repo."""
+        script_path = self.get_hook_script_path()
+        if script_path is None:
+            pytest.skip("No SessionStart hook script found")
+        if not script_path.exists():
+            pytest.skip("Script doesn't exist")
+
+        stdin_data = json.dumps({"session_id": "test"})
+
+        result = subprocess.run(
+            [str(script_path)],
+            input=stdin_data,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=str(tmp_path)
+        )
+
+        assert result.returncode == 0, (
+            f"Hook should exit 0 outside git repo. "
+            f"Exit code: {result.returncode}, stderr: {result.stderr}"
+        )
+
+    def test_hook_succeeds_in_git_repo_without_monorepo(self, tmp_path):
+        """Hook should work in a git repo without .monorepo.json."""
+        script_path = self.get_hook_script_path()
+        if script_path is None:
+            pytest.skip("No SessionStart hook script found")
+        if not script_path.exists():
+            pytest.skip("Script doesn't exist")
+
+        # Create a git repo
+        subprocess.run(["git", "init"], cwd=tmp_path, capture_output=True)
+
+        stdin_data = json.dumps({"session_id": "test"})
+
+        result = subprocess.run(
+            [str(script_path)],
+            input=stdin_data,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=str(tmp_path)
+        )
+
+        assert result.returncode == 0, (
+            f"Hook failed in git repo. "
+            f"Exit code: {result.returncode}, stderr: {result.stderr}"
+        )
+
+    def test_hook_detects_monorepo_config(self, tmp_path):
+        """Hook should detect existing .monorepo.json."""
+        script_path = self.get_hook_script_path()
+        if script_path is None:
+            pytest.skip("No SessionStart hook script found")
+        if not script_path.exists():
+            pytest.skip("Script doesn't exist")
+
+        # Create a git repo with .monorepo.json
+        subprocess.run(["git", "init"], cwd=tmp_path, capture_output=True)
+        monorepo_config = tmp_path / ".monorepo.json"
+        monorepo_config.write_text(json.dumps({
+            "subprojects": [
+                {"name": "frontend", "path": "frontend"},
+                {"name": "backend", "path": "backend"}
+            ]
+        }))
+
+        stdin_data = json.dumps({"session_id": "test"})
+
+        result = subprocess.run(
+            [str(script_path)],
+            input=stdin_data,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=str(tmp_path)
+        )
+
+        assert result.returncode == 0, (
+            f"Hook failed with .monorepo.json. "
+            f"Exit code: {result.returncode}, stderr: {result.stderr}"
+        )
+
+        # Should mention detecting the monorepo
+        assert "monorepo" in result.stdout.lower() or "subproject" in result.stdout.lower(), (
+            f"Hook should report detecting monorepo. stdout: {result.stdout}"
+        )
