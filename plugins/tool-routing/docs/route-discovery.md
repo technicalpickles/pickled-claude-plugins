@@ -7,8 +7,9 @@ The tool-routing plugin discovers and merges routes from multiple sources, allow
 Routes are discovered and merged in this order:
 
 1. **This plugin's routes** - `<plugin_root>/hooks/tool-routes.yaml`
-2. **Other plugins' routes** - `<plugins_dir>/*/hooks/tool-routes.yaml`
-3. **Project-local routes** - `<project_root>/.claude/tool-routes.yaml`
+2. **Other plugins' skill-level routes** - `<plugins_dir>/*/skills/*/tool-routes.yaml`
+3. **Other plugins' plugin-level routes** - `<plugins_dir>/*/hooks/tool-routes.yaml`
+4. **Project-local routes** - `<project_root>/.claude/tool-routes.yaml`
 
 All discovered routes are merged into a single routing table. The order affects which routes are checked first, but any match blocks the call.
 
@@ -45,6 +46,26 @@ plugins/
 ```
 
 All `hooks/tool-routes.yaml` files found in `$CLAUDE_PLUGINS_DIR/*/` are loaded.
+
+### Skill-Level Routes
+
+Skills can contribute their own routes by placing a `tool-routes.yaml` in the skill directory:
+
+```
+plugins/
+├── git-workflows/
+│   └── skills/
+│       └── writing-pull-requests/
+│           ├── SKILL.md
+│           └── tool-routes.yaml    ← Skill-level routes
+```
+
+Skill-level routes are ideal when:
+- The route guards or enforces the skill's domain
+- The route's message should reference the skill
+- The route only makes sense in context of the skill
+
+All `tool-routes.yaml` files found in `$CLAUDE_PLUGINS_DIR/*/skills/*/` are loaded.
 
 ### Project Routes
 
