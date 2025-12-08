@@ -22,13 +22,13 @@
       "version": "1.0.0"
     },
     {
-      "name": "debugging-tools",
-      "source": "./plugins/debugging-tools",
+      "name": "dev-tools",
+      "source": "./plugins/dev-tools",
       "version": "1.0.0"
     },
     {
-      "name": "dev-tools",
-      "source": "./plugins/dev-tools",
+      "name": "mcpproxy",
+      "source": "./plugins/mcpproxy",
       "version": "1.0.0"
     },
     {
