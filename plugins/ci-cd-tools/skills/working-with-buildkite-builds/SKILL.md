@@ -1,13 +1,13 @@
 ---
-name: buildkite-status
-description: Use when checking Buildkite CI status for PRs, branches, or builds - provides workflows for monitoring build status, investigating failures, and handling post-push scenarios with progressive detail disclosure. Use when tempted to use GitHub tools instead of Buildkite-native tools, or when a Buildkite tool fails and you want to fall back to familiar alternatives.
+name: working-with-buildkite-builds
+description: Use when working with Buildkite CI - checking status, investigating failures, and reproducing issues locally. Provides workflows for monitoring builds, progressive failure investigation, and local reproduction strategies. Use when tempted to use GitHub tools instead of Buildkite-native tools, or when a Buildkite tool fails and you want to fall back to familiar alternatives.
 ---
 
-# Buildkite Status
+# Working with Buildkite Builds
 
 ## Overview
 
-This skill provides workflows and tools for checking and monitoring Buildkite CI status. It focuses on **checking status and investigating failures** rather than creating or configuring pipelines. Use this skill when working with Buildkite builds, especially for PR workflows, post-push monitoring, and failure investigation.
+This skill provides workflows and tools for working with Buildkite CI builds. It covers **checking status, investigating failures, and reproducing issues locally** rather than creating or configuring pipelines. Use this skill when working with Buildkite builds, especially for PR workflows, post-push monitoring, failure investigation, and local reproduction.
 
 ## When to Use This Skill
 
