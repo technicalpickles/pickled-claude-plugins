@@ -134,6 +134,10 @@ def merge_routes(paths: list[Path]) -> dict[str, Route]:
 def discover_plugin_routes(plugins_dir: Path) -> list[Path]:
     """Find all tool-routes.yaml files in plugin directories.
 
+    Handles both development layout and installed layout:
+    - Development: plugins/plugin-name/hooks/tool-routes.yaml
+    - Installed:   plugins/plugin-name/VERSION/hooks/tool-routes.yaml
+
     Args:
         plugins_dir: Path to plugins directory
 
@@ -145,19 +149,36 @@ def discover_plugin_routes(plugins_dir: Path) -> list[Path]:
 
     paths = []
 
-    # Plugin-level routes: plugins/*/hooks/tool-routes.yaml
     for plugin_dir in plugins_dir.iterdir():
         if not plugin_dir.is_dir():
             continue
+
+        # Check for development layout: plugin-name/hooks/tool-routes.yaml
         routes_file = plugin_dir / "hooks" / "tool-routes.yaml"
         if routes_file.exists():
             paths.append(routes_file)
 
-    # Skill-level routes: plugins/*/skills/*/tool-routes.yaml
+        # Check for installed layout: plugin-name/VERSION/hooks/tool-routes.yaml
+        # VERSION is typically semver (1.0.0) or git hash
+        for version_dir in plugin_dir.iterdir():
+            if not version_dir.is_dir():
+                continue
+            # Skip if this looks like a standard subdirectory, not a version
+            if version_dir.name in ("hooks", "skills", "src", "tests", ".claude-plugin"):
+                continue
+            routes_file = version_dir / "hooks" / "tool-routes.yaml"
+            if routes_file.exists():
+                paths.append(routes_file)
+
+    # Skill-level routes for both layouts:
+    # - Development: plugins/*/skills/*/tool-routes.yaml
+    # - Installed:   plugins/*/VERSION/skills/*/tool-routes.yaml
     for routes_file in plugins_dir.glob("*/skills/*/tool-routes.yaml"):
         paths.append(routes_file)
+    for routes_file in plugins_dir.glob("*/*/skills/*/tool-routes.yaml"):
+        paths.append(routes_file)
 
-    return sorted(paths)  # Consistent ordering
+    return sorted(set(paths))  # Dedupe and consistent ordering
 
 
 def discover_project_routes(project_root: Path) -> Optional[Path]:
