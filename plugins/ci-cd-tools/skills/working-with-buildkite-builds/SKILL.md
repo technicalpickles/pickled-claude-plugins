@@ -1,13 +1,13 @@
 ---
-name: buildkite-status
-description: Use when checking Buildkite CI status for PRs, branches, or builds - provides workflows for monitoring build status, investigating failures, and handling post-push scenarios with progressive detail disclosure. Use when tempted to use GitHub tools instead of Buildkite-native tools, or when a Buildkite tool fails and you want to fall back to familiar alternatives.
+name: working-with-buildkite-builds
+description: Use when working with Buildkite CI - checking status, investigating failures, and reproducing issues locally. Provides workflows for monitoring builds, progressive failure investigation, and local reproduction strategies. Use when tempted to use GitHub tools instead of Buildkite-native tools, or when a Buildkite tool fails and you want to fall back to familiar alternatives.
 ---
 
-# Buildkite Status
+# Working with Buildkite Builds
 
 ## Overview
 
-This skill provides workflows and tools for checking and monitoring Buildkite CI status. It focuses on **checking status and investigating failures** rather than creating or configuring pipelines. Use this skill when working with Buildkite builds, especially for PR workflows, post-push monitoring, and failure investigation.
+This skill provides workflows and tools for working with Buildkite CI builds. It covers **checking status, investigating failures, and reproducing issues locally** rather than creating or configuring pipelines. Use this skill when working with Buildkite builds, especially for PR workflows, post-push monitoring, failure investigation, and local reproduction.
 
 ## When to Use This Skill
 
@@ -176,13 +176,15 @@ Look for:
 - Exit codes and error messages
 - File paths and line numbers
 
-**Step 6: Help reproduce locally**
+**Step 6: Reproduce locally**
 
-Based on the error, suggest:
+Follow the "Reproducing Build Failures Locally" workflow below to:
 
-- Which tests to run locally
-- Environment setup needed
-- Commands to reproduce the failure
+1. Extract the exact command CI ran
+2. Translate it to a local equivalent
+3. Triage if local reproduction isn't feasible
+
+See the dedicated workflow section for detailed steps.
 
 ---
 
@@ -446,6 +448,155 @@ mcp__MCPProxy__call_tool('buildkite:unblock_job', {
 });
 ```
 
+### 7. Reproducing Build Failures Locally
+
+After investigating a failed build (workflows 1-2), use this workflow to reproduce the failure locally for debugging.
+
+#### Phase 1: Extract
+
+**Goal:** Discover exactly what CI ran - the command, environment, and context.
+
+**Step 1: Get the job logs**
+
+Use workflow "### 2. Retrieving Job Logs" to get logs for the failed job.
+
+**Step 2: Find the actual command**
+
+Look early in the log output for the command execution line. Common patterns:
+
+- **Docker-compose plugin:** `:docker: Running /bin/sh -e -c '<command>' in service <service>`
+- **Shell trace:** Lines starting with `+ ` when shell trace is enabled
+- **Direct command steps:** Command appears after "Running command" or similar
+
+Example log snippet:
+```
+Running plugin docker-compose command hook
+:docker: Found a pre-built image for app
+:docker: Creating docker-compose override file for prebuilt services
+:docker: Pulling services app
+:docker: Starting dependencies
+:docker: Running /bin/sh -e -c 'bin/rspec spec/models/user_spec.rb' in service app
+```
+
+The actual command here is `bin/rspec spec/models/user_spec.rb`.
+
+**Step 3: Identify environment variables**
+
+Check multiple sources in order:
+
+1. **Log output** - Some pipelines print env vars at job start
+2. **Pipeline config** - Check `.buildkite/pipeline.yml` or buildkite-builder DSL for `env:` blocks
+3. **Buildkite defaults** - See [references/buildkite-environment-variables.md](references/buildkite-environment-variables.md) for standard vars like `CI=true`, `BUILDKITE_BRANCH`, etc.
+4. **Discover through failure** - If local run fails differently, a missing env var may be the cause
+
+**Step 4: Note the execution context**
+
+Record:
+
+- Was it running in Docker? Which service/image?
+- What working directory?
+- Any pre-command setup visible in the log?
+
+#### Phase 2: Translate
+
+**Goal:** Convert the CI command to something runnable locally.
+
+**Step 1: Try the direct command first**
+
+Run the extracted command as-is in your local environment:
+
+```bash
+bin/rspec spec/models/user_spec.rb
+```
+
+This often works for:
+- Test commands (`rspec`, `jest`, `pytest`, etc.)
+- Linting/formatting tools
+- Simple scripts
+
+**Step 2: If direct fails, try with docker-compose**
+
+When the command ran in a Docker context in CI, replicate that locally:
+
+```bash
+docker-compose run <service> <command>
+```
+
+Example - if CI showed:
+`:docker: Running /bin/sh -e -c 'bin/rspec spec/models/user_spec.rb' in service app`
+
+Try locally:
+```bash
+docker-compose run app bin/rspec spec/models/user_spec.rb
+```
+
+**Step 3: Set relevant environment variables**
+
+If the command behaves differently, add env vars discovered in Phase 1:
+
+```bash
+CI=true RAILS_ENV=test bin/rspec spec/models/user_spec.rb
+```
+
+Or with docker-compose:
+```bash
+docker-compose run -e CI=true -e RAILS_ENV=test app bin/rspec spec/models/user_spec.rb
+```
+
+**Step 4: Handle common translation patterns**
+
+| CI Pattern | Local Translation |
+|------------|-------------------|
+| `--parallel 4` | `--parallel 1` or remove flag |
+| `--format buildkite` | `--format progress` or remove flag |
+| CI-specific artifact paths | Use local paths |
+| `buildkite-agent artifact download` | Download manually or skip |
+
+#### Phase 3: Triage
+
+**Goal:** When local reproduction isn't feasible, determine the best alternative.
+
+**Decision: Can this be reproduced locally?**
+
+Local reproduction is likely **NOT feasible** when:
+
+- Command needs infrastructure not available locally (specific databases, internal APIs, secrets)
+- Environment differences are too significant (specific Linux dependencies, network topology)
+- Failure is tied to CI-specific state (parallelization across agents, artifact dependencies from earlier steps)
+
+**Note:** Many Buildkite plugins don't block local reproduction - plugins for artifacts, notifications, or caching are CI orchestration concerns, not execution blockers.
+
+**Alternative 1: Trigger a test build with debugging changes**
+
+Push a branch with modifications to aid debugging:
+
+- Add verbose flags to the failing command (e.g., `--verbose`, `-vvv`)
+- Insert `echo` statements or print debugging
+- Add env var dumping: `env | sort` or `printenv`
+- Modify environment variables in pipeline config
+- Temporarily simplify the command to isolate the issue
+
+**Alternative 2: Inspect artifacts**
+
+Download artifacts from the failed build:
+
+```javascript
+mcp__MCPProxy__call_tool('buildkite:list_artifacts', {
+  org_slug: '<org>',
+  pipeline_slug: '<pipeline>',
+  build_number: '<build-number>',
+});
+```
+
+Look for:
+- Test output files (JUnit XML, coverage reports)
+- Log files written during execution
+- Screenshots or other debug outputs
+
+**Alternative 3: Analyze the failure in place**
+
+Sometimes reproduction isn't needed - the logs plus artifacts contain enough information to understand and fix the issue without running it locally.
+
 ## Understanding Buildkite States
 
 Buildkite has several states that can be confusing. Here's a quick reference:
@@ -581,6 +732,7 @@ If you catch yourself thinking ANY of these thoughts, you're about to violate th
 - **[tool-capabilities.md](references/tool-capabilities.md)** - Comprehensive capability matrix for MCP tools, bktide, and scripts
 - **[url-parsing.md](references/url-parsing.md)** - Understanding Buildkite URLs, step IDs vs job UUIDs
 - **[troubleshooting.md](references/troubleshooting.md)** - Common errors, solutions, and decision tree for when stuck
+- **[buildkite-environment-variables.md](references/buildkite-environment-variables.md)** - Standard Buildkite environment variables for local reproduction
 
 ### Scripts
 
