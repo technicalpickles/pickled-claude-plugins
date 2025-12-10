@@ -143,3 +143,96 @@ def test_discover_project_routes_missing(tmp_path):
     """No project routes returns None."""
     path = discover_project_routes(tmp_path)
     assert path is None
+
+
+def test_discover_routes_from_installed_plugins(tmp_path):
+    """Discover routes from installed plugin structure with version directories."""
+    # Installed structure: plugins/plugin-name/VERSION/hooks/tool-routes.yaml
+    plugin1 = tmp_path / "plugins" / "plugin-a" / "1.0.0" / "hooks"
+    plugin1.mkdir(parents=True)
+    (plugin1 / "tool-routes.yaml").write_text("""
+routes:
+  from-installed-a:
+    tool: WebFetch
+    pattern: "installed-a"
+    message: "From installed A"
+""")
+
+    plugin2 = tmp_path / "plugins" / "plugin-b" / "2.3.4" / "hooks"
+    plugin2.mkdir(parents=True)
+    (plugin2 / "tool-routes.yaml").write_text("""
+routes:
+  from-installed-b:
+    tool: Bash
+    pattern: "installed-b"
+    message: "From installed B"
+""")
+
+    # Plugin with git hash version
+    plugin3 = tmp_path / "plugins" / "plugin-c" / "abc123def" / "hooks"
+    plugin3.mkdir(parents=True)
+    (plugin3 / "tool-routes.yaml").write_text("""
+routes:
+  from-installed-c:
+    tool: WebFetch
+    pattern: "installed-c"
+    message: "From installed C"
+""")
+
+    paths = discover_plugin_routes(tmp_path / "plugins")
+
+    assert len(paths) == 3
+    assert any("plugin-a" in str(p) and "1.0.0" in str(p) for p in paths)
+    assert any("plugin-b" in str(p) and "2.3.4" in str(p) for p in paths)
+    assert any("plugin-c" in str(p) and "abc123def" in str(p) for p in paths)
+
+
+def test_discover_routes_mixed_layouts(tmp_path):
+    """Discover routes from both development and installed layouts."""
+    # Development layout: plugins/plugin-name/hooks/tool-routes.yaml
+    dev_plugin = tmp_path / "plugins" / "dev-plugin" / "hooks"
+    dev_plugin.mkdir(parents=True)
+    (dev_plugin / "tool-routes.yaml").write_text("""
+routes:
+  dev-route:
+    tool: WebFetch
+    pattern: "dev"
+    message: "From dev"
+""")
+
+    # Installed layout: plugins/plugin-name/VERSION/hooks/tool-routes.yaml
+    installed_plugin = tmp_path / "plugins" / "installed-plugin" / "1.0.0" / "hooks"
+    installed_plugin.mkdir(parents=True)
+    (installed_plugin / "tool-routes.yaml").write_text("""
+routes:
+  installed-route:
+    tool: Bash
+    pattern: "installed"
+    message: "From installed"
+""")
+
+    paths = discover_plugin_routes(tmp_path / "plugins")
+
+    assert len(paths) == 2
+    assert any("dev-plugin" in str(p) for p in paths)
+    assert any("installed-plugin" in str(p) and "1.0.0" in str(p) for p in paths)
+
+
+def test_discover_skill_routes_installed_layout(tmp_path):
+    """Discover skill-level routes from installed plugin structure."""
+    # Installed skill routes: plugins/plugin-name/VERSION/skills/skill-name/tool-routes.yaml
+    skill_dir = tmp_path / "plugins" / "my-plugin" / "1.0.0" / "skills" / "my-skill"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "tool-routes.yaml").write_text("""
+routes:
+  skill-route:
+    tool: WebFetch
+    pattern: "skill"
+    message: "From skill"
+""")
+
+    paths = discover_plugin_routes(tmp_path / "plugins")
+
+    assert len(paths) == 1
+    assert "skills" in str(paths[0])
+    assert "my-skill" in str(paths[0])

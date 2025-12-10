@@ -42,7 +42,13 @@ def get_all_routes() -> tuple[dict[str, "Route"], list[str]]:
     )
 
     plugin_root = get_plugin_root()
-    plugins_dir = Path(os.environ.get("CLAUDE_PLUGINS_DIR", ""))
+    # CLAUDE_PLUGINS_DIR can be set explicitly, or derived from CLAUDE_PLUGIN_ROOT
+    plugins_dir_env = os.environ.get("CLAUDE_PLUGINS_DIR", "")
+    if plugins_dir_env:
+        plugins_dir = Path(plugins_dir_env)
+    else:
+        # Derive from plugin root: plugin_root/../ is the plugins directory
+        plugins_dir = plugin_root.parent
     project_root = Path(os.environ.get("CLAUDE_PROJECT_ROOT", Path.cwd()))
 
     all_routes = []
