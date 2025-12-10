@@ -732,6 +732,7 @@ If you catch yourself thinking ANY of these thoughts, you're about to violate th
 - **[tool-capabilities.md](references/tool-capabilities.md)** - Comprehensive capability matrix for MCP tools, bktide, and scripts
 - **[url-parsing.md](references/url-parsing.md)** - Understanding Buildkite URLs, step IDs vs job UUIDs
 - **[troubleshooting.md](references/troubleshooting.md)** - Common errors, solutions, and decision tree for when stuck
+- **[buildkite-environment-variables.md](references/buildkite-environment-variables.md)** - Standard Buildkite environment variables for local reproduction
 
 ### Scripts
 
