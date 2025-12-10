@@ -176,13 +176,15 @@ Look for:
 - Exit codes and error messages
 - File paths and line numbers
 
-**Step 6: Help reproduce locally**
+**Step 6: Reproduce locally**
 
-Based on the error, suggest:
+Follow the "Reproducing Build Failures Locally" workflow below to:
 
-- Which tests to run locally
-- Environment setup needed
-- Commands to reproduce the failure
+1. Extract the exact command CI ran
+2. Translate it to a local equivalent
+3. Triage if local reproduction isn't feasible
+
+See the dedicated workflow section for detailed steps.
 
 ---
 
