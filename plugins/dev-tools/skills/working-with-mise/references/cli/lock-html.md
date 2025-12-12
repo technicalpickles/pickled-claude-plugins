@@ -1,0 +1,48 @@
+---
+title: "mise lock | mise-en-place"
+meta:
+  description: "mise-en-place documentation"
+---
+
+# `mise lock` [​](#mise-lock)
+
+- **Usage**: `mise lock [FLAGS] [TOOL]…`
+- **Source code**: [`src/cli/lock.rs`](https://github.com/jdx/mise/blob/main/src/cli/lock.rs)
+
+Update lockfile checksums and URLs for all specified platforms
+
+Updates checksums and download URLs for all platforms already specified in the lockfile. If no lockfile exists, shows what would be created based on the current configuration. This allows you to refresh lockfile data for platforms other than the one you're currently on. Operates on the lockfile in the current config root. Use TOOL arguments to target specific tools.
+
+## Arguments [​](#arguments)
+
+### `[TOOL]…` [​](#tool)
+
+Tool(s) to update in lockfile e.g.: node python If not specified, all tools in lockfile will be updated
+
+## Flags [​](#flags)
+
+### `-j --jobs <JOBS>` [​](#j-jobs-jobs)
+
+Number of jobs to run in parallel
+
+### `-n --dry-run` [​](#n-dry-run)
+
+Show what would be updated without making changes
+
+### `-p --platform… <PLATFORM>` [​](#p-platform-platform)
+
+Comma-separated list of platforms to target e.g.: linux-x64,macos-arm64,windows-x64 If not specified, all platforms already in lockfile will be updated
+
+### `--local` [​](#local)
+
+Update mise.local.lock instead of mise.lock Use for tools defined in .local.toml configs
+
+Examples:
+
+```
+mise lock                       # update lockfile for all common platforms
+mise lock node python           # update only node and python
+mise lock --platform linux-x64  # update only linux-x64 platform
+mise lock --dry-run             # show what would be updated
+mise lock --local               # update mise.local.lock for local configs
+```

@@ -1,0 +1,43 @@
+---
+title: "mise uninstall | mise-en-place"
+meta:
+  description: "mise-en-place documentation"
+---
+
+# `mise uninstall` [​](#mise-uninstall)
+
+- **Usage**: `mise uninstall [-a --all] [-n --dry-run] [INSTALLED_TOOL@VERSION]…`
+- **Source code**: [`src/cli/uninstall.rs`](https://github.com/jdx/mise/blob/main/src/cli/uninstall.rs)
+
+Removes installed tool versions
+
+This only removes the installed version, it does not modify mise.toml.
+
+## Arguments [​](#arguments)
+
+### `[INSTALLED_TOOL@VERSION]…` [​](#installed-tool-version)
+
+Tool(s) to remove
+
+## Flags [​](#flags)
+
+### `-a --all` [​](#a-all)
+
+Delete all installed versions
+
+### `-n --dry-run` [​](#n-dry-run)
+
+Do not actually delete anything
+
+Examples:
+
+```
+# will uninstall specific version
+$ mise uninstall node@18.0.0
+
+# will uninstall the current node version (if only one version is installed)
+$ mise uninstall node
+
+# will uninstall all installed versions of node
+$ mise uninstall --all node@18.0.0 # will uninstall all node versions
+```

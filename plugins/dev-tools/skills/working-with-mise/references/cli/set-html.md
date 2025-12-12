@@ -1,0 +1,88 @@
+---
+title: "mise set | mise-en-place"
+meta:
+  description: "mise-en-place documentation"
+---
+
+# `mise set` [​](#mise-set)
+
+- **Usage**: `mise set [FLAGS] [ENV_VAR]…`
+- **Source code**: [`src/cli/set.rs`](https://github.com/jdx/mise/blob/main/src/cli/set.rs)
+
+Set environment variables in mise.toml
+
+By default, this command modifies `mise.toml` in the current directory. Use `-E <env>` to create/modify environment-specific config files like `mise.<env>.toml`.
+
+## Arguments [​](#arguments)
+
+### `[ENV_VAR]…` [​](#env-var)
+
+Environment variable(s) to set e.g.: NODE_ENV=production
+
+## Flags [​](#flags)
+
+### `-E --env <ENV>` [​](#e-env-env)
+
+Create/modify an environment-specific config file like .mise.<env>.toml
+
+### `-g --global` [​](#g-global)
+
+Set the environment variable in the global config file
+
+### `--age-encrypt` [​](#age-encrypt)
+
+[experimental] Encrypt the value with age before storing
+
+### `--age-key-file <PATH>` [​](#age-key-file-path)
+
+[experimental] Age identity file for encryption
+
+Defaults to ~/.config/mise/age.txt if it exists
+
+### `--age-recipient… <RECIPIENT>` [​](#age-recipient-recipient)
+
+[experimental] Age recipient (x25519 public key) for encryption
+
+Can be used multiple times. Requires --age-encrypt.
+
+### `--age-ssh-recipient… <PATH_OR_PUBKEY>` [​](#age-ssh-recipient-path-or-pubkey)
+
+[experimental] SSH recipient (public key or path) for age encryption
+
+Can be used multiple times. Requires --age-encrypt.
+
+### `--file <FILE>` [​](#file-file)
+
+The TOML file to update
+
+Can be a file path or directory. If a directory is provided, will create/use mise.toml in that directory. Defaults to MISE_DEFAULT_CONFIG_FILENAME environment variable, or `mise.toml`.
+
+### `--prompt` [​](#prompt)
+
+Prompt for environment variable values
+
+Examples:
+
+```
+$ mise set NODE_ENV=production
+
+$ mise set NODE_ENV
+production
+
+$ mise set -E staging NODE_ENV=staging
+# creates or modifies mise.staging.toml
+
+$ mise set
+key       value       source
+NODE_ENV  production  ~/.config/mise/config.toml
+
+$ mise set --prompt PASSWORD
+Enter value for PASSWORD: [hidden input]
+
+[experimental] Age Encryption:
+
+$ mise set --age-encrypt API_KEY=secret
+
+$ mise set --age-encrypt --prompt API_KEY
+Enter value for API_KEY: [hidden input]
+```

@@ -1,0 +1,46 @@
+---
+title: "mise test-tool | mise-en-place"
+meta:
+  description: "mise-en-place documentation"
+---
+
+# `mise test-tool` [​](#mise-test-tool)
+
+- **Usage**: `mise test-tool [FLAGS] [TOOLS]…`
+- **Source code**: [`src/cli/test_tool.rs`](https://github.com/jdx/mise/blob/main/src/cli/test_tool.rs)
+
+Test a tool installs and executes
+
+## Arguments [​](#arguments)
+
+### `[TOOLS]…` [​](#tools)
+
+Tool(s) to test
+
+## Flags [​](#flags)
+
+### `-a --all` [​](#a-all)
+
+Test every tool specified in registry.toml
+
+### `-j --jobs <JOBS>` [​](#j-jobs-jobs)
+
+Number of jobs to run in parallel [default: 4]
+
+### `--all-config` [​](#all-config)
+
+Test all tools specified in config files
+
+### `--include-non-defined` [​](#include-non-defined)
+
+Also test tools not defined in registry.toml, guessing how to test it
+
+### `--raw` [​](#raw)
+
+Directly pipe stdin/stdout/stderr from plugin to user Sets --jobs=1
+
+Examples:
+
+```
+mise test-tool ripgrep
+```
