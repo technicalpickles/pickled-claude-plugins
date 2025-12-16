@@ -18,6 +18,7 @@ Use this skill when:
 - Adding new step types (command, trigger, block, wait)
 - Configuring dependencies, artifacts, or parallelism
 - Setting up Buildkite plugins
+- Configuring or debugging Buildkite plugins
 
 Do NOT use for:
 - Checking build status (use buildkite-status skill)
@@ -40,6 +41,46 @@ When detected, announce:
 > "I see you're using buildkite-builder for dynamic pipeline generation. I'll work with your pipeline.rb files and reference the Ruby DSL."
 
 Then load buildkite-builder reference documentation as needed.
+
+## Working with Plugins
+
+### Before Modifying Plugin Configuration
+
+When editing pipeline steps that use plugins:
+
+1. **Identify plugins** - Note all `plugins:` entries in the step
+2. **Determine source:**
+   - Default org `buildkite-plugins` if no org specified
+   - Parse explicit org from `{org}/{plugin}#version` format
+3. **Load documentation:**
+   - **Cached:** Check `@references/plugins/{plugin-name}.md`
+   - **Official (not cached):** Fetch from Buildkite directory or GitHub
+   - **Internal:** Fetch README from `github.com/{org}/{plugin}-buildkite-plugin`
+4. **Match versions** - If pipeline specifies version, fetch that version's docs from GitHub tag
+
+### Fetching Plugin Documentation
+
+**Buildkite directory (latest):**
+```
+https://buildkite.com/resources/plugins/{org}/{plugin-name}-buildkite-plugin
+```
+
+**GitHub README (version-specific):**
+```
+https://github.com/{org}/{plugin-name}-buildkite-plugin/tree/{version}
+```
+
+### Plugin Discovery
+
+**"Is there a plugin for X?"**
+
+1. Check `@references/plugins/index.md` for common plugins by category
+2. Fetch Buildkite directory: `https://buildkite.com/resources/plugins/`
+3. Search by task type (caching, docker, secrets, etc.)
+
+**Internal plugins:**
+
+Search org's GitHub for repos matching `*-buildkite-plugin`
 
 ## Workflow
 
@@ -82,6 +123,13 @@ Let me check: @references/buildkite-builder/[relevant-doc].md
 - `artifacts.md` - Uploading and downloading build artifacts
 
 See `@references/index.md` for complete list.
+
+**Plugin references (see @references/plugins/index.md for full list):**
+- `plugins/docker.md` - Docker container execution
+- `plugins/docker-compose.md` - Multi-container environments
+- `plugins/artifacts.md` - Artifact upload/download
+- `plugins/ecr.md` - AWS ECR authentication
+- `plugins/cache.md` - Dependency caching
 
 **buildkite-builder references (when detected):**
 - `buildkite-builder/index.md` - Overview and when to use
@@ -132,18 +180,18 @@ docker run ... | buildkite-agent pipeline upload --dry-run
 
 Note: List any custom ENV variables found in pipeline.rb and suggest setting real values if needed.
 
-### 4. Check for Official Plugins
+### 4. Load Plugin Documentation
 
-Before writing custom scripts, check if a Buildkite plugin exists:
+Before modifying any step with plugins:
 
-```markdown
-**Before implementing custom Docker builds, check:**
-- docker-buildkite-plugin
-- ecr-buildkite-plugin
-- docker-compose-buildkite-plugin
+1. **Identify all plugins** in the step's `plugins:` block
+2. **For each plugin:**
+   - Check `@references/plugins/{name}.md` for cached docs
+   - If not cached, fetch from Buildkite directory or GitHub
+   - If version specified, fetch version-specific docs
+3. **Then proceed** with changes using accurate configuration reference
 
-Official plugins at: https://buildkite.com/plugins
-```
+See `@references/plugins/index.md` for lookup workflow and common plugins.
 
 ## buildkite-builder Troubleshooting Mode
 
