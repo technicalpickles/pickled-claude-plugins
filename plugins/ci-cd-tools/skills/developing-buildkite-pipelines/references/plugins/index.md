@@ -40,7 +40,7 @@ Extract: `{org}/{plugin-name}#{version}`
 ### Caching
 | Plugin | Org | Cached | Purpose |
 |--------|-----|--------|---------|
-| cache | gantry | ✓ | Dependency caching |
+| cache | buildkite-plugins | ✓ | Dependency caching |
 | docker-ecr-cache | seek-oss | - | Docker layer caching with ECR |
 | s3-cache | danthorpe | - | S3-based caching |
 
