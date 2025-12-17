@@ -240,6 +240,30 @@ If you think any of these thoughts, **STOP**:
 - HTTP API is for debugging MCPProxy, not for normal usage
 - Running ≠ Connected. Process can run but MCP not connected.
 
+### Red Flags in Error Responses
+
+When an MCP tool call returns an error, check for these patterns. If matched, **STOP** - retrying won't help.
+
+**Unrecoverable errors - STOP and tell the user:**
+
+| Error Pattern | What It Means | Tell User |
+|--------------|---------------|-----------|
+| `authentication failed`, `OAuth/token authentication required`, `authorization required` | Upstream server needs re-auth | "Server '{name}' needs re-authentication. Run `mcpproxy auth login --server={name}` or use the MCPProxy system tray to re-authenticate." |
+| `is not connected`, `is disabled` | Server offline/disabled | "Server '{name}' isn't connected. Check MCPProxy status with `mcp__MCPProxy__upstream_servers(operation='list')`." |
+| `access_denied`, `insufficient_scope` | Missing permissions | "Server '{name}' lacks permissions for this operation. May need to re-authorize with additional scopes." |
+
+**Why retrying won't help:**
+
+These errors require user action outside of Claude:
+- Re-running OAuth flow through MCPProxy CLI or system tray
+- Fixing server configuration
+- Granting additional permissions
+
+**Don't:**
+- Retry the same tool with different parameters
+- Try other tools on the same server (they'll fail too)
+- Fall back to WebFetch/curl (won't have auth either)
+
 ## Debugging MCPProxy Connection Issues
 
 If MCPProxy itself isn't working properly (servers won't connect, Docker issues, etc.), you can use these quick checks:
