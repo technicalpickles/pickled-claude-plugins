@@ -29,6 +29,43 @@ def get_plugin_root() -> Path:
     return Path.cwd()
 
 
+def derive_plugins_dir(plugin_root: Path) -> Path:
+    """Derive plugins directory from plugin root.
+
+    Handles both layouts:
+    - Flat: plugins_dir/this-plugin/ -> parent is plugins_dir
+    - Versioned: plugins_dir/this-plugin/1.0.0/ -> grandparent is plugins_dir
+
+    Uses CLAUDE_PLUGINS_DIR env var if set, otherwise derives from plugin_root.
+    """
+    plugins_dir_env = os.environ.get("CLAUDE_PLUGINS_DIR", "")
+    if plugins_dir_env:
+        return Path(plugins_dir_env)
+
+    # Check if we're in versioned layout by looking at directory structure
+    # Versioned: .../plugins_dir/plugin-name/1.0.0/
+    parent = plugin_root.parent  # plugin-name/
+    grandparent = parent.parent  # plugins_dir/
+
+    # Heuristic: if grandparent has multiple subdirectories that look like plugins
+    # (i.e., have version subdirs with hooks/ or skills/), use grandparent
+    if grandparent.exists():
+        plugin_like_siblings = 0
+        for sibling in grandparent.iterdir():
+            if sibling.is_dir() and sibling != parent:
+                # Check if sibling has version subdirs with hooks/skills
+                for subdir in sibling.iterdir():
+                    if subdir.is_dir() and ((subdir / "hooks").exists() or (subdir / "skills").exists()):
+                        plugin_like_siblings += 1
+                        break
+        if plugin_like_siblings > 0:
+            # This looks like versioned layout
+            return grandparent
+
+    # Default to flat layout
+    return parent
+
+
 def get_all_routes() -> tuple[dict[str, "Route"], list[str]]:
     """Load routes from all sources.
 
@@ -42,13 +79,7 @@ def get_all_routes() -> tuple[dict[str, "Route"], list[str]]:
     )
 
     plugin_root = get_plugin_root()
-    # CLAUDE_PLUGINS_DIR can be set explicitly, or derived from CLAUDE_PLUGIN_ROOT
-    plugins_dir_env = os.environ.get("CLAUDE_PLUGINS_DIR", "")
-    if plugins_dir_env:
-        plugins_dir = Path(plugins_dir_env)
-    else:
-        # Derive from plugin root: plugin_root/../ is the plugins directory
-        plugins_dir = plugin_root.parent
+    plugins_dir = derive_plugins_dir(plugin_root)
     project_root = Path(os.environ.get("CLAUDE_PROJECT_ROOT", Path.cwd()))
 
     all_routes = []
@@ -65,8 +96,8 @@ def get_all_routes() -> tuple[dict[str, "Route"], list[str]]:
     # 2. Other plugins' routes
     if plugins_dir.exists():
         for path in discover_plugin_routes(plugins_dir):
-            # Skip our own routes (already loaded)
-            if path == own_routes_file:
+            # Skip our own routes (already loaded) - resolve to absolute for comparison
+            if path.resolve() == own_routes_file.resolve():
                 continue
             routes = load_routes_file(path)
             if routes:

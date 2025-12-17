@@ -6,22 +6,38 @@ description: Validate tool-routing plugin installation and hooks format
 
 Run these steps to verify the tool-routing plugin is correctly installed and working.
 
-## Step 1: Validate Plugin Manifest
+## Monorepo Context
 
-Run `claude plugin validate` on the plugin directory:
+This plugin is part of the `pickled-claude-plugins` monorepo. Routes are contributed by multiple plugins:
+
+| Plugin | Route Location | Routes |
+|--------|----------------|--------|
+| tool-routing | `hooks/tool-routes.yaml` | bash-cat-heredoc, bash-echo-*, tool-routing-manual-test |
+| dev-tools | `hooks/tool-routes.yaml` | atlassian |
+| git-workflows | `skills/writing-pull-requests/tool-routes.yaml` | github-pr, git-commit-multiline, gh-pr-create-multiline |
+| ci-cd-tools | `skills/working-with-buildkite-builds/tool-routes.yaml` | buildkite |
+| mcpproxy | `skills/working-with-mcp/tool-routes.yaml` | bash-mcp-cli, bash-mcp-tool |
+
+## Step 1: Validate Plugin Manifests
+
+Run `claude plugin validate` on each plugin with a manifest:
 
 ```bash
-claude plugin validate /path/to/plugins/tool-routing
+# From repo root
+for plugin in plugins/*/; do
+  if [ -d "$plugin/.claude-plugin" ]; then
+    echo "=== Validating $plugin ==="
+    claude plugin validate "$plugin"
+  fi
+done
 ```
-
-This checks that `.claude-plugin/plugin.json` exists and is valid JSON.
 
 ## Step 2: Run Plugin Structure Tests
 
 The plugin includes pytest tests that validate hooks.json format:
 
 ```bash
-cd /path/to/plugins/tool-routing
+cd plugins/tool-routing
 uv run pytest tests/test_plugin_structure.py -v
 ```
 
@@ -34,15 +50,18 @@ These tests catch **silent failures** where hooks.json is valid JSON but wrong f
 | `"type": "preToolUse"` | `"type": "command"` |
 | `$CLAUDE_PLUGIN_ROOT` | `${CLAUDE_PLUGIN_ROOT}` (with braces) |
 
-## Step 3: Run Route Tests
+## Step 3: Run Route Tests (All Plugins)
 
-Test that route patterns match correctly:
+Test that route patterns match correctly across **all plugins in the monorepo**:
 
 ```bash
-uv run tool-routing test
+cd plugins/tool-routing
+CLAUDE_PLUGIN_ROOT="$PWD" CLAUDE_PLUGINS_DIR="../" uv run tool-routing test
 ```
 
-This runs inline test fixtures defined in `hooks/tool-routes.yaml`.
+This discovers and tests routes from all plugins, not just tool-routing.
+
+**Expected output:** Routes from 5 sources, 30+ tests passing.
 
 ## Step 4: Test at Runtime
 
@@ -80,6 +99,23 @@ Look for:
 | "No module named tool_routing" | Wrong working directory | Run from plugin root with `uv run` |
 | Plugin not in list | Missing manifest | Create `.claude-plugin/plugin.json` |
 | Tests fail on matcher format | Old hooks.json format | Update to object-keyed structure |
+| Only 1 route source found | Stale cache or wrong plugins_dir | See troubleshooting in route-discovery.md |
+
+## Step 5a: Verify Cross-Plugin Route Discovery
+
+**Critical check:** Ensure routes from ALL plugins are discovered, not just tool-routing.
+
+```bash
+cd plugins/tool-routing
+CLAUDE_PLUGIN_ROOT="$PWD" CLAUDE_PLUGINS_DIR="../" uv run tool-routing list
+```
+
+**Expected:** "Routes (merged from 5 sources)"
+
+If you only see 1 source:
+1. Check CLAUDE_PLUGINS_DIR is set correctly
+2. Check sibling plugins have `hooks/tool-routes.yaml` or `skills/*/tool-routes.yaml`
+3. See `docs/route-discovery.md#troubleshooting` for more diagnostics
 
 ## Step 6: Run Integration Tests (Optional)
 
