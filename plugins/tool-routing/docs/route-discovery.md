@@ -20,11 +20,43 @@ The plugin uses these environment variables to locate route files:
 | Variable | Purpose | Default |
 |----------|---------|---------|
 | `CLAUDE_PLUGIN_ROOT` | This plugin's directory | Current working directory |
-| `CLAUDE_PLUGINS_DIR` | Directory containing all plugins | (none) |
+| `CLAUDE_PLUGINS_DIR` | Directory containing all plugins | Derived from plugin root |
 | `CLAUDE_PROJECT_ROOT` | Project root for local routes | Current working directory |
 | `TOOL_ROUTING_DEBUG` | Enable debug output | (disabled) |
 
-Claude Code sets these automatically when invoking hooks.
+### How Claude Code Sets Environment Variables
+
+**Important:** `CLAUDE_PLUGIN_ROOT` is only set for **plugin hooks** (defined in a plugin's `hooks/hooks.json`), NOT for global hooks (defined in `~/.claude/settings.json`).
+
+When a plugin hook runs:
+- `CLAUDE_PLUGIN_ROOT` = Cache path: `~/.claude/plugins/cache/{marketplace}/{plugin}/{version}/`
+- This is the **cache copy**, not the original source directory
+
+### Directory Layout Detection
+
+The plugin automatically detects whether it's running in:
+
+**Flat layout** (development):
+```
+plugins/
+├── tool-routing/
+│   └── hooks/tool-routes.yaml
+└── other-plugin/
+    └── hooks/tool-routes.yaml
+```
+
+**Versioned layout** (installed via marketplace):
+```
+~/.claude/plugins/cache/marketplace/
+├── tool-routing/
+│   └── 1.0.0/
+│       └── hooks/tool-routes.yaml
+└── other-plugin/
+    └── 1.0.0/
+        └── hooks/tool-routes.yaml
+```
+
+The `derive_plugins_dir()` function handles both by checking for sibling plugin directories with version subdirectories.
 
 ## Route Sources
 
@@ -235,3 +267,76 @@ Use `gh pr view <number>` for GitHub PRs.
 2. **Keep routes focused** - One concern per route
 3. **Test locally first** - Run `tool-routing test` before committing
 4. **Coordinate with plugins** - Avoid naming conflicts with installed plugins
+
+## Troubleshooting
+
+### Routes Not Being Discovered
+
+**Symptom:** `tool-routing list` shows fewer sources than expected.
+
+**Common causes:**
+
+1. **Stale plugin cache** - The installed plugin cache may be outdated
+   ```bash
+   # Check cache version
+   ls ~/.claude/plugins/cache/{marketplace}/tool-routing/
+
+   # Fix: Reinstall the plugin
+   /plugin uninstall tool-routing@{marketplace}
+   /plugin install tool-routing@{marketplace}
+   ```
+
+2. **Orphaned cache directory** - `installed_plugins.json` may point to non-existent path
+   ```bash
+   # Check if install path exists
+   jq '.plugins["tool-routing@marketplace"][0].installPath' ~/.claude/plugins/installed_plugins.json
+   ls -la /path/from/above
+
+   # Fix: Delete stale cache and reinstall
+   rm -rf ~/.claude/plugins/cache/{marketplace}/tool-routing/
+   /plugin uninstall tool-routing@{marketplace}
+   /plugin install tool-routing@{marketplace}
+   ```
+
+3. **Plugin not enabled** - Check settings.json
+   ```bash
+   jq '.enabledPlugins["tool-routing@marketplace"]' ~/.claude/settings.json
+   # Should return: true
+   ```
+
+### Hook Not Running
+
+**Symptom:** Tool calls that should be blocked are allowed through.
+
+**Diagnostic steps:**
+
+1. **Verify plugin is installed and enabled**
+   ```bash
+   jq '.plugins | keys | map(select(contains("tool-routing")))' ~/.claude/plugins/installed_plugins.json
+   jq '.enabledPlugins | keys | map(select(contains("tool-routing")))' ~/.claude/settings.json
+   ```
+
+2. **Check cache directory exists**
+   ```bash
+   ls ~/.claude/plugins/cache/{marketplace}/tool-routing/
+   ```
+
+3. **Test route discovery manually**
+   ```bash
+   CLAUDE_PLUGIN_ROOT="~/.claude/plugins/cache/{marketplace}/tool-routing/{version}" \
+     uv run --project "$CLAUDE_PLUGIN_ROOT" tool-routing list
+   ```
+
+4. **Restart Claude Code** - Hooks are loaded at startup
+
+### Version Mismatch Between Source and Cache
+
+For directory-source marketplaces, the cache is a **copy** made at install time. Changes to the source directory require reinstalling:
+
+```bash
+/plugin uninstall tool-routing@{marketplace}
+/plugin install tool-routing@{marketplace}
+# Then restart Claude Code
+```
+
+**Note:** This is different from git-based marketplaces, which also create copies but track versions via git tags.
