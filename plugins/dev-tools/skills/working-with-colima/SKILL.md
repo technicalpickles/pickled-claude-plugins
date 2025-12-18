@@ -73,11 +73,10 @@ colima stop --force && colima start
 - `references/troubleshooting.md` - Common issues and solutions
 - `references/common-options.md` - Flags, VM types, resource configuration
 
-## External Resources
+## Upstream Documentation
 
-For updated Colima documentation:
-```bash
-uvx gitingest https://github.com/abiosoft/colima -i "*.md" -o colima-docs.txt
-```
+Local copies of official Colima docs (from [github.com/abiosoft/colima](https://github.com/abiosoft/colima)):
 
-See also: [Colima FAQ](https://github.com/abiosoft/colima/blob/main/docs/FAQ.md)
+- `references/colima-upstream/README.md` - Official README with features and usage
+- `references/colima-upstream/FAQ.md` - Official FAQ and troubleshooting
+- `references/colima-upstream/INSTALL.md` - Installation options
