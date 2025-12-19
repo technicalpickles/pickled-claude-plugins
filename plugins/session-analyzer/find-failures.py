@@ -87,6 +87,7 @@ def find_tool_use(entries: dict[str, dict], tool_use_id: str, start_uuid: str) -
                     if item.get("id") == tool_use_id:
                         return {
                             "uuid": current_uuid,
+                            "type": entry.get("type", "unknown"),
                             "name": item.get("name", "unknown"),
                             "input": item.get("input", {}),
                         }
@@ -117,7 +118,9 @@ def find_failures(jsonl_path: Path) -> list[dict]:
                 failures.append({
                     "file_path": str(jsonl_path.resolve()),
                     "request_uuid": tool_use["uuid"] if tool_use else "unknown",
+                    "request_type": tool_use["type"] if tool_use else "unknown",
                     "response_uuid": entry.get("uuid", "unknown"),
+                    "response_type": entry.get("type", "unknown"),
                     "tool_use_id": tool_use_id,
                     "tool_name": tool_use["name"] if tool_use else "unknown",
                     "tool_input": tool_use["input"] if tool_use else {},
@@ -161,15 +164,15 @@ def format_failure(index: int, failure: dict) -> str:
         f"━━━ Failure #{index} ━━━",
         f"{indent}{failure['file_path']}",
         f"{indent}Tool: {failure['tool_name']}",
-        f"{indent}Request UUID: {failure['request_uuid']}",
+        f"{indent}Request: {failure['request_uuid']} ({failure['request_type']})",
     ]
 
     # Add tool input
     lines.append(f"{indent}Input:")
     lines.extend(format_tool_input(failure["tool_name"], failure["tool_input"], indent + indent))
 
-    # Add error with response UUID
-    lines.append(f"{indent}Response UUID: {failure['response_uuid']}")
+    # Add error with response info
+    lines.append(f"{indent}Response: {failure['response_uuid']} ({failure['response_type']})")
     lines.append(f"{indent}Error:")
     for error_line in failure["error_content"].split("\n"):
         lines.append(f"{indent}{indent}{error_line}")
