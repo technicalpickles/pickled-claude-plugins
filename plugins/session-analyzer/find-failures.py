@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Find failed tool calls in Claude session logs."""
 
+import argparse
 import json
 import signal
 import sys
@@ -177,14 +178,25 @@ def format_failure(index: int, failure: dict) -> str:
 
 
 def main():
-    if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <file.jsonl|directory> [...]", file=sys.stderr)
-        print(f"\nScans Claude session logs for failed tool calls.", file=sys.stderr)
-        print(f"Only files within ~/.claude/projects are allowed.", file=sys.stderr)
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description="Find failed tool calls in Claude session logs.",
+        epilog="Only files within ~/.claude/projects are allowed.",
+    )
+    parser.add_argument(
+        "paths",
+        nargs="+",
+        type=Path,
+        metavar="PATH",
+        help="JSONL file(s) or directory(ies) to scan",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output results as JSON (one object per line)",
+    )
+    args = parser.parse_args()
 
-    input_paths = [Path(arg) for arg in sys.argv[1:]]
-    jsonl_files = collect_jsonl_files(input_paths)
+    jsonl_files = collect_jsonl_files(args.paths)
 
     if not jsonl_files:
         print("No valid JSONL files found.", file=sys.stderr)
@@ -193,6 +205,11 @@ def main():
     all_failures = []
     for jsonl_file in jsonl_files:
         all_failures.extend(find_failures(jsonl_file))
+
+    if args.json:
+        for failure in all_failures:
+            print(json.dumps(failure))
+        sys.exit(0)
 
     if not all_failures:
         print(f"No failures found in {len(jsonl_files)} file(s).")
