@@ -1,5 +1,7 @@
+import os
 import subprocess
 import sys
+from pathlib import Path
 
 
 def test_discovers_skill_level_routes(tmp_path, monkeypatch):
@@ -62,6 +64,7 @@ routes:
     message: "From project"
 """)
 
+    src_path = Path(__file__).parent.parent / "src"
     result = subprocess.run(
         [sys.executable, "-m", "tool_routing", "list"],
         capture_output=True,
@@ -70,7 +73,8 @@ routes:
             "CLAUDE_PLUGIN_ROOT": str(tmp_path),
             "CLAUDE_PLUGINS_DIR": str(tmp_path / "other-plugins"),
             "CLAUDE_PROJECT_ROOT": str(tmp_path / "project"),
-            "PATH": "",
+            "PYTHONPATH": str(src_path),
+            "PATH": os.environ.get("PATH", ""),
         },
     )
 
