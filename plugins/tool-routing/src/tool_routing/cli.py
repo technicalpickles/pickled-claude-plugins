@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from tool_routing.checker import check_tool_call
-from tool_routing.config import RouteConflictError, load_routes_file
+from tool_routing.config import RouteConflictError, discover_craftdesk_routes, load_routes_file
 from tool_routing.integration_runner import (
     evaluate_report,
     format_evaluate_results,
@@ -71,6 +71,10 @@ def get_all_routes() -> tuple[dict[str, "Route"], list[str]]:
 
     Returns:
         Tuple of (merged routes dict, list of source files)
+
+    Environment:
+        TOOL_ROUTING_ISOLATED: If set to "1", only load routes from CLAUDE_PLUGIN_ROOT,
+            skipping sibling plugin discovery and project routes. Useful for testing.
     """
     from tool_routing.config import (
         discover_plugin_routes,
@@ -79,8 +83,8 @@ def get_all_routes() -> tuple[dict[str, "Route"], list[str]]:
     )
 
     plugin_root = get_plugin_root()
-    plugins_dir = derive_plugins_dir(plugin_root)
     project_root = Path(os.environ.get("CLAUDE_PROJECT_ROOT", Path.cwd()))
+    isolated = os.environ.get("TOOL_ROUTING_ISOLATED", "").lower() in ("1", "true", "yes")
 
     all_routes = []
     all_sources = []
@@ -93,24 +97,35 @@ def get_all_routes() -> tuple[dict[str, "Route"], list[str]]:
             all_routes.append(routes)
             all_sources.append(str(own_routes_file))
 
-    # 2. Other plugins' routes
-    if plugins_dir.exists():
-        for path in discover_plugin_routes(plugins_dir):
-            # Skip our own routes (already loaded) - resolve to absolute for comparison
-            if path.resolve() == own_routes_file.resolve():
-                continue
-            routes = load_routes_file(path)
+    # Skip sibling/project discovery in isolated mode
+    if not isolated:
+        plugins_dir = derive_plugins_dir(plugin_root)
+
+        # 2. Other plugins' routes
+        if plugins_dir.exists():
+            for path in discover_plugin_routes(plugins_dir):
+                # Skip our own routes (already loaded) - resolve to absolute for comparison
+                if path.resolve() == own_routes_file.resolve():
+                    continue
+                routes = load_routes_file(path)
+                if routes:
+                    all_routes.append(routes)
+                    all_sources.append(str(path))
+
+        # 3. Project routes
+        project_routes_path = discover_project_routes(project_root)
+        if project_routes_path:
+            routes = load_routes_file(project_routes_path)
             if routes:
                 all_routes.append(routes)
-                all_sources.append(str(path))
+                all_sources.append(str(project_routes_path))
 
-    # 3. Project routes
-    project_routes_path = discover_project_routes(project_root)
-    if project_routes_path:
-        routes = load_routes_file(project_routes_path)
+    # 4. Craftdesk-installed skills' routes
+    for path in discover_craftdesk_routes(project_root):
+        routes = load_routes_file(path)
         if routes:
             all_routes.append(routes)
-            all_sources.append(str(project_routes_path))
+            all_sources.append(str(path))
 
     if not all_routes:
         return {}, []

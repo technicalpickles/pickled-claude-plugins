@@ -34,9 +34,9 @@ routes:
   # Git commit - use Write + -F for multiline
   git-commit-multiline:
     tool: Bash
-    pattern: "git\\s+commit\\s+.*(?:(?:-m\\s+[\"'][^\"']*[\"'].*-m)|(?:\\$\\(cat\\s*<<)|(?:<<[-]?\\s*['\"]?\\w+['\"]?))"
+    pattern: "git\\b.*\\bcommit\\s+.*(?:(?:-m\\s+[\"'][^\"']*[\"'].*-m)|(?:-m\\s+[\"'][^\"'\\n]*\\n)|(?:\\$\\(cat\\s*<<)|(?:<<[-]?\\s*['\"]?\\w+['\"]?))"
     message: |
-      Don't use multiple -m flags or heredocs for git commit messages.
+      Don't use multiline commit messages with -m flag.
 
       For multiline commit messages:
         1. Use Write tool to create a commit message file in .tmp/
@@ -66,6 +66,18 @@ routes:
           tool_name: Bash
           tool_input:
             command: "git commit -m \"$(cat <<'EOF'\nTitle\nEOF\n)\""
+        expect: block
+      - desc: "embedded newline in -m should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit -m \"Title\n\nBody paragraph\""
+        expect: block
+      - desc: "git -C with embedded newline should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git -C /path/to/repo commit -m \"Title\n\nBody paragraph\""
         expect: block
       - desc: "single -m should allow"
         input:
