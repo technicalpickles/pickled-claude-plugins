@@ -236,3 +236,34 @@ routes:
     assert len(paths) == 1
     assert "skills" in str(paths[0])
     assert "my-skill" in str(paths[0])
+
+
+def test_discover_craftdesk_routes_finds_routes_in_skills_dir(tmp_path):
+    """Test that craftdesk-installed skills' routes are discovered."""
+    # Create .claude/skills structure
+    skills_dir = tmp_path / ".claude" / "skills"
+    skill_a = skills_dir / "skill-a" / "hooks"
+    skill_b = skills_dir / "skill-b" / "hooks"
+    skill_a.mkdir(parents=True)
+    skill_b.mkdir(parents=True)
+
+    # Create route files
+    (skill_a / "tool-routes.yaml").write_text("routes: []")
+    (skill_b / "tool-routes.yaml").write_text("routes: []")
+
+    # Skill without routes
+    (skills_dir / "skill-c").mkdir()
+
+    from tool_routing.config import discover_craftdesk_routes
+    paths = discover_craftdesk_routes(tmp_path)
+
+    assert len(paths) == 2
+    assert skill_a / "tool-routes.yaml" in paths
+    assert skill_b / "tool-routes.yaml" in paths
+
+
+def test_discover_craftdesk_routes_returns_empty_when_no_skills_dir(tmp_path):
+    """Test that missing .claude/skills returns empty list."""
+    from tool_routing.config import discover_craftdesk_routes
+    paths = discover_craftdesk_routes(tmp_path)
+    assert paths == []

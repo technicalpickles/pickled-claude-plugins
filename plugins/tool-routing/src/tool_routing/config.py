@@ -196,6 +196,27 @@ def discover_project_routes(project_root: Path) -> Optional[Path]:
     return None
 
 
+def discover_craftdesk_routes(project_root: Path) -> list[Path]:
+    """Find tool-routes.yaml in craftdesk-installed skills.
+
+    Craftdesk installs skills to: project_root/.claude/skills/<name>/
+    Each skill may have: hooks/tool-routes.yaml
+    """
+    skills_dir = project_root / ".claude" / "skills"
+    if not skills_dir.exists():
+        return []
+
+    paths = []
+    for skill_dir in skills_dir.iterdir():
+        if not skill_dir.is_dir():
+            continue
+        routes_file = skill_dir / "hooks" / "tool-routes.yaml"
+        if routes_file.exists():
+            paths.append(routes_file)
+
+    return sorted(paths)
+
+
 def load_all_routes(plugins_dir: Path, project_root: Path) -> dict[str, Route]:
     """Load and merge routes from all sources.
 
