@@ -173,3 +173,32 @@ routes:
     assert "list-route-b" in result.stdout
     assert "WebFetch" in result.stdout
     assert "Bash" in result.stdout
+
+
+def test_cli_list_includes_craftdesk_skills(tmp_path, cli_env):
+    """CLI list includes routes from craftdesk-installed skills."""
+    # Create craftdesk skill with routes
+    skill_dir = tmp_path / ".claude" / "skills" / "test-skill" / "hooks"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "tool-routes.yaml").write_text("""
+routes:
+  craftdesk-route:
+    tool: TestTool
+    pattern: "test-pattern"
+    message: "Test tool from craftdesk skill"
+""")
+
+    # Add CLAUDE_PROJECT_ROOT for craftdesk discovery (uses project root, not plugin root)
+    env = {**cli_env, "CLAUDE_PROJECT_ROOT": str(tmp_path)}
+
+    result = subprocess.run(
+        [sys.executable, "-m", "tool_routing", "list"],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+    # Should find the craftdesk skill routes
+    assert result.returncode == 0
+    assert "craftdesk-route" in result.stdout
+    assert "test-skill" in result.stdout or ".claude/skills" in result.stdout

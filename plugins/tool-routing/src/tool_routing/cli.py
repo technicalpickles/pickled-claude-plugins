@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from tool_routing.checker import check_tool_call
-from tool_routing.config import RouteConflictError, load_routes_file
+from tool_routing.config import RouteConflictError, discover_craftdesk_routes, load_routes_file
 from tool_routing.integration_runner import (
     evaluate_report,
     format_evaluate_results,
@@ -83,6 +83,7 @@ def get_all_routes() -> tuple[dict[str, "Route"], list[str]]:
     )
 
     plugin_root = get_plugin_root()
+    project_root = Path(os.environ.get("CLAUDE_PROJECT_ROOT", Path.cwd()))
     isolated = os.environ.get("TOOL_ROUTING_ISOLATED", "").lower() in ("1", "true", "yes")
 
     all_routes = []
@@ -99,7 +100,6 @@ def get_all_routes() -> tuple[dict[str, "Route"], list[str]]:
     # Skip sibling/project discovery in isolated mode
     if not isolated:
         plugins_dir = derive_plugins_dir(plugin_root)
-        project_root = Path(os.environ.get("CLAUDE_PROJECT_ROOT", Path.cwd()))
 
         # 2. Other plugins' routes
         if plugins_dir.exists():
@@ -119,6 +119,13 @@ def get_all_routes() -> tuple[dict[str, "Route"], list[str]]:
             if routes:
                 all_routes.append(routes)
                 all_sources.append(str(project_routes_path))
+
+    # 4. Craftdesk-installed skills' routes
+    for path in discover_craftdesk_routes(project_root):
+        routes = load_routes_file(path)
+        if routes:
+            all_routes.append(routes)
+            all_sources.append(str(path))
 
     if not all_routes:
         return {}, []
