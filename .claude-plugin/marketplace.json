@@ -32,6 +32,11 @@
       "version": "1.0.0"
     },
     {
+      "name": "second-brain",
+      "source": "./plugins/second-brain",
+      "version": "1.0.0"
+    },
+    {
       "name": "tool-routing",
       "source": "./plugins/tool-routing",
       "version": "1.0.0"
