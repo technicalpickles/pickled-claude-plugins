@@ -13,8 +13,9 @@ pickled-claude-plugins/
 │   ├── working-in-monorepos/ # Monorepo navigation and tooling
 │   ├── git-workflows/        # Git workflow best practices
 │   ├── ci-cd-tools/          # CI/CD pipeline tools
-│   ├── debugging-tools/      # Debugging and troubleshooting
-│   └── dev-tools/            # Developer productivity utilities
+│   ├── dev-tools/            # Developer productivity utilities
+│   ├── second-brain/         # Obsidian vault integration
+│   └── tool-routing/         # Tool call interception and routing
 └── docs/
 ```
 
@@ -68,6 +69,24 @@ Tools for debugging and troubleshooting applications.
 Developer productivity tools and utilities.
 
 **Skills:** working-in-scratch-areas
+
+### second-brain
+
+Knowledge management for Obsidian vaults. Capture insights from conversations, process voice transcriptions, and connect repos to your vault.
+
+**Commands:** setup, insight, distill-conversation, process-daily, link-project
+
+**Skills:** obsidian (with PARA, Zettelkasten, note-patterns references)
+
+See [second-brain/README.md](plugins/second-brain/README.md) for full documentation.
+
+### tool-routing
+
+Intercepts tool calls and suggests better alternatives.
+
+**Commands:** validate
+
+See [tool-routing/README.md](plugins/tool-routing/README.md) for full documentation.
 
 ## Usage
 
