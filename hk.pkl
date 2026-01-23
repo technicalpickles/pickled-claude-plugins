@@ -1,19 +1,18 @@
-amends "package://pkg.hk.jdx.dev/hk@1/Config.pkl"
-
-linters {
-  ["check-registry"] {
-    check = "scripts/hooks/check-marketplace-registry.sh"
-  }
-  ["version-bump"] {
-    check = "uv run scripts/hooks/version-bump.py {{commit_msg_file}}"
-  }
-}
+amends "package://github.com/jdx/hk/releases/download/v1.20.0/hk@1.20.0#/Config.pkl"
 
 hooks {
   ["pre-commit"] {
-    steps = ["check-registry"]
+    steps {
+      ["check-registry"] {
+        check = "scripts/hooks/check-marketplace-registry.sh"
+      }
+    }
   }
   ["commit-msg"] {
-    steps = ["version-bump"]
+    steps {
+      ["version-bump"] {
+        check = "uv run scripts/hooks/version-bump.py {{commit_msg_file}}"
+      }
+    }
   }
 }
