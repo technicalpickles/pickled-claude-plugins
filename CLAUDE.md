@@ -93,6 +93,52 @@ rm -rf ~/.claude/plugins/cache/technicalpickles-marketplace/{plugin}/
 
 **Note:** `CLAUDE_PLUGIN_ROOT` is NOT set for global hooks in `~/.claude/settings.json`.
 
+## Versioning
+
+This repo uses conventional commits with automatic version bumping via [hk](https://github.com/jdx/hk).
+
+### Setup
+
+```bash
+# Install hk
+mise use -g hk  # or: brew install jdx/tap/hk
+
+# Install hooks
+hk install
+```
+
+### Commit Format
+
+```
+<type>(<scope>): <description>
+```
+
+| Type | Version Bump |
+|------|--------------|
+| `feat` | minor (0.x.0) |
+| `fix`, `perf`, `refactor` | patch (0.0.x) |
+| `chore`, `docs`, `test`, `ci`, `style`, `build` | none |
+
+Add `BREAKING CHANGE:` in body or `!` after type for major bump (x.0.0).
+
+### Multi-Plugin Commits
+
+- **No scope:** All changed plugins are bumped
+- **With scope:** Only the scoped plugin is bumped (if it matches a plugin name)
+
+Example:
+```bash
+# Bumps all changed plugins
+feat: add cross-plugin discovery
+
+# Bumps only tool-routing
+feat(tool-routing): add new route type
+```
+
+### New Plugins
+
+New plugin directories must be added to `.claude-plugin/marketplace.json` before committing. The pre-commit hook will block otherwise.
+
 ## Documentation
 
 - `plugins/tool-routing/docs/route-discovery.md` - How routes are found and merged
