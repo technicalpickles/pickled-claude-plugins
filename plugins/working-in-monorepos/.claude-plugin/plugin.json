@@ -1,6 +1,6 @@
 {
   "name": "working-in-monorepos",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Navigate and execute commands in monorepo subprojects",
   "author": {
     "name": "Josh Nichols",
