@@ -22,6 +22,7 @@ Load skill references:
 - `second-brain:obsidian` for tool mechanics
 - `references/zettelkasten.md` for naming
 - `references/note-patterns.md` for Insight Note template
+- `references/routing.md` for destination matching
 
 ## Step 2: Identify the Insight
 
@@ -86,37 +87,69 @@ Captured while {brief description of what you were working on/discussing}.
 *Captured via /second-brain:insight*
 ```
 
-## Step 6: Confirm and Analyze
+## Step 6: Confirm and Analyze for Routing
 
-After writing:
+After writing, confirm capture:
 ```
 ✓ Captured to inbox: {filename}
 
 Analyzing for routing...
 ```
 
-Search vault for related notes:
-- Grep for similar keywords
-- Check Projects, Areas, Resources folders
-- Look for existing notes on same topic
+Load `references/routing.md` and follow the algorithm:
+
+**1. Discover vault structure:**
+```bash
+ls -d "{vault}"/*Areas*/*/     2>/dev/null
+ls -d "{vault}"/*Resources*/*/ 2>/dev/null
+ls -d "{vault}"/*Projects*/*/  2>/dev/null
+```
+
+**2. Extract signals from captured note:**
+- Keywords from title and body
+- Content category (architecture, debugging, tool config, etc.)
+- Source context from provenance (repo, branch)
+
+**3. Score each discovered destination:**
+- Keyword match in folder name (40%)
+- Related notes exist in folder (30%)
+- PARA category fit (20%)
+- Recency of folder activity (10%)
+
+**4. Calculate confidence levels:**
+- High (80-100%): Strong match + related notes
+- Medium (50-79%): Partial match
+- Low (20-49%): Weak signals
+- None (<20%): Leave in inbox
 
 ## Step 7: Suggest Routing
 
-Show findings:
+Present findings with explanations:
 ```
-Found related notes:
-- {path/to/related-note.md}
-- {path/to/another-related.md}
+Routing suggestions for "{filename}":
 
-This looks like: {category - e.g., "architecture decision", "debugging pattern"}
+1. **{Areas/path/}** (85% - High)
+   → Matches keywords: "keyword1", "keyword2"
+   → Related note exists: "{related-note.md}"
+
+2. **{Resources/path/}** (48% - Low)
+   → Generic category fit
+
+3. **Leave in Inbox** (Safe default)
+   → Route later when destination is clearer
 ```
 
-Use AskUserQuestion with options:
-1. {Best matching location} (Recommended)
-2. {Second best location}
-3. Leave in inbox for now
+Use AskUserQuestion with discovered options:
+- Only include destinations that actually exist (from `ls` output)
+- Show confidence and explanation for each
+- Always include "Leave in inbox for now" option
 
-If user selects destination, move the file there.
+If user selects a destination, move the file:
+```bash
+mv "{inbox}/{filename}" "{vault}/{selected-destination}/"
+```
+
+If all destinations score <20%, recommend inbox without asking.
 
 ## Constraints
 

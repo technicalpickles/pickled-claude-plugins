@@ -15,7 +15,11 @@ If missing:
 Second brain not configured. Run /second-brain:setup first.
 ```
 
-Load skill references for note patterns and naming.
+Load skill references:
+- `second-brain:obsidian` for tool mechanics
+- `references/zettelkasten.md` for naming
+- `references/note-patterns.md` for Insight Note template
+- `references/routing.md` for destination matching
 
 ## Step 2: Review the Conversation
 
@@ -82,24 +86,53 @@ All captured to inbox.
 
 ## Step 6: Batch Routing
 
-Analyze captured notes:
+Load `references/routing.md` and analyze all captured notes together.
 
+**1. Discover vault structure once:**
+```bash
+ls -d "{vault}"/*Areas*/*/     2>/dev/null
+ls -d "{vault}"/*Resources*/*/ 2>/dev/null
+ls -d "{vault}"/*Projects*/*/  2>/dev/null
+```
+
+**2. Score each captured note against discovered destinations**
+
+**3. Present batch summary table:**
 ```
 Analyzing captured notes for routing...
 
-1. "{insight1}" → looks like it belongs in {suggested path}
-2. "{insight2}" → looks like it belongs in {suggested path}
-3. "{insight3}" → no clear match, recommend leaving in inbox
+| Note | Suggested Destination | Confidence |
+|------|----------------------|------------|
+| "insight about caching" | Areas/AI/agentic development/ | High (82%) |
+| "redis session pattern" | Resources/software engineering/ | Medium (55%) |
+| "debugging approach" | (leave in inbox) | None |
+
+Routing explanations:
+- "insight about caching" → keyword "claude" matches, related notes exist
+- "redis session pattern" → generic architecture fit
+- "debugging approach" → no strong destination match
 ```
 
-Use AskUserQuestion:
+**4. Use AskUserQuestion:**
 
 **Question:** "How should I route these?"
 
 **Options:**
-1. Route all as suggested
+1. Route all as suggested (Recommended)
 2. Route individually (I'll ask about each)
 3. Leave all in inbox for now
+
+**5. Execute based on selection:**
+- "Route all": Move files with confidence > 20% to suggested destinations
+- "Route individually": Use AskUserQuestion for each note separately
+- "Leave all": Skip routing, notes stay in inbox
+
+```bash
+# For each routed note:
+mv "{inbox}/{filename}" "{vault}/{destination}/"
+```
+
+**Important:** Only suggest destinations that exist (from `ls` output). Never suggest paths that weren't discovered.
 
 ## Constraints
 
