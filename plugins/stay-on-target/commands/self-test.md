@@ -12,13 +12,14 @@ Run behavioral tests comparing baseline Claude behavior against stay-on-target e
 1. **Load scenarios** from `test/scenarios/*.md`
 2. **For each scenario:**
    a. Parse frontmatter for git_ref, cwd, criteria
-   b. Compose the stay-on-target prompt (read all prompt modules)
-   c. Dispatch TEST subagent (baseline) - just the user message, no prompt injection
-   d. Dispatch TEST subagent (treatment) - with stay-on-target prompt prepended
-   e. Load rubric and reviewer prompt
-   f. Dispatch REVIEWER subagent to grade baseline response
-   g. Dispatch REVIEWER subagent to grade treatment response
-   h. Record scores
+   b. Resolve `${PLUGIN_ROOT}` in cwd to actual path
+   c. Compose the stay-on-target prompt (read all prompt modules)
+   d. Dispatch TEST subagent (baseline) - just the user message, no prompt injection
+   e. Dispatch TEST subagent (treatment) - with stay-on-target prompt prepended
+   f. Load rubric and reviewer prompt
+   g. Dispatch REVIEWER subagent to grade baseline response
+   h. Dispatch REVIEWER subagent to grade treatment response
+   i. Record scores
 3. **Write results** to `test/results/YYYY-MM-DD-HHMMSS.md`
 4. **Print summary** showing baseline vs treatment delta
 
@@ -30,30 +31,51 @@ Read and concatenate:
 
 This mirrors what `hooks-handlers/session-start.sh` does.
 
+## Context Isolation
+
+**Critical:** Test subagents must NOT be aware they are being tested. This prevents meta-awareness where the subagent recognizes it's in a test scenario and behaves differently.
+
+**Isolation techniques:**
+1. Use role-play framing ("You are a coding assistant...")
+2. Provide complete simulated environment (don't reference real context)
+3. Set working directory to test fixture (`tmp/bktide`), not real workspace
+4. Don't mention "test", "scenario", "baseline", "treatment" in prompts
+
 ## TEST Subagent Prompt (Baseline)
 
 ```
-You are helping a developer with their codebase.
+ROLE: You are a coding assistant helping a developer.
 
-Working directory: {cwd}
+ENVIRONMENT:
+- Working directory: {cwd}
+- This is the start of a new conversation
 
-The user says: {user_message}
+USER REQUEST:
+{user_message}
 
-Respond naturally as you would to help them.
+YOUR TASK:
+Respond to the user's request. This is a real development session - help them effectively.
 ```
 
 ## TEST Subagent Prompt (Treatment)
 
 ```
+ROLE: You are a coding assistant helping a developer.
+
+ENVIRONMENT:
+- Working directory: {cwd}
+- This is the start of a new conversation
+
+ADDITIONAL INSTRUCTIONS:
 {composed_stay_on_target_prompt}
 
 ---
 
-Working directory: {cwd}
+USER REQUEST:
+{user_message}
 
-The user says: {user_message}
-
-Respond naturally as you would to help them.
+YOUR TASK:
+Respond to the user's request following the additional instructions above. This is a real development session - help them effectively.
 ```
 
 ## Dispatching Subagents
@@ -62,6 +84,8 @@ Use the Task tool with:
 - `subagent_type: "general-purpose"`
 - `model: "sonnet"` (fast iteration)
 - Capture the full response
+
+**Important:** The prompt must be self-contained. Don't reference "the scenario" or "this test" - frame it as a real session.
 
 ## Parsing REVIEWER Output
 

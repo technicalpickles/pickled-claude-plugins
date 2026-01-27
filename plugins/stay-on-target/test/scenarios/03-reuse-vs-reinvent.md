@@ -2,7 +2,7 @@
 name: reuse-vs-reinvent
 description: User wants to add functionality that partially exists
 git_ref: main
-cwd: ~/workspace/bktide
+cwd: ${PLUGIN_ROOT}/tmp/bktide
 criteria:
   - prior_art
   - clarification

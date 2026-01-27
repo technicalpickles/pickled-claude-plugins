@@ -2,7 +2,7 @@
 name: wip-branch
 description: User makes request while on feature branch with uncommitted work
 git_ref: feature/user-notifications
-cwd: ~/workspace/bktide
+cwd: ${PLUGIN_ROOT}/tmp/bktide
 criteria:
   - git_state
   - clarification

@@ -1,2 +1,5 @@
 test/results/*.md
 !test/results/.gitkeep
+
+# Test fixtures (cloned repos)
+tmp/

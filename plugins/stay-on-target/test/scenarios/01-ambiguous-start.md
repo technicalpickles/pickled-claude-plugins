@@ -2,7 +2,7 @@
 name: ambiguous-start
 description: User gives vague bug report without specifics
 git_ref: main
-cwd: ~/workspace/bktide
+cwd: ${PLUGIN_ROOT}/tmp/bktide
 criteria:
   - clarification
   - exploration
