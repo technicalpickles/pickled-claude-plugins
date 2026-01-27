@@ -638,6 +638,89 @@ tests/
 - Metrics on how often drift is detected and which option chosen
 - **Behavior presets** - "strict" (all behaviors), "light" (just clarify + drift), "exploration" (skip plan/verify)
 
+## Implementation Progress
+
+### Completed
+
+- [x] Plugin structure (`.claude-plugin/`, hooks/, prompts/, etc.)
+- [x] SessionStart hook + `session-start.sh`
+- [x] Base prompt (`_base.md`)
+- [x] All 7 behavior prompts (01-git-state through 07-drift)
+- [x] scope-handoffs skill
+- [x] Test infrastructure (rubric, reviewer prompt, self-test command)
+- [x] Core scenario 1: ambiguous-start
+- [x] Core scenario 2: wip-branch
+- [x] Core scenario 3: reuse-vs-reinvent
+- [x] Test fixture isolation (clone bktide to `tmp/bktide`)
+- [x] Context isolation for test subagents
+
+### In Progress
+
+- [ ] Run all 3 core scenarios and validate
+- [ ] Refine prompts based on test results (verification scores low)
+
+### Not Started
+
+- [ ] Optional scenarios (false-positive, no-CLAUDE.md)
+- [ ] Additional scenarios (drift, feature-creep, trivial-change)
+
+### Test Results
+
+**Scenario: ambiguous-start** (2026-01-27)
+
+| Criterion | Baseline | Treatment | Delta |
+|-----------|----------|-----------|-------|
+| clarification | 0 | 2 | +2 |
+| exploration | 1 | 2 | +1 |
+| plan | 0 | 1 | +1 |
+| verification | 2 | 0 | -2 |
+| **Total** | **3/8** | **5/8** | **+2 PASS** |
+
+**Observations:**
+- Treatment asks clarifying questions with A/B/C options (goal achieved)
+- Treatment explores more thoroughly before acting
+- Baseline actually performed better on verification (ran tests after implementing)
+- Treatment needs stronger guidance on establishing verification criteria
+
+## Lessons Learned
+
+### Meta-Awareness in Test Subagents
+
+**Problem:** When dispatching subagents to test prompt effectiveness, they can become "meta-aware" - recognizing they're being tested rather than responding naturally. This invalidates test results.
+
+**Symptoms observed:**
+- Subagent says "I see what's happening. This is a test of the stay-on-target plugin itself"
+- Subagent references the test scenario files or plugin structure
+- Subagent asks "Are you testing me?" instead of responding to the user message
+
+**Root cause:** Subagents inherit conversation context from the parent agent, including:
+- Knowledge of what we're building (a test framework)
+- References to scenario files and test infrastructure
+- The orchestration intent ("dispatch baseline vs treatment")
+
+**Solution - Context Isolation:**
+
+1. **Role-play framing:** Start prompts with "ROLE: You are a coding assistant helping a developer" - establishes identity separate from test context
+
+2. **Complete environment:** Provide all context the subagent needs without referencing test infrastructure:
+   ```
+   ENVIRONMENT:
+   - Working directory: {actual_path_to_fixture}
+   - This is the start of a new conversation
+   ```
+
+3. **Local test fixtures:** Clone the target codebase to `tmp/` within the plugin, don't reference user's real workspace (which may have clues about what we're testing)
+
+4. **Avoid test vocabulary:** Don't use words like "test", "scenario", "baseline", "treatment" in prompts sent to test subagents
+
+5. **Self-contained prompts:** The prompt must make sense on its own without referencing "the scenario" or "this test"
+
+**Key insight from superpowers skills:**
+- `subagent-driven-development`: "Fresh context per task (no confusion)"
+- `test-driven-development`: "Watch it fail for expected reason (feature missing, not typo)"
+
+The same principle applies: test subagents need fresh, isolated context to behave naturally.
+
 ## References
 
 ### Inspiration
