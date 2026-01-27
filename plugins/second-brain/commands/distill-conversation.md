@@ -1,5 +1,16 @@
 ---
 description: Extract and capture multiple insights from this conversation
+allowed-tools:
+  - Read(~/.claude/second-brain.md)
+  - Read(~/.claude/vaults/**/CLAUDE.md)
+  - Read(~/.claude/vaults/**/.obsidian/*.json)
+  - Read(~/.claude/vaults/**/*.md)
+  - Write(~/.claude/vaults/**/*.md)
+  - Bash(ls:*)
+  - Bash(date:*)
+  - Bash(git rev-parse:*)
+  - Bash(git branch:*)
+  - Bash(mv:*)
 ---
 
 # Distill Conversation
@@ -8,12 +19,14 @@ Review the current conversation and extract insights worth capturing.
 
 ## Step 1: Load Configuration
 
-Read `~/.claude/second-brain.md` for vault path.
+Read `~/.claude/second-brain.md` for vault name and path.
 
 If missing:
 ```
 Second brain not configured. Run /second-brain:setup first.
 ```
+
+Use the symlink path `~/.claude/vaults/{name}` to access the vault (e.g., `~/.claude/vaults/primary`).
 
 Load skill references:
 - `second-brain:obsidian` for tool mechanics

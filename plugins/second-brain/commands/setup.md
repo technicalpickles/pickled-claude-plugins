@@ -1,5 +1,15 @@
 ---
 description: Set up second-brain vault configuration
+allowed-tools:
+  - Read(~/.claude/second-brain.md)
+  - Write(~/.claude/second-brain.md)
+  - Read(~/.claude/vaults/**/CLAUDE.md)
+  - Read(~/.claude/vaults/**/.obsidian/*.json)
+  - Write(~/.claude/vaults/**/CLAUDE.md)
+  - Bash(ls:*)
+  - Bash(mkdir:*)
+  - Bash(ln:*)
+  - Bash(readlink:*)
 ---
 
 # Second Brain Setup
@@ -100,7 +110,24 @@ Default: {name}
 
 If file exists, append new vault to list.
 
-## Step 8: Scaffold Vault CLAUDE.md
+## Step 8: Create Vault Symlink
+
+Create a symlink at `~/.claude/vaults/{name}` pointing to the actual vault:
+
+```bash
+# Create vaults directory if needed
+mkdir -p ~/.claude/vaults
+
+# Create symlink (use -n to not follow existing symlink, -f to force replace)
+ln -sfn "{actual_vault_path}" ~/.claude/vaults/{name}
+
+# Verify
+ls -la ~/.claude/vaults/{name}
+```
+
+This symlink provides a well-known path for permissions and access.
+
+## Step 9: Scaffold Vault CLAUDE.md
 
 Check if `{vault}/CLAUDE.md` exists.
 
@@ -110,12 +137,13 @@ If missing, offer to create from template:
 
 If yes, use `templates/vault-claude-md.md` as base, filling in detected values.
 
-## Step 9: Confirm Complete
+## Step 10: Confirm Complete
 
 ```
 ✓ Second brain configured!
 
 Vault: {name} → {path}
+Symlink: ~/.claude/vaults/{name}
 Config: ~/.claude/second-brain.md
 
 Next steps:

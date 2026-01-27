@@ -1,6 +1,17 @@
 ---
 description: Capture an insight from conversation to your second brain
 argument-hint: [insight to capture]
+allowed-tools:
+  - Read(~/.claude/second-brain.md)
+  - Read(~/.claude/vaults/**/CLAUDE.md)
+  - Read(~/.claude/vaults/**/.obsidian/*.json)
+  - Read(~/.claude/vaults/**/*.md)
+  - Write(~/.claude/vaults/**/*.md)
+  - Bash(ls:*)
+  - Bash(date:*)
+  - Bash(git rev-parse:*)
+  - Bash(git branch:*)
+  - Bash(mv:*)
 ---
 
 # Capture Insight
@@ -9,12 +20,14 @@ Capture an insight from the current conversation to your Obsidian vault.
 
 ## Step 1: Load Configuration
 
-Read `~/.claude/second-brain.md` for vault path.
+Read `~/.claude/second-brain.md` for vault name and path.
 
 If missing, inform user:
 ```
 Second brain not configured. Run /second-brain:setup first.
 ```
+
+Use the symlink path `~/.claude/vaults/{name}` to access the vault (e.g., `~/.claude/vaults/primary`).
 
 Read vault's `CLAUDE.md` for structure and routing rules.
 

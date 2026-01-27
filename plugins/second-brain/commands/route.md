@@ -1,6 +1,12 @@
 ---
 description: Route notes from inbox to appropriate vault destinations
 argument-hint: [filename | "all"]
+allowed-tools:
+  - Read(~/.claude/second-brain.md)
+  - Read(~/.claude/vaults/**/CLAUDE.md)
+  - Read(~/.claude/vaults/**/*.md)
+  - Bash(ls:*)
+  - Bash(mv:*)
 ---
 
 # Route Notes
@@ -9,12 +15,14 @@ Route notes from inbox to appropriate destinations in your vault.
 
 ## Step 1: Load Configuration
 
-Read `~/.claude/second-brain.md` for vault path.
+Read `~/.claude/second-brain.md` for vault name and path.
 
 If missing:
 ```
 Second brain not configured. Run /second-brain:setup first.
 ```
+
+Use the symlink path `~/.claude/vaults/{name}` to access the vault (e.g., `~/.claude/vaults/primary`).
 
 Load skill references:
 - `second-brain:obsidian` for tool mechanics
