@@ -40,6 +40,11 @@
       "name": "tool-routing",
       "source": "./plugins/tool-routing",
       "version": "1.0.0"
+    },
+    {
+      "name": "stay-on-target",
+      "source": "./plugins/stay-on-target",
+      "version": "1.0.0"
     }
   ]
 }
