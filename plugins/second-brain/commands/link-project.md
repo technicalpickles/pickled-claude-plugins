@@ -1,5 +1,15 @@
 ---
 description: Set up symlink from repo to vault folder
+allowed-tools:
+  - Read(~/.claude/second-brain.md)
+  - Read(~/.claude/vaults/**/CLAUDE.md)
+  - Read(./.claude/second-brain.local.md)
+  - Write(./.claude/second-brain.local.md)
+  - Bash(ls:*)
+  - Bash(mkdir:*)
+  - Bash(ln:*)
+  - Bash(git check-ignore:*)
+  - Bash(echo:*)
 ---
 
 # Link Project to Vault
@@ -8,12 +18,14 @@ Create a symlink from current repo to a folder in your vault.
 
 ## Step 1: Check Configuration
 
-Read `~/.claude/second-brain.md` for vault paths.
+Read `~/.claude/second-brain.md` for vault names and paths.
 
 If missing:
 ```
 Second brain not configured. Run /second-brain:setup first.
 ```
+
+Use the symlink path `~/.claude/vaults/{name}` to access vaults.
 
 ## Step 2: Select Vault
 

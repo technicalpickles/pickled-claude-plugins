@@ -1,6 +1,16 @@
 ---
 description: Process voice transcriptions in today's daily note
 argument-hint: [date, e.g. 2026-01-21]
+allowed-tools:
+  - Read(~/.claude/second-brain.md)
+  - Read(~/.claude/vaults/**/CLAUDE.md)
+  - Read(~/.claude/vaults/**/.obsidian/*.json)
+  - Read(~/.claude/vaults/**/Glossary.md)
+  - Read(~/.claude/vaults/**/*.md)
+  - Edit(~/.claude/vaults/**/*.md)
+  - Write(~/.claude/vaults/**/*.md)
+  - Bash(ls:*)
+  - Bash(date:*)
 ---
 
 # Process Daily Note
@@ -25,7 +35,7 @@ If `.obsidian/` not found in current directory or parents:
 You're currently in: {cwd}
 
 Options:
-1. Open your vault: {path from ~/.claude/second-brain.md}
+1. Open your vault via symlink: ~/.claude/vaults/{name}
 2. Use /second-brain:insight to capture from here
 3. Use /second-brain:distill-conversation for end-of-session extraction
 ```
