@@ -34,11 +34,16 @@
     {
       "name": "second-brain",
       "source": "./plugins/second-brain",
-      "version": "1.0.0"
+      "version": "1.1.0"
     },
     {
       "name": "tool-routing",
       "source": "./plugins/tool-routing",
+      "version": "1.0.0"
+    },
+    {
+      "name": "stay-on-target",
+      "source": "./plugins/stay-on-target",
       "version": "1.0.0"
     }
   ]

@@ -87,6 +87,14 @@ Created by `/second-brain:setup`:
 Default: primary
 ```
 
+### Vault Symlinks: `~/.claude/vaults/`
+
+Setup creates symlinks at `~/.claude/vaults/{name}` pointing to actual vault paths. This provides predictable paths for permissions and access:
+
+```bash
+~/.claude/vaults/primary -> ~/Vaults/my-vault/
+```
+
 ### Vault: `{vault}/CLAUDE.md`
 
 Scaffolded by setup command with detected settings:
