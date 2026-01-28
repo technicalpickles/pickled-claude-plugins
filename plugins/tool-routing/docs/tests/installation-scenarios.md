@@ -20,7 +20,7 @@ Each method affects how `CLAUDE_PLUGIN_ROOT` and route discovery work.
 
 - Marketplace source: `"source": "directory", "path": "/path/to/repo"`
 - Plugin location: `plugins/tool-routing/`
-- Other plugins: `plugins/git-workflows/`, `plugins/ci-cd-tools/`, etc.
+- Other plugins: `plugins/git/`, `plugins/ci-cd-tools/`, etc.
 
 **Expected Behavior:**
 
@@ -40,7 +40,7 @@ CLAUDE_PLUGIN_ROOT="$PWD/plugins/tool-routing" uv run --project plugins/tool-rou
 
 **Success Criteria:**
 
-- Routes merged from 5+ sources (tool-routing, git-workflows, ci-cd-tools, dev-tools, mcpproxy)
+- Routes merged from 5+ sources (tool-routing, git, ci-cd-tools, dev-tools, mcpproxy)
 - All inline tests pass
 - No route conflict errors
 
@@ -195,8 +195,8 @@ diff plugins/tool-routing/src/tool_routing/cli.py \
 plugins/
 ├── tool-routing/
 │   └── hooks/tool-routes.yaml
-├── git-workflows/
-│   └── skills/writing-pull-requests/tool-routes.yaml
+├── git/
+│   └── skills/pull-request/tool-routes.yaml
 └── ci-cd-tools/
     └── skills/working-with-buildkite-builds/tool-routes.yaml
 ```
@@ -211,9 +211,9 @@ cache/marketplace/
 ├── tool-routing/
 │   └── 1.0.0/
 │       └── hooks/tool-routes.yaml
-├── git-workflows/
+├── git/
 │   └── 1.0.0/
-│       └── skills/writing-pull-requests/tool-routes.yaml
+│       └── skills/pull-request/tool-routes.yaml
 └── ci-cd-tools/
     └── 1.0.0/
         └── skills/working-with-buildkite-builds/tool-routes.yaml

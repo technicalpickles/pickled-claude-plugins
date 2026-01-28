@@ -34,9 +34,9 @@ bash-echo-redirect (from: .../plugins/tool-routing/hooks/tool-routes.yaml)
 tool-routing-manual-test (from: .../plugins/tool-routing/hooks/tool-routes.yaml)
 buildkite (from: .../plugins/ci-cd-tools/skills/working-with-buildkite-builds/tool-routes.yaml)
 atlassian (from: .../plugins/dev-tools/hooks/tool-routes.yaml)
-github-pr (from: .../plugins/git-workflows/skills/writing-pull-requests/tool-routes.yaml)
-git-commit-multiline (from: .../plugins/git-workflows/skills/writing-pull-requests/tool-routes.yaml)
-gh-pr-create-multiline (from: .../plugins/git-workflows/skills/writing-pull-requests/tool-routes.yaml)
+github-pr (from: .../plugins/git/skills/pull-request/tool-routes.yaml)
+git-commit-multiline (from: .../plugins/git/skills/pull-request/tool-routes.yaml)
+gh-pr-create-multiline (from: .../plugins/git/skills/pull-request/tool-routes.yaml)
 bash-mcp-cli (from: .../plugins/mcpproxy/skills/working-with-mcp/tool-routes.yaml)
 bash-mcp-cli (from: .../plugins/mcpproxy/skills/working-with-mcp/tool-routes.yaml)
 ```
@@ -239,7 +239,7 @@ CLAUDE_PLUGIN_ROOT="$PWD" CLAUDE_PLUGINS_DIR=".../plugins" uv run tool-routing t
 1. `tool-routing/hooks/tool-routes.yaml` (4 routes)
 2. `ci-cd-tools/skills/working-with-buildkite-builds/tool-routes.yaml` (1 route)
 3. `dev-tools/hooks/tool-routes.yaml` (1 route)
-4. `git-workflows/skills/writing-pull-requests/tool-routes.yaml` (5 routes)
+4. `git/skills/pull-request/tool-routes.yaml` (5 routes)
 5. `mcpproxy/skills/working-with-mcp/tool-routes.yaml` (3 routes)
 
 ---

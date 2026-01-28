@@ -9,7 +9,7 @@ routes:
       This works for both public and private PRs and
       provides better formatting than HTML scraping.
 
-      Consider using the writing-pull-requests skill for PR workflows.
+      Consider using the git:pull-request skill for PR workflows.
     tests:
       - desc: "PR URL should block"
         input:
@@ -53,7 +53,7 @@ routes:
         - Avoids complex shell quoting issues
         - Provides better error handling
 
-      Consider using the writing-pull-requests skill for guidance on PR workflows.
+      Consider using the git:pull-request skill for guidance on PR workflows.
     tests:
       - desc: "multiple -m flags should block"
         input:
@@ -115,7 +115,7 @@ routes:
         - Allows you to use proper markdown formatting
         - Provides better error handling
 
-      Consider using the writing-pull-requests skill for guidance on PR workflows.
+      Consider using the git:pull-request skill for guidance on PR workflows.
     tests:
       - desc: "body with literal \\n should block"
         input:
