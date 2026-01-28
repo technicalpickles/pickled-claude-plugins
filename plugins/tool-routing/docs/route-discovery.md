@@ -85,9 +85,9 @@ Skills can contribute their own routes by placing a `tool-routes.yaml` in the sk
 
 ```
 plugins/
-├── git-workflows/
+├── git/
 │   └── skills/
-│       └── writing-pull-requests/
+│       └── pull-request/
 │           ├── SKILL.md
 │           └── tool-routes.yaml    ← Skill-level routes
 ```

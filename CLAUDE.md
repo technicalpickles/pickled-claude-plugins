@@ -7,7 +7,7 @@ This repository contains Claude Code plugins for the `technicalpickles-marketpla
 ```
 plugins/
 ├── tool-routing/     # Intercepts tool calls and suggests better alternatives
-├── git-workflows/    # GitHub PR and commit workflows
+├── git/              # Git workflow tools (commits, PRs, inbox, checkout, triage)
 ├── ci-cd-tools/      # Buildkite and CI/CD integrations
 ├── dev-tools/        # Developer utilities (mise, scratch areas, etc.)
 ├── mcpproxy/         # MCP server management

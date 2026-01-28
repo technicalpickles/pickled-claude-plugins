@@ -11,7 +11,7 @@ pickled-claude-plugins/
 │   └── marketplace.json      # Plugin registry
 ├── plugins/
 │   ├── working-in-monorepos/ # Monorepo navigation and tooling
-│   ├── git-workflows/        # Git workflow best practices
+│   ├── git/                  # Git workflow tools
 │   ├── ci-cd-tools/          # CI/CD pipeline tools
 │   ├── dev-tools/            # Developer productivity utilities
 │   ├── second-brain/         # Obsidian vault integration
@@ -46,11 +46,11 @@ Navigate and execute commands in monorepo subprojects with proper directory hand
 
 **Skills:** working-in-monorepos
 
-### git-workflows
+### git
 
-Git workflow best practices and pull request management.
+Git workflow tools: commits, PRs, review inbox, checkout, and work triage.
 
-**Skills:** git-preferences-and-practices, gh-pr
+**Skills:** commit, pull-request, inbox, checkout, triage
 
 ### ci-cd-tools
 
