@@ -1,6 +1,6 @@
 ---
-name: gh-pr
-description: Create, update, and comment on GitHub pull requests with focus on material impact, safety, and human reviewability
+name: pull-request
+description: Use when creating, updating, or commenting on GitHub pull requests - focuses on material impact, safety, and human reviewability
 ---
 
 # GitHub PR Communication Skill

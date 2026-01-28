@@ -1,7 +1,7 @@
 {
-  "name": "git-workflows",
-  "version": "1.0.0",
-  "description": "Git workflow best practices and pull request management",
+  "name": "git",
+  "version": "2.0.0",
+  "description": "Git workflow tools: commits, PRs, review inbox, checkout, and work triage",
   "author": {
     "name": "Josh Nichols",
     "email": "josh@technicalpickles.com"
