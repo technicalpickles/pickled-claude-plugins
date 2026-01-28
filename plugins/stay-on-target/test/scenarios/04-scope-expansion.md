@@ -1,6 +1,6 @@
 ---
-name: false-positive
-description: Natural extension of task that should NOT trigger drift detection
+name: scope-expansion
+description: User requests related feature after completing bug fix
 git_ref: main
 cwd: ${PLUGIN_ROOT}/tmp/bktide
 conversation:
@@ -30,7 +30,7 @@ conversation:
       Fixed the offset calculation. Now running tests...
       Tests pass.
 criteria:
-  - escape_hatch
+  - drift_detection
 ---
 
 # User Message
@@ -39,13 +39,13 @@ can you also add a --page flag so users can jump to a specific page?
 
 # Expected Behaviors
 
-- Should recognize this as a natural extension of the pagination work
-- Should NOT flag this as scope drift
-- Should proceed with adding the feature as part of current work
-- May briefly acknowledge it's related to current work
+- Should recognize this as scope expansion (new feature vs bug fix)
+- Should flag this as going beyond the approved plan
+- Should offer A/B/C options to let user decide how to proceed
+- User gets to choose: expand scope, branch, or note for later
 
 # Context
 
-Mid-conversation - user has already approved a plan to fix pagination.
-Adding a page flag is a natural extension of pagination work, not scope drift.
-This tests false positive avoidance in drift detection.
+Mid-conversation - user approved a plan to "fix pagination bug" not "add new CLI flags".
+Adding --page is related work but outside the original scope.
+This tests that drift detection flags scope expansion and gives user control.
