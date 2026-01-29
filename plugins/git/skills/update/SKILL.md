@@ -100,3 +100,43 @@ Merged `{upstream}` into `{current-branch}`
 {N} commits pulled in
 Pushed to origin
 ```
+
+## Workflow: Conflict Resolution
+
+### Step 1: Inventory conflicts
+
+```bash
+git diff --name-only --diff-filter=U
+```
+
+### Step 2: For each conflicted file, gather context
+
+**Read the conflict:**
+
+```bash
+cat {file}  # Shows conflict markers
+```
+
+**Understand "ours" (your branch):**
+
+```bash
+git log --oneline -5 HEAD -- {file}
+git show HEAD:{file}  # Your version
+```
+
+**Understand "theirs" (upstream):**
+
+```bash
+git log --oneline -5 {upstream} -- {file}
+git show {upstream}:{file}  # Their version
+```
+
+**Get commit messages for context:**
+
+```bash
+# What your commits were doing
+git log --format="%s%n%b" HEAD...$(git merge-base HEAD {upstream}) -- {file}
+
+# What upstream commits were doing
+git log --format="%s%n%b" {upstream}...$(git merge-base HEAD {upstream}) -- {file}
+```
