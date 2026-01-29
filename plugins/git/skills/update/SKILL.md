@@ -209,3 +209,47 @@ Does this resolution look correct?
 ```
 
 Use AskUserQuestion with these options.
+
+## Workflow: Verification & Completion
+
+### Step 1: Verify no conflict markers
+
+```bash
+grep -rn "^<<<<<<< \|^=======$\|^>>>>>>> " {resolved_files}
+```
+
+If any found, resolution is incomplete - fix before proceeding.
+
+### Step 2: Syntax verification (where practical)
+
+| File Type | Check |
+|-----------|-------|
+| `.json` | `python -m json.tool {file} > /dev/null` |
+| `.yaml`/`.yml` | `python -c "import yaml; yaml.safe_load(open('{file}'))"` |
+| `.ts`/`.tsx` | `npx tsc --noEmit {file}` (if tsconfig exists) |
+| `.py` | `python -m py_compile {file}` |
+
+### Step 3: Commit and push
+
+```bash
+git add {resolved_files}
+git commit -m "Merge {upstream} into {branch}
+
+Resolved conflicts in:
+$(for f in {resolved_files}; do echo "- $f"; done)"
+
+git push
+```
+
+### Step 4: Report completion
+
+```markdown
+## Update Complete
+
+Merged `{upstream}` into `{branch}`
+Resolved {N} conflict(s):
+- {file1}
+- {file2}
+
+Pushed to origin. PR should now be mergeable.
+```
