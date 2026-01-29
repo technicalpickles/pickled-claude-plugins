@@ -55,3 +55,48 @@ Which branch should I merge from?
 (B) master
 (C) Other - I'll specify
 ```
+
+## Workflow: Fetch and Merge
+
+### Step 1: Fetch latest
+
+```bash
+git fetch origin
+```
+
+### Step 2: Check if update needed
+
+```bash
+git rev-list --count HEAD..{upstream}
+```
+
+If count is 0, report "Already up to date with {upstream}" and stop.
+
+### Step 3: Attempt merge
+
+```bash
+git merge {upstream} --no-edit
+```
+
+### Step 4: Branch on result
+
+| Exit Code | Meaning | Action |
+|-----------|---------|--------|
+| 0 | Clean merge | Push and report success |
+| 1 | Conflicts | Proceed to conflict resolution |
+
+**On clean merge:**
+
+```bash
+git push
+```
+
+Report:
+
+```markdown
+## Update Complete
+
+Merged `{upstream}` into `{current-branch}`
+{N} commits pulled in
+Pushed to origin
+```
