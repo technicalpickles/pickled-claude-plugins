@@ -61,6 +61,21 @@ Full inventory of git work state with context for decision-making.
 - Stashes with age and source branch status
 - Branches with merge status and PR links
 
+### git:update
+
+Update your branch with upstream changes, intelligently resolving conflicts.
+
+**Use when:**
+- PR has merge conflicts
+- Branch is behind main/master
+- User says "update", "sync", or "pull in latest"
+
+**Key features:**
+- Auto-detects upstream from tracking branch or PR base
+- Merges (not rebases) to preserve history
+- Analyzes conflicts using git history for context
+- Resolves autonomously, presents for approval
+
 ## Installation
 
 ```bash
