@@ -172,3 +172,40 @@ For each conflict, determine the type:
 **For contradictory changes:**
 - Do not auto-resolve
 - Present both options to user with context
+
+### Step 5: Present for approval
+
+After resolving, show summary:
+
+```markdown
+## Conflict Resolution Summary
+
+Merged `main` into `feature/my-branch`
+
+### {filename}
+
+**Your changes:** {1-2 sentence summary of what your commits did}
+**Upstream changes:** {1-2 sentence summary of what upstream commits did}
+**Resolution:** {1-2 sentence explanation of how resolved}
+
+```diff
+{Show key parts of the resolution}
+```
+
+---
+
+[Repeat for each file]
+
+---
+
+**Verification:**
+- [ ] No conflict markers remain
+- [ ] File parses correctly (if applicable)
+
+Does this resolution look correct?
+(A) Yes, commit and push
+(B) Let me review/adjust manually
+(C) Show me more context on a specific file
+```
+
+Use AskUserQuestion with these options.
