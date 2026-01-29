@@ -253,3 +253,31 @@ Resolved {N} conflict(s):
 
 Pushed to origin. PR should now be mergeable.
 ```
+
+## Edge Cases
+
+| Situation | Handling |
+|-----------|----------|
+| **Binary file conflicts** | Flag for manual resolution: "Binary file {file} has conflicts - please resolve manually" |
+| **Submodule conflicts** | Flag with guidance: "Submodule {name} has conflicts. Usually: accept upstream version or update to specific commit" |
+| **Someone else's branch** | Check with `gh pr view --json author -q '.author.login'`. If not current user, warn: "This is @{author}'s branch. They should be aware of changes. Continue?" |
+| **Too complex to resolve** | Present what was understood, mark specific hunks as needing manual attention |
+| **Merge already in progress** | Detect with `git status` showing "You have unmerged paths". Offer to continue or abort. |
+
+## Quick Reference
+
+| Command | Purpose |
+|---------|---------|
+| `git rev-parse --abbrev-ref @{upstream}` | Get tracking branch |
+| `git merge --abort` | Cancel in-progress merge |
+| `git diff --name-only --diff-filter=U` | List conflicted files |
+| `git checkout --ours {file}` | Take your version entirely |
+| `git checkout --theirs {file}` | Take upstream version entirely |
+| `git show HEAD:{file}` | Your version of file |
+| `git show MERGE_HEAD:{file}` | Upstream version of file |
+
+## Related Skills
+
+- `git:commit` - Commit practices (used after resolution)
+- `git:pull-request` - Creating/updating PRs
+- `git:triage` - Overview of work state
