@@ -140,3 +140,35 @@ git log --format="%s%n%b" HEAD...$(git merge-base HEAD {upstream}) -- {file}
 # What upstream commits were doing
 git log --format="%s%n%b" {upstream}...$(git merge-base HEAD {upstream}) -- {file}
 ```
+
+### Step 3: Analyze each conflict
+
+For each conflict, determine the type:
+
+| Type | Description | Resolution Strategy |
+|------|-------------|---------------------|
+| **Independent** | Changes to different parts of file | Keep both changes |
+| **Overlapping** | Same area, different purposes | Blend changes thoughtfully |
+| **Contradictory** | Mutually exclusive changes | Present options to user |
+
+**Analysis approach:**
+
+1. Read both versions and the conflict markers
+2. Use commit messages to understand intent
+3. Identify what each side was trying to accomplish
+4. Determine if changes can coexist or need reconciliation
+
+### Step 4: Resolve conflicts
+
+**For independent changes:**
+- Identify which hunks belong to each side
+- Structure the file to include both changes appropriately
+
+**For overlapping changes:**
+- Understand the newer pattern/approach (usually upstream)
+- Apply your changes using the newer approach
+- Example: If upstream refactored a function, adapt your additions to the new structure
+
+**For contradictory changes:**
+- Do not auto-resolve
+- Present both options to user with context
