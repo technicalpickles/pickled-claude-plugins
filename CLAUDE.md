@@ -93,6 +93,30 @@ rm -rf ~/.claude/plugins/cache/technicalpickles-marketplace/{plugin}/
 
 **Note:** `CLAUDE_PLUGIN_ROOT` is NOT set for global hooks in `~/.claude/settings.json`.
 
+## Plugin Internal Structure
+
+Each plugin follows this structure:
+
+```
+plugins/{name}/
+├── .claude-plugin/
+│   └── plugin.json       # Manifest with name, version, description
+├── commands/
+│   └── {command}.md      # FLAT files: commands/commit.md (NOT commands/commit/COMMAND.md)
+├── skills/
+│   └── {skill}/
+│       └── SKILL.md      # NESTED: skills/commit/SKILL.md
+├── hooks/
+│   └── {hook-type}.{ext} # Hook scripts (e.g., PreToolUse.sh)
+└── README.md
+```
+
+**Critical distinction:**
+- **Commands**: Flat files → `commands/{name}.md`
+- **Skills**: Nested directories → `skills/{name}/SKILL.md`
+
+Commands are user-invocable wrappers that reference skills. Skills contain the actual workflow logic.
+
 ## Documentation
 
 - `plugins/tool-routing/docs/route-discovery.md` - How routes are found and merged
