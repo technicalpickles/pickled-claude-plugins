@@ -13,3 +13,6 @@
 
 # Git worktrees
 .worktrees/
+
+# Agent-meta parking lot
+.parkinglot/
