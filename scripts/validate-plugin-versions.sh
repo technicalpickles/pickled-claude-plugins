@@ -6,6 +6,7 @@
 # 1. plugin.json files must NOT contain "version" field (marketplace.json is source of truth)
 # 2. All plugins in marketplace.json must have a corresponding plugin.json
 # 3. All plugin directories must have a plugin.json file
+# 4. All plugins with plugin.json must be registered in marketplace.json
 #
 # Usage:
 #   ./scripts/validate-plugin-versions.sh
@@ -78,6 +79,38 @@ for plugin_dir in "$PLUGINS_DIR"/*/; do
         # Not an error, just a warning - plugin might be work-in-progress
     fi
 done
+echo
+
+# Check 4: All plugin directories with plugin.json are registered in marketplace.json
+echo "Checking all plugins are registered in marketplace.json..."
+if [[ -f "$MARKETPLACE_JSON" ]]; then
+    marketplace_plugins=$(jq -r '.plugins[].name' "$MARKETPLACE_JSON" 2>/dev/null || echo "")
+
+    for plugin_dir in "$PLUGINS_DIR"/*/; do
+        plugin_name=$(basename "$plugin_dir")
+        plugin_json_path="$plugin_dir.claude-plugin/plugin.json"
+
+        # Only check plugins that have a plugin.json (i.e., are complete)
+        if [[ -f "$plugin_json_path" ]]; then
+            if ! echo "$marketplace_plugins" | grep -q "^${plugin_name}$"; then
+                echo "  ERROR: Plugin '$plugin_name' has plugin.json but is not in marketplace.json"
+                echo "         Add entry to .claude-plugin/marketplace.json:"
+                echo "         {"
+                echo "           \"name\": \"$plugin_name\","
+                echo "           \"source\": \"./plugins/$plugin_name\","
+                echo "           \"version\": \"1.0.0\""
+                echo "         }"
+                errors=$((errors + 1))
+            fi
+        fi
+    done
+
+    if [[ $errors -eq 0 ]]; then
+        echo "  OK: All plugins are registered in marketplace.json"
+    fi
+else
+    echo "  WARNING: marketplace.json not found at $MARKETPLACE_JSON"
+fi
 echo
 
 # Summary
