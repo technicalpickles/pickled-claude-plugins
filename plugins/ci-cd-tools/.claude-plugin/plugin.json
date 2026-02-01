@@ -1,6 +1,5 @@
 {
   "name": "ci-cd-tools",
-  "version": "1.0.1",
   "description": "CI/CD pipeline tools and integrations",
   "author": {
     "name": "Josh Nichols",

@@ -1,6 +1,5 @@
 {
   "name": "stay-on-target",
-  "version": "1.0.0",
   "description": "Focused development mode - clarify, plan, verify, detect drift",
   "author": {
     "name": "Josh Nichols",

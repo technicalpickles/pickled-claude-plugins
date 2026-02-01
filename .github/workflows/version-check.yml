@@ -1,0 +1,147 @@
+name: Version Check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-commits:
+    name: Validate Commits & Version Bumps
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for commit analysis
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Validate conventional commits
+        run: |
+          echo "Validating conventional commit format..."
+          echo ""
+
+          # Get commits in this PR
+          COMMITS=$(git log origin/main..HEAD --pretty=format:"%s")
+
+          if [[ -z "$COMMITS" ]]; then
+            echo "No commits to validate."
+            exit 0
+          fi
+
+          ERRORS=0
+          while IFS= read -r subject; do
+            # Skip merge commits
+            if [[ "$subject" =~ ^Merge ]]; then
+              continue
+            fi
+
+            # Validate format: type(scope)!: description
+            if [[ ! "$subject" =~ ^[a-z]+(\([a-z0-9-]+\))?(!)?\:\ .+ ]]; then
+              echo "❌ Invalid: $subject"
+              echo "   Expected format: type(scope): description"
+              ERRORS=$((ERRORS + 1))
+            else
+              echo "✓ Valid: $subject"
+            fi
+          done <<< "$COMMITS"
+
+          echo ""
+          if [[ $ERRORS -gt 0 ]]; then
+            echo "Found $ERRORS invalid commit(s)"
+            exit 1
+          fi
+
+          echo "All commits follow conventional commit format!"
+
+      - name: Validate commit scopes
+        run: |
+          echo "Validating commit scopes..."
+          chmod +x ./scripts/check-commit-scope.sh
+
+          # Get commits in this PR
+          git log origin/main..HEAD --pretty=format:"%s" | while IFS= read -r subject; do
+            [[ -z "$subject" ]] && continue
+            [[ "$subject" =~ ^Merge ]] && continue
+
+            # Create temp file with commit message
+            echo "$subject" > /tmp/commit-msg.txt
+
+            if ! ./scripts/check-commit-scope.sh /tmp/commit-msg.txt; then
+              exit 1
+            fi
+          done
+
+          echo "All commit scopes are valid!"
+
+      - name: Analyze required version bumps
+        id: analyze
+        run: |
+          echo "Analyzing version bumps..."
+          chmod +x ./scripts/analyze-version-bumps.sh
+
+          # Run analysis
+          OUTPUT=$(./scripts/analyze-version-bumps.sh 2>&1) || true
+          echo "$OUTPUT"
+
+          # Get JSON for later steps
+          JSON=$(./scripts/analyze-version-bumps.sh --json)
+          echo "json<<EOF" >> $GITHUB_OUTPUT
+          echo "$JSON" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          # Check if bumps are needed
+          NUM_BUMPS=$(echo "$JSON" | jq '.bumps | length')
+          echo "num_bumps=$NUM_BUMPS" >> $GITHUB_OUTPUT
+
+      - name: Comment on PR with bump info
+        if: steps.analyze.outputs.num_bumps > 0
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const bumps = ${{ steps.analyze.outputs.json }};
+            const numBumps = Object.keys(bumps.bumps).length;
+
+            if (numBumps === 0) return;
+
+            let body = '## 📦 Version Bumps Required\n\n';
+            body += 'The following plugins need version bumps based on conventional commits:\n\n';
+            body += '| Plugin | Current | Bump | New |\n';
+            body += '|--------|---------|------|-----|\n';
+
+            for (const [plugin, info] of Object.entries(bumps.bumps)) {
+              body += `| ${plugin} | ${info.current} | ${info.bump} | ${info.new} |\n`;
+            }
+
+            body += '\n---\n';
+            body += '**Auto-bump will apply these changes when the PR is approved.**\n';
+            body += '\nOr apply manually:\n```bash\n./scripts/bump-version.sh --auto\n```';
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('Version Bumps Required')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }

@@ -1,0 +1,32 @@
+amends "package://github.com/jdx/hk/releases/download/v1.35.0/hk@1.35.0#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v1.35.0/hk@1.35.0#/Builtins.pkl"
+
+// Plugin version validation
+local validate_versions = new Step {
+  check = "./scripts/validate-plugin-versions.sh"
+}
+
+// Conventional commit format check (basic)
+local conventional_commit = (Builtins.check_conventional_commit) {}
+
+// Custom scope validation for conventional commits
+local validate_commit_scope = new Step {
+  check = "./scripts/check-commit-scope.sh {{commit_msg_file}}"
+}
+
+hooks {
+  // Pre-commit: validate plugin versions
+  ["pre-commit"] {
+    steps {
+      ["validate-versions"] = validate_versions
+    }
+  }
+
+  // Commit-msg: enforce conventional commits with valid scopes
+  ["commit-msg"] {
+    steps {
+      ["conventional-commit"] = conventional_commit
+      ["validate-scope"] = validate_commit_scope
+    }
+  }
+}

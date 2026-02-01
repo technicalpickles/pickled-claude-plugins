@@ -100,7 +100,7 @@ Each plugin follows this structure:
 ```
 plugins/{name}/
 ├── .claude-plugin/
-│   └── plugin.json       # Manifest with name, version, description
+│   └── plugin.json       # Manifest with name, description (NO version - see Versioning)
 ├── commands/
 │   └── {command}.md      # FLAT files: commands/commit.md (NOT commands/commit/COMMAND.md)
 ├── skills/
@@ -117,15 +117,35 @@ plugins/{name}/
 
 Commands are user-invocable wrappers that reference skills. Skills contain the actual workflow logic.
 
+## Versioning
+
+Versions live in `.claude-plugin/marketplace.json` only (not in plugin.json files).
+
+**Commits must use conventional format:** `type(scope): description`
+
+```bash
+feat(git): add stash support     # → minor bump
+fix(ci-cd-tools): handle timeout # → patch bump
+chore: update deps               # → no bump
+```
+
+Version bumps happen automatically when PRs are approved.
+
+→ Full details: [`docs/versioning.md`](docs/versioning.md)
+
 ## Documentation
 
+- [`docs/versioning.md`](docs/versioning.md) - How plugin versions are managed
 - `plugins/tool-routing/docs/route-discovery.md` - How routes are found and merged
 - `plugins/tool-routing/docs/tests/` - Test scenarios and baseline results
 - `plugins/tool-routing/docs/retrospectives/` - Investigation notes
 
 ## Contributing
 
-1. Make changes to plugin source in `plugins/{name}/`
-2. Test locally with appropriate env vars
-3. Commit and push
-4. Reinstall plugin to update cache
+1. Create a branch from `main`
+2. Make changes to plugin source in `plugins/{name}/`
+3. Test locally with appropriate env vars
+4. Commit using conventional format: `feat(plugin): description`
+5. Create PR - CI validates commits and reports required bumps
+6. Get PR approved - versions auto-bump
+7. Merge
