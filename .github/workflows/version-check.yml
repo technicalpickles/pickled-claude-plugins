@@ -145,3 +145,14 @@ jobs:
                 body: body
               });
             }
+
+      - name: Fail if version bumps pending
+        if: steps.analyze.outputs.num_bumps > 0
+        run: |
+          echo "❌ Version bumps required but not yet applied."
+          echo ""
+          echo "This check will pass after:"
+          echo "  1. A reviewer approves the PR (triggers auto-bump), OR"
+          echo "  2. You manually run: ./scripts/bump-version.sh --auto"
+          echo ""
+          exit 1
