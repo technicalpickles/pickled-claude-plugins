@@ -44,15 +44,15 @@ hk config dump       # Show effective configuration
 
 ## Configuration
 
-See @hk-pkl-reference.md for hk.pkl structure and examples.
+When editing hk.pkl, read `hk-pkl-reference.md` in this skill directory for structure and examples.
 
 ## Built-in Linters
 
-See @builtins-reference.md for the full list of 90+ builtins.
+When looking up builtins, read `builtins-reference.md` in this skill directory. Or run `hk builtins` for the live list.
 
 ## Finding Help
 
-**Stable reference:** Load the reference files above.
+**Stable reference:** Read the reference files in this skill directory when needed.
 
 **Latest docs:**
 ```bash
