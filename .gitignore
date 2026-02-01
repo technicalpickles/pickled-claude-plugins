@@ -16,3 +16,6 @@
 
 # Agent-meta parking lot
 .parkinglot/
+
+# Local Claude settings
+.claude/settings.local.json
