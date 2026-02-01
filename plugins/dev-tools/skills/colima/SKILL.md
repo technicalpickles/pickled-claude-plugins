@@ -1,9 +1,9 @@
 ---
-name: working-with-colima
-description: Use when Docker commands fail with "Cannot connect to Docker daemon", when starting/stopping container environments, or when managing multiple Docker contexts on macOS - provides Colima lifecycle management, profile handling, and troubleshooting
+name: colima
+description: Use when Docker commands fail with "Cannot connect to Docker daemon", when starting/stopping container environments, or when managing multiple Docker contexts on macOS - provides Colima lifecycle management, profile handling, SSH commands, and troubleshooting
 ---
 
-# Working with Colima
+# Colima
 
 ## Overview
 
