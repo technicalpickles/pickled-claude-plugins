@@ -17,6 +17,14 @@
 #   feat(plugin)!:    → major
 #   BREAKING CHANGE   → major
 #
+# How bump detection works:
+#   1. Get version at merge-base (when branch diverged from main)
+#   2. Calculate expected version based on commits (base + bump)
+#   3. Compare: current >= expected means bump already applied
+#
+# This allows CI to pass after auto-bump, since expected stays stable
+# (calculated from merge-base) while current increases.
+#
 
 set -eo pipefail
 # Note: -u disabled because empty associative arrays cause issues
@@ -154,6 +162,31 @@ get_plugin_version() {
     jq -r --arg name "$plugin" '.plugins[] | select(.name == $name) | .version' "$MARKETPLACE_JSON" 2>/dev/null || echo "0.0.0"
 }
 
+# Get version of a plugin at merge-base with main
+get_base_version() {
+    local plugin="$1"
+    local merge_base
+    merge_base=$(git merge-base "$DEFAULT_BRANCH" HEAD 2>/dev/null) || merge_base="$DEFAULT_BRANCH"
+    # Use relative path for git show
+    git show "$merge_base:.claude-plugin/marketplace.json" 2>/dev/null | jq -r --arg name "$plugin" '.plugins[] | select(.name == $name) | .version' 2>/dev/null || echo "0.0.0"
+}
+
+# Compare two semver versions: returns 0 if v1 >= v2, 1 otherwise
+version_gte() {
+    local v1="$1"
+    local v2="$2"
+
+    IFS='.' read -r v1_major v1_minor v1_patch <<< "$v1"
+    IFS='.' read -r v2_major v2_minor v2_patch <<< "$v2"
+
+    if (( v1_major > v2_major )); then return 0; fi
+    if (( v1_major < v2_major )); then return 1; fi
+    if (( v1_minor > v2_minor )); then return 0; fi
+    if (( v1_minor < v2_minor )); then return 1; fi
+    if (( v1_patch >= v2_patch )); then return 0; fi
+    return 1
+}
+
 # Main analysis
 declare -A PLUGIN_BUMPS=()  # plugin -> bump type (major, minor, patch)
 declare -A PLUGIN_COMMITS=()  # plugin -> list of commit descriptions
@@ -192,21 +225,29 @@ done < <(get_branch_commits)
 num_bumps="${#PLUGIN_BUMPS[@]}"
 
 if [[ "$JSON_OUTPUT" == "true" ]]; then
-    echo "{"
-    echo '  "bumps": {'
+    # Build JSON with only pending bumps (where current < expected)
+    pending_bumps=""
+    pending_count=0
     if [[ $num_bumps -gt 0 ]]; then
-        first=true
         for plugin in "${!PLUGIN_BUMPS[@]}"; do
             bump="${PLUGIN_BUMPS[$plugin]}"
+            base=$(get_base_version "$plugin")
             current=$(get_plugin_version "$plugin")
-            new=$(bump_version "$current" "$bump")
+            expected=$(bump_version "$base" "$bump")
 
-            [[ "$first" != "true" ]] && echo ","
-            first=false
-
-            printf '    "%s": {"current": "%s", "bump": "%s", "new": "%s"}' "$plugin" "$current" "$bump" "$new"
+            # Only include if current version hasn't reached expected
+            if ! version_gte "$current" "$expected"; then
+                [[ $pending_count -gt 0 ]] && pending_bumps+=","$'\n'
+                pending_bumps+="    \"$plugin\": {\"current\": \"$current\", \"bump\": \"$bump\", \"new\": \"$expected\"}"
+                pending_count=$((pending_count + 1))
+            fi
         done
-        echo ""
+    fi
+
+    echo "{"
+    echo '  "bumps": {'
+    if [[ $pending_count -gt 0 ]]; then
+        echo "$pending_bumps"
     fi
     echo "  }"
     echo "}"
@@ -219,35 +260,47 @@ else
         exit 0
     fi
 
-    echo "Version Bumps Required"
+    echo "Version Bumps Analysis"
     echo "======================"
     echo ""
 
     needs_bump=false
+    declare -A PENDING_PLUGINS=()
     for plugin in $(echo "${!PLUGIN_BUMPS[@]}" | tr ' ' '\n' | sort); do
         bump="${PLUGIN_BUMPS[$plugin]}"
+        base=$(get_base_version "$plugin")
         current=$(get_plugin_version "$plugin")
-        new=$(bump_version "$current" "$bump")
+        expected=$(bump_version "$base" "$bump")
 
         echo "Plugin: $plugin"
+        echo "  Base version (at merge-base): $base"
         echo "  Current version: $current"
-        echo "  Bump type: $bump"
-        echo "  New version: $new"
+        echo "  Required bump: $bump"
+        echo "  Expected version: $expected"
+
+        # Check if bump is already done (current >= expected)
+        if version_gte "$current" "$expected"; then
+            echo "  Status: ✓ Already bumped"
+        else
+            echo "  Status: ✗ Needs bump"
+            needs_bump=true
+            PENDING_PLUGINS[$plugin]="$bump"
+        fi
         echo "  Commits:"
         echo "${PLUGIN_COMMITS[$plugin]}"
-
-        # Check if bump is already done
-        if [[ "$current" != "$new" ]]; then
-            needs_bump=true
-        fi
     done
 
-    echo ""
-    echo "To apply bumps, run:"
-    for plugin in "${!PLUGIN_BUMPS[@]}"; do
-        bump="${PLUGIN_BUMPS[$plugin]}"
-        echo "  ./scripts/bump-version.sh $plugin $bump"
-    done
+    if [[ ${#PENDING_PLUGINS[@]} -gt 0 ]]; then
+        echo ""
+        echo "To apply pending bumps, run:"
+        for plugin in "${!PENDING_PLUGINS[@]}"; do
+            bump="${PENDING_PLUGINS[$plugin]}"
+            echo "  ./scripts/bump-version.sh $plugin $bump"
+        done
+    else
+        echo ""
+        echo "All version bumps have been applied."
+    fi
 
     if [[ "$REQUIRE_BUMP" == "true" && "$needs_bump" == "true" ]]; then
         echo ""
