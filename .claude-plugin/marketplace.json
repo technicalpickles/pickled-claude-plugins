@@ -14,12 +14,12 @@
     {
       "name": "git",
       "source": "./plugins/git",
-      "version": "2.0.0"
+      "version": "2.2.0"
     },
     {
       "name": "ci-cd-tools",
       "source": "./plugins/ci-cd-tools",
-      "version": "1.0.0"
+      "version": "1.0.1"
     },
     {
       "name": "dev-tools",

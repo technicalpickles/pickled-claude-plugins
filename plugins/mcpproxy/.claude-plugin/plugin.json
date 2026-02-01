@@ -1,6 +1,6 @@
 {
-  "name": "dev-tools",
-  "description": "Developer productivity tools and utilities",
+  "name": "mcpproxy",
+  "description": "MCP server management and integration tools",
   "author": {
     "name": "Josh Nichols",
     "email": "josh@technicalpickles.com"
