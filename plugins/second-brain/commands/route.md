@@ -64,7 +64,18 @@ ls -d "{vault}"/*Projects*/*/  2>/dev/null
 
 Build destination map from actual paths only.
 
-## Step 4: Analyze and Score
+## Step 4: Load Disambiguation Rules
+
+Read the vault's `CLAUDE.md` and look for `### Disambiguation:` sections.
+
+If found, extract:
+- **Key questions** - Decision heuristics for each area
+- **Category tables** - Lists of tools/topics that belong in each area
+- **Edge case mappings** - Explicit routing rules for ambiguous cases
+
+These rules override generic matching for semantically similar areas.
+
+## Step 5: Analyze and Score
 
 For each selected note, follow `references/routing.md` algorithm:
 
@@ -74,19 +85,25 @@ For each selected note, follow `references/routing.md` algorithm:
    - Category (architecture, debugging, tool, etc.)
    - Source context from frontmatter
 
-2. **Score each destination:**
+2. **Apply disambiguation rules** (if loaded):
+   - Check edge case mappings first (explicit rules)
+   - Apply key question matches (+25% boost)
+   - Apply category table matches (+15% boost)
+   - Apply disambiguation mismatch penalty (-20%)
+
+3. **Score with generic signals:**
    - Keyword match in folder name (40%)
    - Related notes exist in folder (30%)
    - PARA category fit (20%)
    - Recency of folder activity (10%)
 
-3. **Calculate confidence:**
-   - High (80-100%): Strong match
+4. **Calculate confidence:**
+   - High (80-100%): Strong match, often with disambiguation support
    - Medium (50-79%): Partial match
    - Low (20-49%): Weak signals
    - None (<20%): Leave in inbox
 
-## Step 5: Present Recommendations
+## Step 6: Present Recommendations
 
 **For single note:**
 ```
@@ -102,15 +119,22 @@ Routing suggestions for "202601251430 redis-session-caching.md":
 3. **Leave in Inbox** (Safe default)
 ```
 
+When disambiguation rules influenced the result:
+```
+1. **Areas/tool sharpening/** (95% - High)
+   → Vault rule: "tmux config syntax" → tool sharpening
+   → Key question: "Is this about MY machine?" → YES
+```
+
 Use AskUserQuestion with options from discovered paths.
 
 **For multiple notes:**
 ```
-| Note | Suggested Destination | Confidence |
-|------|----------------------|------------|
-| "redis-session-caching" | Areas/AI/agentic development/ | High (85%) |
-| "claude-code-hooks" | Areas/AI/agentic development/ | High (92%) |
-| "debugging-approach" | (leave in inbox) | None |
+| Note | Suggested Destination | Confidence | Rule Applied |
+|------|----------------------|------------|--------------|
+| "redis-session-caching" | Areas/AI/agentic development/ | High (85%) | - |
+| "tmux-comma-parsing" | Areas/tool sharpening/ | High (95%) | edge case |
+| "debugging-approach" | (leave in inbox) | None | - |
 ```
 
 Use AskUserQuestion:
@@ -118,7 +142,7 @@ Use AskUserQuestion:
 2. Route individually
 3. Leave all in inbox
 
-## Step 6: Execute Moves
+## Step 7: Execute Moves
 
 For each note being routed:
 
@@ -126,7 +150,7 @@ For each note being routed:
 mv "{inbox}/{filename}" "{vault}/{destination}/"
 ```
 
-## Step 7: Report Success
+## Step 8: Report Success
 
 ```
 ✓ Moved "redis-session-caching.md" → Areas/AI/agentic development/

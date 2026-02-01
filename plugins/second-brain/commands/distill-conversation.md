@@ -108,25 +108,39 @@ ls -d "{vault}"/*Resources*/*/ 2>/dev/null
 ls -d "{vault}"/*Projects*/*/  2>/dev/null
 ```
 
-**2. Score each captured note against discovered destinations**
+**2. Load disambiguation rules from vault CLAUDE.md:**
+- Find `### Disambiguation:` sections
+- Extract key questions, category tables, edge case mappings
+- These override generic matching for semantically similar areas
 
-**3. Present batch summary table:**
+**3. Score each captured note:**
+
+*Apply disambiguation rules first (if loaded):*
+- Check edge case mappings (explicit rules)
+- Apply key question matches (+25% boost)
+- Apply category table matches (+15% boost)
+- Apply disambiguation mismatch penalty (-20%)
+
+*Then apply generic signals:*
+- Keyword match, related notes, PARA fit, recency
+
+**4. Present batch summary table:**
 ```
 Analyzing captured notes for routing...
 
-| Note | Suggested Destination | Confidence |
-|------|----------------------|------------|
-| "insight about caching" | Areas/AI/agentic development/ | High (82%) |
-| "redis session pattern" | Resources/software engineering/ | Medium (55%) |
-| "debugging approach" | (leave in inbox) | None |
+| Note | Suggested Destination | Confidence | Rule Applied |
+|------|----------------------|------------|--------------|
+| "insight about caching" | Areas/AI/agentic development/ | High (82%) | - |
+| "tmux-comma-parsing" | Areas/tool sharpening/ | High (95%) | edge case |
+| "debugging approach" | (leave in inbox) | None | - |
 
 Routing explanations:
 - "insight about caching" → keyword "claude" matches, related notes exist
-- "redis session pattern" → generic architecture fit
+- "tmux-comma-parsing" → vault rule: tmux config → tool sharpening
 - "debugging approach" → no strong destination match
 ```
 
-**4. Use AskUserQuestion:**
+**5. Use AskUserQuestion:**
 
 **Question:** "How should I route these?"
 
@@ -135,7 +149,7 @@ Routing explanations:
 2. Route individually (I'll ask about each)
 3. Leave all in inbox for now
 
-**5. Execute based on selection:**
+**6. Execute based on selection:**
 - "Route all": Move files with confidence > 20% to suggested destinations
 - "Route individually": Use AskUserQuestion for each note separately
 - "Leave all": Skip routing, notes stay in inbox

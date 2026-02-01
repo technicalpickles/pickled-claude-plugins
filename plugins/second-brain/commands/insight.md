@@ -123,14 +123,27 @@ ls -d "{vault}"/*Projects*/*/  2>/dev/null
 - Content category (architecture, debugging, tool config, etc.)
 - Source context from provenance (repo, branch)
 
-**3. Score each discovered destination:**
+**3. Load disambiguation rules from vault CLAUDE.md:**
+- Find `### Disambiguation:` sections
+- Extract key questions, category tables, edge case mappings
+- These override generic matching for semantically similar areas
+
+**4. Score each discovered destination:**
+
+*If disambiguation rules apply:*
+- Check edge case mappings first (explicit rules)
+- Apply key question matches (+25% boost)
+- Apply category table matches (+15% boost)
+- Apply disambiguation mismatch penalty (-20%)
+
+*Then apply generic signals:*
 - Keyword match in folder name (40%)
 - Related notes exist in folder (30%)
 - PARA category fit (20%)
 - Recency of folder activity (10%)
 
-**4. Calculate confidence levels:**
-- High (80-100%): Strong match + related notes
+**5. Calculate confidence levels:**
+- High (80-100%): Strong match, often with disambiguation support
 - Medium (50-79%): Partial match
 - Low (20-49%): Weak signals
 - None (<20%): Leave in inbox
@@ -144,6 +157,7 @@ Routing suggestions for "{filename}":
 1. **{Areas/path/}** (85% - High)
    → Matches keywords: "keyword1", "keyword2"
    → Related note exists: "{related-note.md}"
+   → [If disambiguation applied] Vault rule: "{edge case or key question}"
 
 2. **{Resources/path/}** (48% - Low)
    → Generic category fit
@@ -151,6 +165,8 @@ Routing suggestions for "{filename}":
 3. **Leave in Inbox** (Safe default)
    → Route later when destination is clearer
 ```
+
+When disambiguation rules influenced the result, explain which rule applied.
 
 Use AskUserQuestion with discovered options:
 - Only include destinations that actually exist (from `ls` output)

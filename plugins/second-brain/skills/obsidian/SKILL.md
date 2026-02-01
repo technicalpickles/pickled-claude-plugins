@@ -81,8 +81,20 @@ Vaults should have a `CLAUDE.md` at root describing:
 - Routing rules
 - Naming conventions
 - References to methodology (PARA, Zettelkasten)
+- **Disambiguation rules** for semantically similar areas
 
 See `templates/vault-claude-md.md` for template.
+
+### Disambiguation Rules
+
+When a vault has areas with semantic overlap (e.g., "tool sharpening" vs "software engineering"), the vault CLAUDE.md can include `### Disambiguation:` sections that guide routing decisions.
+
+The routing algorithm checks for:
+- **Key questions** - Decision heuristics for each area
+- **Category tables** - Lists of tools/topics per area
+- **Edge case mappings** - Explicit rules for ambiguous cases
+
+See `references/routing.md` for the full disambiguation format and how to build custom rules.
 
 ## References
 
@@ -90,3 +102,4 @@ For methodology (tool-agnostic):
 - `references/para.md` - PARA organizational system
 - `references/zettelkasten.md` - Naming conventions
 - `references/note-patterns.md` - Note templates
+- `references/routing.md` - Routing algorithm with disambiguation support

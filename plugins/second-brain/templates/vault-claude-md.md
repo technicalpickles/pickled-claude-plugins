@@ -45,6 +45,37 @@ See `second-brain:obsidian/references/note-patterns.md` for templates:
 - Investigation notes
 - Project notes
 
+## Disambiguation Rules
+
+When routing suggests similar areas, add disambiguation rules to help the algorithm choose correctly. See `second-brain:obsidian/references/routing.md` for the full guide.
+
+### Example: Disambiguation Section
+
+```markdown
+### Disambiguation: {area1} vs {area2}
+
+#### {area1} ({context})
+Notes about [what belongs here].
+
+| Category | Examples |
+|----------|----------|
+| {category} | {tool1}, {tool2} |
+
+**Key question:** "{Question - if YES, route here}"
+
+#### {area2} ({context})
+Notes about [what belongs here].
+
+**Key question:** "{Question - if YES, route here}"
+
+#### Edge cases
+| Scenario | Route to | Reasoning |
+|----------|----------|-----------|
+| {example} | {area} | {why} |
+```
+
+Add disambiguation sections below for areas with semantic overlap in YOUR vault.
+
 ## Glossary
 
 See Glossary.md for transcription corrections (if using /second-brain:process-daily).
