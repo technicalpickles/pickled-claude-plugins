@@ -28,6 +28,7 @@ Colima provides container runtimes (Docker, Containerd) on macOS with minimal se
 | Status | `colima status -p <profile>` |
 | List profiles | `colima list` |
 | SSH into VM | `colima ssh` or `colima ssh -- <cmd>` |
+| SSH with chained commands | `colima ssh -- bash -c "cmd1 && cmd2"` |
 | Get socket path | `colima status -p <profile> --json \| jq -r .docker_socket` |
 
 ## Docker Context Basics
@@ -68,6 +69,7 @@ colima stop --force && colima start
 
 ## References
 
+- `references/ssh-commands.md` - SSH command syntax, chaining, escaping
 - `references/docker-contexts.md` - Context switching, DOCKER_HOST, socket paths
 - `references/profile-management.md` - Creating, configuring, deleting profiles
 - `references/troubleshooting.md` - Common issues and solutions
