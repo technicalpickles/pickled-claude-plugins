@@ -17,6 +17,14 @@
 #   feat(plugin)!:    → major
 #   BREAKING CHANGE   → major
 #
+# How bump detection works:
+#   1. Get version at merge-base (when branch diverged from main)
+#   2. Calculate expected version based on commits (base + bump)
+#   3. Compare: current >= expected means bump already applied
+#
+# This allows CI to pass after auto-bump, since expected stays stable
+# (calculated from merge-base) while current increases.
+#
 
 set -eo pipefail
 # Note: -u disabled because empty associative arrays cause issues
