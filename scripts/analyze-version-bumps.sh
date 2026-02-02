@@ -55,7 +55,7 @@ done
 
 # Get commits that are on current branch but not on main
 get_branch_commits() {
-    git log "$DEFAULT_BRANCH..HEAD" --pretty=format:"%H %s" 2>/dev/null || echo ""
+    git log "$DEFAULT_BRANCH..HEAD" --pretty=tformat:"%H %s" 2>/dev/null || echo ""
 }
 
 # Get the full commit message (including body) for a commit hash
