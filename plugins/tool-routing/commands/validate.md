@@ -52,16 +52,18 @@ These tests catch **silent failures** where hooks.json is valid JSON but wrong f
 
 ## Step 3: Run Route Tests (All Plugins)
 
-Test that route patterns match correctly across **all plugins in the monorepo**:
+Test that route patterns match correctly across **all enabled plugins**:
 
 ```bash
-cd plugins/tool-routing
-CLAUDE_PLUGIN_ROOT="$PWD" CLAUDE_PLUGINS_DIR="../" uv run tool-routing test
+# From repo root
+CLAUDE_PROJECT_ROOT="$PWD" uv run --directory plugins/tool-routing tool-routing test
 ```
 
-This discovers and tests routes from all plugins, not just tool-routing.
+This uses manifest-driven discovery via `claude plugin list --json` to find routes from all enabled plugins with `routes.json` manifests.
 
-**Expected output:** Routes from 5 sources, 30+ tests passing.
+**Expected output:** Routes from enabled plugins with route manifests, all tests passing.
+
+**Note:** The number of sources depends on which plugins are enabled and have `routes.json` manifests. Use `tool-routing list` to see exactly which sources are discovered.
 
 ## Step 4: Test at Runtime
 
@@ -99,23 +101,34 @@ Look for:
 | "No module named tool_routing" | Wrong working directory | Run from plugin root with `uv run` |
 | Plugin not in list | Missing manifest | Create `.claude-plugin/plugin.json` |
 | Tests fail on matcher format | Old hooks.json format | Update to object-keyed structure |
-| Only 1 route source found | Stale cache or wrong plugins_dir | See troubleshooting in route-discovery.md |
+| Fewer sources than expected | Plugin not enabled, or wrong project path | See Step 5a and route-discovery.md |
 
 ## Step 5a: Verify Cross-Plugin Route Discovery
 
-**Critical check:** Ensure routes from ALL plugins are discovered, not just tool-routing.
+**Critical check:** Ensure routes from enabled plugins are discovered.
 
 ```bash
-cd plugins/tool-routing
-CLAUDE_PLUGIN_ROOT="$PWD" CLAUDE_PLUGINS_DIR="../" uv run tool-routing list
+# From repo root
+CLAUDE_PROJECT_ROOT="$PWD" uv run --directory plugins/tool-routing tool-routing list
 ```
 
-**Expected:** "Routes (merged from 5 sources)"
+**Expected:** "Routes (merged from N sources)" where N matches enabled plugins with route manifests.
 
-If you only see 1 source:
-1. Check CLAUDE_PLUGINS_DIR is set correctly
-2. Check sibling plugins have `hooks/tool-routes.yaml` or `skills/*/tool-routes.yaml`
-3. See `docs/route-discovery.md#troubleshooting` for more diagnostics
+If you see fewer sources than expected:
+
+1. **Check plugin is enabled:**
+   ```bash
+   claude plugin list --json | jq '.[] | select(.id | contains("tool-routing")) | {id, enabled, scope, projectPath}'
+   ```
+
+2. **Check project path matches:** Local-scoped plugins use **exact path matching**. If you're running from `plugins/tool-routing/` but the plugin is scoped to the repo root, it won't be discovered. Set `CLAUDE_PROJECT_ROOT` to match the plugin's `projectPath`.
+
+3. **Check routes.json exists:**
+   ```bash
+   cat ~/.claude/plugins/cache/{marketplace}/{plugin}/{version}/.claude-plugin/routes.json
+   ```
+
+4. See `docs/route-discovery.md#troubleshooting` for more diagnostics
 
 ## Step 6: Run Integration Tests (Optional)
 

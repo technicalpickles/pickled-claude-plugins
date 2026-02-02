@@ -238,7 +238,28 @@ Use `gh pr view <number>` for GitHub PRs.
    claude plugin list --json | jq '.[] | select(.enabled == true) | .id'
    ```
 
-3. **Stale plugin cache** - Reinstall the plugin
+3. **Project path mismatch (local-scoped plugins)** - Local-scoped plugins use **exact path matching**. The plugin's `projectPath` must exactly equal `CLAUDE_PROJECT_ROOT` (or cwd if unset).
+
+   Check the plugin's project path:
+   ```bash
+   claude plugin list --json | jq '.[] | select(.id | contains("your-plugin")) | {id, enabled, scope, projectPath}'
+   ```
+
+   If running from a subdirectory of the scoped project:
+   ```bash
+   # Won't work - cwd is plugins/tool-routing but plugin is scoped to repo root
+   cd plugins/tool-routing
+   uv run tool-routing list
+
+   # Works - explicitly set project root
+   CLAUDE_PROJECT_ROOT="/path/to/repo" uv run tool-routing list
+
+   # Or run from repo root
+   cd /path/to/repo
+   uv run --directory plugins/tool-routing tool-routing list
+   ```
+
+4. **Stale plugin cache** - Reinstall the plugin
    ```bash
    /plugin uninstall {plugin}@{marketplace}
    /plugin install {plugin}@{marketplace}

@@ -42,17 +42,19 @@ When installed, plugins are copied to cache. Environment:
 ### Test tool-routing routes
 
 ```bash
-# From repo root
-cd plugins/tool-routing
-CLAUDE_PLUGIN_ROOT="$PWD" CLAUDE_PLUGINS_DIR="../" uv run tool-routing test
+# From repo root - CLAUDE_PROJECT_ROOT must match where plugin is scoped
+CLAUDE_PROJECT_ROOT="$PWD" uv run --directory plugins/tool-routing tool-routing test
 ```
 
 ### Verify cross-plugin route discovery
 
 ```bash
-CLAUDE_PLUGIN_ROOT="$PWD" CLAUDE_PLUGINS_DIR="../" uv run tool-routing list
-# Should show routes from multiple plugins
+# From repo root
+CLAUDE_PROJECT_ROOT="$PWD" uv run --directory plugins/tool-routing tool-routing list
+# Shows routes from enabled plugins with routes.json manifests
 ```
+
+**Important:** The tool-routing plugin uses manifest-driven discovery via `claude plugin list --json`. Local-scoped plugins are only discovered when `CLAUDE_PROJECT_ROOT` (or cwd) **exactly matches** the plugin's `projectPath`.
 
 ## Common Issues
 
@@ -64,13 +66,18 @@ The marketplace uses `"source": "directory"` but still **copies** to cache at in
 
 ### Routes only discovered from one source
 
-The `derive_plugins_dir()` function may not be finding sibling plugins.
+Discovery uses `claude plugin list --json` and filters by enabled status and project path.
 
 **Check:**
 ```bash
-# Verify all plugins are in cache
-ls ~/.claude/plugins/cache/technicalpickles-marketplace/
+# See which plugins are enabled and their project paths
+claude plugin list --json | jq '.[] | select(.enabled) | {id, scope, projectPath}'
+
+# Verify routes.json exists in cache
+ls ~/.claude/plugins/cache/pickled-claude-plugins/*/latest/.claude-plugin/routes.json
 ```
+
+**Common cause:** Running from a subdirectory (e.g., `plugins/tool-routing/`) when plugins are scoped to the repo root. Local-scoped plugins require exact `projectPath` match.
 
 ### `installed_plugins.json` points to non-existent path
 
@@ -88,8 +95,9 @@ rm -rf ~/.claude/plugins/cache/technicalpickles-marketplace/{plugin}/
 | Variable | Set By | Purpose |
 |----------|--------|---------|
 | `CLAUDE_PLUGIN_ROOT` | Claude Code (plugin hooks only) | Plugin's cache directory |
-| `CLAUDE_PLUGINS_DIR` | tool-routing (derived) | Parent directory for cross-plugin discovery |
-| `CLAUDE_PROJECT_DIR` | Claude Code | Current project directory |
+| `CLAUDE_PROJECT_ROOT` | tool-routing CLI | Project root for filtering local-scoped plugins |
+| `TOOL_ROUTING_ROUTES` | Manual (testing) | Explicit route file paths, bypasses discovery |
+| `TOOL_ROUTING_DEBUG` | Manual | Enable debug output for route matching |
 
 **Note:** `CLAUDE_PLUGIN_ROOT` is NOT set for global hooks in `~/.claude/settings.json`.
 
