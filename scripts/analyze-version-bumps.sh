@@ -33,6 +33,21 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MARKETPLACE_JSON="$REPO_ROOT/.claude-plugin/marketplace.json"
 DEFAULT_BRANCH="${DEFAULT_BRANCH:-main}"
 
+# Resolve branch ref - prefer origin/main in CI where local main may not exist
+resolve_branch_ref() {
+    local branch="$1"
+    # Try origin/branch first (works in CI), then local branch
+    if git rev-parse --verify "origin/$branch" >/dev/null 2>&1; then
+        echo "origin/$branch"
+    elif git rev-parse --verify "$branch" >/dev/null 2>&1; then
+        echo "$branch"
+    else
+        echo "$branch"  # Fallback, will fail with clear error
+    fi
+}
+
+BRANCH_REF=$(resolve_branch_ref "$DEFAULT_BRANCH")
+
 # Parse arguments
 REQUIRE_BUMP=false
 JSON_OUTPUT=false
@@ -55,7 +70,7 @@ done
 
 # Get commits that are on current branch but not on main
 get_branch_commits() {
-    git log "$DEFAULT_BRANCH..HEAD" --pretty=tformat:"%H %s" 2>/dev/null || echo ""
+    git log "$BRANCH_REF..HEAD" --pretty=tformat:"%H %s" 2>/dev/null || echo ""
 }
 
 # Get the full commit message (including body) for a commit hash
@@ -166,7 +181,7 @@ get_plugin_version() {
 get_base_version() {
     local plugin="$1"
     local merge_base
-    merge_base=$(git merge-base "$DEFAULT_BRANCH" HEAD 2>/dev/null) || merge_base="$DEFAULT_BRANCH"
+    merge_base=$(git merge-base "$BRANCH_REF" HEAD 2>/dev/null) || merge_base="$BRANCH_REF"
     # Use relative path for git show
     git show "$merge_base:.claude-plugin/marketplace.json" 2>/dev/null | jq -r --arg name "$plugin" '.plugins[] | select(.name == $name) | .version' 2>/dev/null || echo "0.0.0"
 }
@@ -255,7 +270,7 @@ else
     if [[ $num_bumps -eq 0 ]]; then
         echo "No version bumps required."
         echo ""
-        echo "Commits analyzed from: $DEFAULT_BRANCH..HEAD"
+        echo "Commits analyzed from: $BRANCH_REF..HEAD"
         echo "Only feat, fix, and perf commits with plugin scopes trigger bumps."
         exit 0
     fi
