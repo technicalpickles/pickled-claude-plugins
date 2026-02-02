@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from tool_routing.checker import check_tool_call
-from tool_routing.config import RouteConflictError, discover_craftdesk_routes, load_routes_file
+from tool_routing.config import RouteConflictError, load_routes_file
 from tool_routing.integration_runner import (
     evaluate_report,
     format_evaluate_results,
@@ -21,107 +21,31 @@ if TYPE_CHECKING:
 DEBUG = os.environ.get("TOOL_ROUTING_DEBUG", "").lower() in ("1", "true", "yes")
 
 
-def get_plugin_root() -> Path:
-    """Get plugin root from environment."""
-    plugin_root = os.environ.get("CLAUDE_PLUGIN_ROOT", "")
-    if plugin_root:
-        return Path(plugin_root)
-    return Path.cwd()
-
-
-def derive_plugins_dir(plugin_root: Path) -> Path:
-    """Derive plugins directory from plugin root.
-
-    Handles both layouts:
-    - Flat: plugins_dir/this-plugin/ -> parent is plugins_dir
-    - Versioned: plugins_dir/this-plugin/1.0.0/ -> grandparent is plugins_dir
-
-    Uses CLAUDE_PLUGINS_DIR env var if set, otherwise derives from plugin_root.
-    """
-    plugins_dir_env = os.environ.get("CLAUDE_PLUGINS_DIR", "")
-    if plugins_dir_env:
-        return Path(plugins_dir_env)
-
-    # Check if we're in versioned layout by looking at directory structure
-    # Versioned: .../plugins_dir/plugin-name/1.0.0/
-    parent = plugin_root.parent  # plugin-name/
-    grandparent = parent.parent  # plugins_dir/
-
-    # Heuristic: if grandparent has multiple subdirectories that look like plugins
-    # (i.e., have version subdirs with hooks/ or skills/), use grandparent
-    if grandparent.exists():
-        plugin_like_siblings = 0
-        for sibling in grandparent.iterdir():
-            if sibling.is_dir() and sibling != parent:
-                # Check if sibling has version subdirs with hooks/skills
-                for subdir in sibling.iterdir():
-                    if subdir.is_dir() and ((subdir / "hooks").exists() or (subdir / "skills").exists()):
-                        plugin_like_siblings += 1
-                        break
-        if plugin_like_siblings > 0:
-            # This looks like versioned layout
-            return grandparent
-
-    # Default to flat layout
-    return parent
-
-
 def get_all_routes() -> tuple[dict[str, "Route"], list[str]]:
-    """Load routes from all sources.
+    """Load routes from all sources using manifest-driven discovery.
 
     Returns:
         Tuple of (merged routes dict, list of source files)
 
     Environment:
-        TOOL_ROUTING_ISOLATED: If set to "1", only load routes from CLAUDE_PLUGIN_ROOT,
-            skipping sibling plugin discovery and project routes. Useful for testing.
+        TOOL_ROUTING_ROUTES: Comma-separated list of explicit route file paths.
+            If set, use these instead of Claude CLI discovery. Useful for testing.
     """
-    from tool_routing.config import (
-        discover_plugin_routes,
-        discover_project_routes,
-        merge_routes_dicts,
-    )
+    from tool_routing.config import merge_routes_dicts
+    from tool_routing.discovery import discover_all_routes
 
-    plugin_root = get_plugin_root()
-    project_root = Path(os.environ.get("CLAUDE_PROJECT_ROOT", Path.cwd()))
-    isolated = os.environ.get("TOOL_ROUTING_ISOLATED", "").lower() in ("1", "true", "yes")
+    # Check for explicit routes (testing mode)
+    explicit_routes = os.environ.get("TOOL_ROUTING_ROUTES", "")
+    if explicit_routes:
+        paths = [Path(p.strip()) for p in explicit_routes.split(",") if p.strip()]
+    else:
+        project_root = os.environ.get("CLAUDE_PROJECT_ROOT", str(Path.cwd()))
+        paths = discover_all_routes(project_root)
 
     all_routes = []
     all_sources = []
 
-    # 1. This plugin's routes
-    own_routes_file = plugin_root / "hooks" / "tool-routes.yaml"
-    if own_routes_file.exists():
-        routes = load_routes_file(own_routes_file)
-        if routes:
-            all_routes.append(routes)
-            all_sources.append(str(own_routes_file))
-
-    # Skip sibling/project discovery in isolated mode
-    if not isolated:
-        plugins_dir = derive_plugins_dir(plugin_root)
-
-        # 2. Other plugins' routes
-        if plugins_dir.exists():
-            for path in discover_plugin_routes(plugins_dir):
-                # Skip our own routes (already loaded) - resolve to absolute for comparison
-                if path.resolve() == own_routes_file.resolve():
-                    continue
-                routes = load_routes_file(path)
-                if routes:
-                    all_routes.append(routes)
-                    all_sources.append(str(path))
-
-        # 3. Project routes
-        project_routes_path = discover_project_routes(project_root)
-        if project_routes_path:
-            routes = load_routes_file(project_routes_path)
-            if routes:
-                all_routes.append(routes)
-                all_sources.append(str(project_routes_path))
-
-    # 4. Craftdesk-installed skills' routes
-    for path in discover_craftdesk_routes(project_root):
+    for path in paths:
         routes = load_routes_file(path)
         if routes:
             all_routes.append(routes)

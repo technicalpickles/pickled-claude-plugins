@@ -1,161 +1,117 @@
 # Route Discovery
 
-The tool-routing plugin discovers and merges routes from multiple sources, allowing plugins and projects to contribute their own routing rules.
+The tool-routing plugin discovers and merges routes from multiple sources using manifest-driven discovery. Each plugin declares its route files in a manifest, and the plugin uses Claude's CLI to find enabled plugins.
 
-## Discovery Order
+## How Discovery Works
 
-Routes are discovered and merged in this order:
+Route discovery follows this process:
 
-1. **This plugin's routes** - `<plugin_root>/hooks/tool-routes.yaml`
-2. **Other plugins' skill-level routes** - `<plugins_dir>/*/skills/*/tool-routes.yaml`
-3. **Other plugins' plugin-level routes** - `<plugins_dir>/*/hooks/tool-routes.yaml`
-4. **Project-local routes** - `<project_root>/.claude/tool-routes.yaml`
+1. **Query Claude CLI** - Run `claude plugin list --json` to get all enabled plugins
+2. **Read manifests** - For each enabled plugin, read `.claude-plugin/routes.json`
+3. **Load route files** - Load each declared `tool-routes.yaml` file
+4. **Merge routes** - Combine all routes into a single routing table
 
-All discovered routes are merged into a single routing table. The order affects which routes are checked first, but any match blocks the call.
+This approach is reliable because:
+- No glob patterns or path guessing
+- Respects plugin enabled/disabled state
+- Works with any directory layout
+
+## Route Manifest
+
+Plugins declare their route files in `.claude-plugin/routes.json`:
+
+```json
+{
+  "routes": [
+    "./hooks/tool-routes.yaml",
+    "./skills/my-skill/tool-routes.yaml"
+  ]
+}
+```
+
+Paths are relative to the plugin root directory.
+
+### Example Structures
+
+**Plugin with hook-level routes:**
+```
+my-plugin/
+├── .claude-plugin/
+│   ├── plugin.json
+│   └── routes.json       ← {"routes": ["./hooks/tool-routes.yaml"]}
+└── hooks/
+    └── tool-routes.yaml
+```
+
+**Plugin with skill-level routes:**
+```
+git/
+├── .claude-plugin/
+│   ├── plugin.json
+│   └── routes.json       ← {"routes": ["./skills/pull-request/tool-routes.yaml"]}
+└── skills/
+    └── pull-request/
+        ├── SKILL.md
+        └── tool-routes.yaml
+```
 
 ## Environment Variables
 
-The plugin uses these environment variables to locate route files:
-
 | Variable | Purpose | Default |
 |----------|---------|---------|
-| `CLAUDE_PLUGIN_ROOT` | This plugin's directory | Current working directory |
-| `CLAUDE_PLUGINS_DIR` | Directory containing all plugins | Derived from plugin root |
-| `CLAUDE_PROJECT_ROOT` | Project root for local routes | Current working directory |
+| `TOOL_ROUTING_ROUTES` | Explicit route file paths (comma-separated) | (uses discovery) |
+| `CLAUDE_PROJECT_ROOT` | Project root for filtering local-scoped plugins | Current directory |
 | `TOOL_ROUTING_DEBUG` | Enable debug output | (disabled) |
 
-### How Claude Code Sets Environment Variables
+### Testing with Explicit Routes
 
-**Important:** `CLAUDE_PLUGIN_ROOT` is only set for **plugin hooks** (defined in a plugin's `hooks/hooks.json`), NOT for global hooks (defined in `~/.claude/settings.json`).
+For local development and testing, bypass Claude CLI discovery by setting `TOOL_ROUTING_ROUTES`:
 
-When a plugin hook runs:
-- `CLAUDE_PLUGIN_ROOT` = Cache path: `~/.claude/plugins/cache/{marketplace}/{plugin}/{version}/`
-- This is the **cache copy**, not the original source directory
+```bash
+# Single file
+TOOL_ROUTING_ROUTES="./hooks/tool-routes.yaml" uv run tool-routing list
 
-### Directory Layout Detection
-
-The plugin automatically detects whether it's running in:
-
-**Flat layout** (development):
+# Multiple files
+TOOL_ROUTING_ROUTES="./hooks/tool-routes.yaml,../git/skills/pull-request/tool-routes.yaml" \
+  uv run tool-routing list
 ```
-plugins/
-├── tool-routing/
-│   └── hooks/tool-routes.yaml
-└── other-plugin/
-    └── hooks/tool-routes.yaml
-```
-
-**Versioned layout** (installed via marketplace):
-```
-~/.claude/plugins/cache/marketplace/
-├── tool-routing/
-│   └── 1.0.0/
-│       └── hooks/tool-routes.yaml
-└── other-plugin/
-    └── 1.0.0/
-        └── hooks/tool-routes.yaml
-```
-
-The `derive_plugins_dir()` function handles both by checking for sibling plugin directories with version subdirectories.
 
 ## Route Sources
 
 ### Plugin Routes
 
-Plugins contribute routes by placing a `hooks/tool-routes.yaml` file in their plugin directory:
+Plugins contribute routes by:
+1. Creating a `tool-routes.yaml` file
+2. Declaring it in `.claude-plugin/routes.json`
 
+```yaml
+# hooks/tool-routes.yaml
+routes:
+  github-pr:
+    tool: WebFetch
+    pattern: "github\\.com/[^/]+/[^/]+/pull/\\d+"
+    message: |
+      Use `gh pr view <number>` for GitHub PRs.
 ```
-plugins/
-├── tool-routing/
-│   └── hooks/
-│       └── tool-routes.yaml    ← This plugin's routes
-├── my-plugin/
-│   └── hooks/
-│       └── tool-routes.yaml    ← Another plugin's routes
-└── other-plugin/
-    └── hooks/
-        └── tool-routes.yaml    ← Yet another plugin's routes
-```
-
-All `hooks/tool-routes.yaml` files found in `$CLAUDE_PLUGINS_DIR/*/` are loaded.
 
 ### Skill-Level Routes
 
-Skills can contribute their own routes by placing a `tool-routes.yaml` in the skill directory:
+Skills can contribute routes specific to their domain:
 
-```
-plugins/
-├── git/
-│   └── skills/
-│       └── pull-request/
-│           ├── SKILL.md
-│           └── tool-routes.yaml    ← Skill-level routes
+```yaml
+# skills/pull-request/tool-routes.yaml
+routes:
+  pr-fetch-url:
+    tool: WebFetch
+    pattern: "github\\.com/[^/]+/[^/]+/pull/\\d+"
+    message: |
+      Use the git:pull-request skill instead of fetching PR URLs.
 ```
 
 Skill-level routes are ideal when:
 - The route guards or enforces the skill's domain
 - The route's message should reference the skill
 - The route only makes sense in context of the skill
-
-All `tool-routes.yaml` files found in `$CLAUDE_PLUGINS_DIR/*/skills/*/` are loaded.
-
-### Project Routes
-
-Projects can define local routes in `.claude/tool-routes.yaml`:
-
-```
-my-project/
-├── .claude/
-│   └── tool-routes.yaml    ← Project-specific routes
-├── src/
-└── ...
-```
-
-Project routes let you:
-- Block patterns specific to your codebase
-- Redirect to project-specific tools or workflows
-- Enforce team conventions
-
-### Example Project Routes
-
-```yaml
-# .claude/tool-routes.yaml
-routes:
-  # Block fetching internal docs - use local copies
-  internal-docs:
-    tool: WebFetch
-    pattern: "docs\\.internal\\.mycompany\\.com"
-    message: |
-      Internal docs are available locally.
-
-      Use: Read("docs/internal/...")
-    tests:
-      - input:
-          tool_name: WebFetch
-          tool_input:
-            url: "https://docs.internal.mycompany.com/api"
-        expect: block
-
-  # Enforce team commit convention
-  no-wip-commits:
-    tool: Bash
-    pattern: "git\\s+commit.*-m\\s+[\"']WIP"
-    message: |
-      Don't commit with WIP messages.
-
-      Use a descriptive commit message instead.
-    tests:
-      - input:
-          tool_name: Bash
-          tool_input:
-            command: "git commit -m \"WIP: stuff\""
-        expect: block
-      - input:
-          tool_name: Bash
-          tool_input:
-            command: "git commit -m \"Add feature X\""
-        expect: allow
-```
 
 ## Route Merging
 
@@ -164,11 +120,10 @@ routes:
 Routes from all sources are combined into a single dictionary keyed by route name:
 
 ```
-Source 1: {github-pr: ..., atlassian: ...}
-Source 2: {my-route: ...}
-Source 3: {project-route: ...}
+Plugin A: {github-pr: ..., atlassian: ...}
+Plugin B: {buildkite: ...}
          ↓
-Merged:  {github-pr: ..., atlassian: ..., my-route: ..., project-route: ...}
+Merged:  {github-pr: ..., atlassian: ..., buildkite: ...}
 ```
 
 Each route retains a `source` field indicating which file it came from.
@@ -179,8 +134,8 @@ If two sources define a route with the same name, the plugin raises a `RouteConf
 
 ```
 Configuration error: Route 'github-pr' defined in multiple sources:
-  '/path/to/plugins/tool-routing/hooks/tool-routes.yaml' and
-  '/path/to/project/.claude/tool-routes.yaml'
+  '/path/to/plugin-a/hooks/tool-routes.yaml' and
+  '/path/to/plugin-b/hooks/tool-routes.yaml'
 ```
 
 **To resolve conflicts:**
@@ -200,6 +155,7 @@ The plugin is designed to fail open - if something goes wrong, tool calls are al
 | Invalid regex pattern | Route skipped, logs warning |
 | Route conflict error | Error logged, all routes skipped |
 | JSON parse error (stdin) | Tool call allowed |
+| Claude CLI fails | No routes loaded, all calls allowed |
 
 This prevents configuration errors from breaking your workflow.
 
@@ -215,22 +171,17 @@ uv run tool-routing list
 Output:
 
 ```
-Routes (merged from 2 sources):
+Routes (merged from 3 sources):
 
-github-pr (from: /path/to/plugins/tool-routing/hooks/tool-routes.yaml)
+github-pr (from: /path/to/tool-routing/hooks/tool-routes.yaml)
   tool: WebFetch
   pattern: github\.com/[^/]+/[^/]+/pull/\d+
   tests: 3
 
-atlassian (from: /path/to/plugins/tool-routing/hooks/tool-routes.yaml)
-  tool: WebFetch
-  pattern: https?://[^/]*\.atlassian\.net
-  tests: 2
-
-project-route (from: /path/to/project/.claude/tool-routes.yaml)
+pr-create (from: /path/to/git/skills/pull-request/tool-routes.yaml)
   tool: Bash
-  pattern: ...
-  tests: 1
+  pattern: gh pr create
+  tests: 2
 ```
 
 ## Debugging Route Discovery
@@ -256,17 +207,18 @@ Use `gh pr view <number>` for GitHub PRs.
 
 ### For Plugin Authors
 
-1. **Use descriptive route names** - Prefix with your plugin name if generic: `myplugin-no-curl`
-2. **Include comprehensive tests** - Cover both block and allow cases
-3. **Write helpful messages** - Explain why and what to do instead
-4. **Avoid overly broad patterns** - Be specific to minimize false positives
+1. **Add routes.json manifest** - Declare all route files explicitly
+2. **Use descriptive route names** - Prefix with your plugin name if generic
+3. **Include comprehensive tests** - Cover both block and allow cases
+4. **Write helpful messages** - Explain why and what to do instead
+5. **Avoid overly broad patterns** - Be specific to minimize false positives
 
-### For Project Routes
+### Adding Routes to a Plugin
 
-1. **Document your routes** - Add comments explaining team conventions
-2. **Keep routes focused** - One concern per route
-3. **Test locally first** - Run `tool-routing test` before committing
-4. **Coordinate with plugins** - Avoid naming conflicts with installed plugins
+1. Create your `tool-routes.yaml` file
+2. Create `.claude-plugin/routes.json` if it doesn't exist
+3. Add your route file path to the `routes` array
+4. Reinstall the plugin to update the cache
 
 ## Troubleshooting
 
@@ -276,32 +228,21 @@ Use `gh pr view <number>` for GitHub PRs.
 
 **Common causes:**
 
-1. **Stale plugin cache** - The installed plugin cache may be outdated
+1. **Missing routes.json manifest** - Ensure `.claude-plugin/routes.json` exists
    ```bash
-   # Check cache version
-   ls ~/.claude/plugins/cache/{marketplace}/tool-routing/
-
-   # Fix: Reinstall the plugin
-   /plugin uninstall tool-routing@{marketplace}
-   /plugin install tool-routing@{marketplace}
+   cat ~/.claude/plugins/cache/{marketplace}/{plugin}/{version}/.claude-plugin/routes.json
    ```
 
-2. **Orphaned cache directory** - `installed_plugins.json` may point to non-existent path
+2. **Plugin not enabled** - Check with Claude CLI
    ```bash
-   # Check if install path exists
-   jq '.plugins["tool-routing@marketplace"][0].installPath' ~/.claude/plugins/installed_plugins.json
-   ls -la /path/from/above
-
-   # Fix: Delete stale cache and reinstall
-   rm -rf ~/.claude/plugins/cache/{marketplace}/tool-routing/
-   /plugin uninstall tool-routing@{marketplace}
-   /plugin install tool-routing@{marketplace}
+   claude plugin list --json | jq '.[] | select(.enabled == true) | .id'
    ```
 
-3. **Plugin not enabled** - Check settings.json
+3. **Stale plugin cache** - Reinstall the plugin
    ```bash
-   jq '.enabledPlugins["tool-routing@marketplace"]' ~/.claude/settings.json
-   # Should return: true
+   /plugin uninstall {plugin}@{marketplace}
+   /plugin install {plugin}@{marketplace}
+   # Then restart Claude Code
    ```
 
 ### Hook Not Running
@@ -310,33 +251,26 @@ Use `gh pr view <number>` for GitHub PRs.
 
 **Diagnostic steps:**
 
-1. **Verify plugin is installed and enabled**
+1. **Test route discovery manually**
    ```bash
-   jq '.plugins | keys | map(select(contains("tool-routing")))' ~/.claude/plugins/installed_plugins.json
-   jq '.enabledPlugins | keys | map(select(contains("tool-routing")))' ~/.claude/settings.json
+   TOOL_ROUTING_ROUTES="./hooks/tool-routes.yaml" uv run tool-routing list
    ```
 
-2. **Check cache directory exists**
+2. **Verify the route pattern matches**
    ```bash
-   ls ~/.claude/plugins/cache/{marketplace}/tool-routing/
+   TOOL_ROUTING_ROUTES="./hooks/tool-routes.yaml" uv run tool-routing test
    ```
 
-3. **Test route discovery manually**
-   ```bash
-   CLAUDE_PLUGIN_ROOT="~/.claude/plugins/cache/{marketplace}/tool-routing/{version}" \
-     uv run --project "$CLAUDE_PLUGIN_ROOT" tool-routing list
-   ```
-
-4. **Restart Claude Code** - Hooks are loaded at startup
+3. **Restart Claude Code** - Hooks are loaded at startup
 
 ### Version Mismatch Between Source and Cache
 
-For directory-source marketplaces, the cache is a **copy** made at install time. Changes to the source directory require reinstalling:
+Changes to plugin source require reinstalling:
 
 ```bash
-/plugin uninstall tool-routing@{marketplace}
-/plugin install tool-routing@{marketplace}
+/plugin uninstall {plugin}@{marketplace}
+/plugin install {plugin}@{marketplace}
 # Then restart Claude Code
 ```
 
-**Note:** This is different from git-based marketplaces, which also create copies but track versions via git tags.
+The cache is a copy made at install time, not a live reference.

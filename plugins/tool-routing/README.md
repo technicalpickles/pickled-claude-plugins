@@ -35,11 +35,11 @@ routes:
 
 ## Route Sources
 
-Routes are loaded from three places:
+Routes are discovered from all enabled plugins that declare routes in their manifest:
 
-1. **This plugin** - `hooks/tool-routes.yaml`
-2. **Other plugins** - `*/hooks/tool-routes.yaml`
-3. **Your project** - `.claude/tool-routes.yaml`
+1. Each plugin declares route files in `.claude-plugin/routes.json`
+2. Discovery uses `claude plugin list --json` to find enabled plugins
+3. Route files are loaded and merged from each plugin's manifest
 
 See [Route Discovery](docs/route-discovery.md) for details.
 

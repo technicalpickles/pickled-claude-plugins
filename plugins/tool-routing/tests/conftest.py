@@ -10,14 +10,14 @@ import pytest
 def cli_env(tmp_path):
     """Environment dict for CLI subprocess calls.
 
-    Includes PYTHONPATH so subprocess can import tool_routing,
-    CLAUDE_PLUGIN_ROOT pointing to tmp_path for test isolation,
-    and TOOL_ROUTING_ISOLATED=1 to prevent sibling directory discovery.
+    Includes PYTHONPATH so subprocess can import tool_routing.
+    Uses TOOL_ROUTING_ROUTES to specify explicit route file paths,
+    bypassing Claude CLI discovery for test isolation.
     """
     src_path = Path(__file__).parent.parent / "src"
+    routes_file = tmp_path / "hooks" / "tool-routes.yaml"
     return {
-        "CLAUDE_PLUGIN_ROOT": str(tmp_path),
         "PYTHONPATH": str(src_path),
         "PATH": os.environ.get("PATH", ""),
-        "TOOL_ROUTING_ISOLATED": "1",
+        "TOOL_ROUTING_ROUTES": str(routes_file),
     }
