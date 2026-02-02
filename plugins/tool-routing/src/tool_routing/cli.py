@@ -88,8 +88,16 @@ def cmd_check(args: argparse.Namespace) -> int:
                 print(f"Matched: {display}", file=sys.stderr)
             print(f"Pattern: {result.pattern}", file=sys.stderr)
             print("", file=sys.stderr)
-        print(result.message, file=sys.stderr)
-        return 2
+        # Output JSON to stdout for Claude Code hook processing
+        output = {
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": result.message,
+            }
+        }
+        print(json.dumps(output))
+        return 0
 
     return 0
 
