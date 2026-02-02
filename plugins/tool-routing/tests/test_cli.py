@@ -175,21 +175,41 @@ routes:
     assert "Bash" in result.stdout
 
 
-def test_cli_list_includes_craftdesk_skills(tmp_path, cli_env):
-    """CLI list includes routes from craftdesk-installed skills."""
-    # Create craftdesk skill with routes
-    skill_dir = tmp_path / ".claude" / "skills" / "test-skill" / "hooks"
-    skill_dir.mkdir(parents=True)
-    (skill_dir / "tool-routes.yaml").write_text("""
+def test_cli_list_with_multiple_route_files(tmp_path):
+    """CLI list can load routes from multiple files via TOOL_ROUTING_ROUTES."""
+    import os
+    from pathlib import Path
+
+    # Create first routes file
+    routes_dir1 = tmp_path / "plugin1"
+    routes_dir1.mkdir()
+    routes_file1 = routes_dir1 / "tool-routes.yaml"
+    routes_file1.write_text("""
 routes:
-  craftdesk-route:
+  plugin1-route:
     tool: TestTool
-    pattern: "test-pattern"
-    message: "Test tool from craftdesk skill"
+    pattern: "plugin1-pattern"
+    message: "Route from plugin 1"
 """)
 
-    # Add CLAUDE_PROJECT_ROOT for craftdesk discovery (uses project root, not plugin root)
-    env = {**cli_env, "CLAUDE_PROJECT_ROOT": str(tmp_path)}
+    # Create second routes file
+    routes_dir2 = tmp_path / "plugin2"
+    routes_dir2.mkdir()
+    routes_file2 = routes_dir2 / "tool-routes.yaml"
+    routes_file2.write_text("""
+routes:
+  plugin2-route:
+    tool: OtherTool
+    pattern: "plugin2-pattern"
+    message: "Route from plugin 2"
+""")
+
+    src_path = Path(__file__).parent.parent / "src"
+    env = {
+        "PYTHONPATH": str(src_path),
+        "PATH": os.environ.get("PATH", ""),
+        "TOOL_ROUTING_ROUTES": f"{routes_file1},{routes_file2}",
+    }
 
     result = subprocess.run(
         [sys.executable, "-m", "tool_routing", "list"],
@@ -198,7 +218,8 @@ routes:
         env=env,
     )
 
-    # Should find the craftdesk skill routes
+    # Should find routes from both files
     assert result.returncode == 0
-    assert "craftdesk-route" in result.stdout
-    assert "test-skill" in result.stdout or ".claude/skills" in result.stdout
+    assert "plugin1-route" in result.stdout
+    assert "plugin2-route" in result.stdout
+    assert "merged from 2 sources" in result.stdout
