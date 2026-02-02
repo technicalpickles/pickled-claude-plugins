@@ -19,3 +19,6 @@
 
 # Local Claude settings
 .claude/settings.local.json
+
+# Temporary/generated test artifacts
+tmp/

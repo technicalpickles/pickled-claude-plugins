@@ -1,0 +1,221 @@
+#!/bin/bash
+# test-claude - Run Claude Code with isolated test configuration
+#
+# This wrapper sets up an isolated Claude config directory with only
+# local plugins installed, useful for testing plugin hooks.
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+TEST_CONFIG="$REPO_ROOT/tmp/test-claude-config"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+log() { echo -e "${GREEN}[test-claude]${NC} $*"; }
+warn() { echo -e "${YELLOW}[test-claude]${NC} $*"; }
+error() { echo -e "${RED}[test-claude]${NC} $*" >&2; }
+
+usage() {
+    cat << EOF
+Usage: test-claude [OPTIONS] [CLAUDE_ARGS...]
+
+Run Claude Code with an isolated test configuration.
+
+Options:
+  --setup       Initialize/reset the test environment
+  --install     Install tool-routing plugin to test config
+  --status      Show test environment status
+  --clean       Remove test config and start fresh
+  --reset       Reset settings.json (re-copies from global config)
+  --help        Show this help message
+
+Examples:
+  test-claude --setup              # First-time setup
+  test-claude --install            # Install tool-routing plugin
+  test-claude                      # Run claude with test config
+  test-claude -p "test prompt"     # Run with print mode
+EOF
+}
+
+setup_marketplace() {
+    log "Setting up local marketplace..."
+    
+    # Create directories
+    mkdir -p "$TEST_CONFIG/plugins/cache"
+    mkdir -p "$TEST_CONFIG/plugins/marketplaces"
+    
+    # Symlink our repo as a marketplace
+    if [ ! -L "$TEST_CONFIG/plugins/marketplaces/local-test" ]; then
+        ln -sf "$REPO_ROOT" "$TEST_CONFIG/plugins/marketplaces/local-test"
+        log "Created marketplace symlink: local-test -> $REPO_ROOT"
+    fi
+    
+    # Create known_marketplaces.json
+    cat > "$TEST_CONFIG/plugins/known_marketplaces.json" << EOF
+{
+  "local-test": {
+    "source": {
+      "source": "directory",
+      "path": "$REPO_ROOT"
+    },
+    "installLocation": "$TEST_CONFIG/plugins/marketplaces/local-test",
+    "lastUpdated": "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
+  }
+}
+EOF
+    log "Created known_marketplaces.json"
+    
+    # Create settings.json with bedrock settings from global config
+    if [ ! -f "$TEST_CONFIG/settings.json" ]; then
+        GLOBAL_SETTINGS="$HOME/.claude/settings.json"
+
+        if [ -f "$GLOBAL_SETTINGS" ]; then
+            # Extract bedrock-related settings from global config
+            ENV_SETTINGS=$(jq '.env // {}' "$GLOBAL_SETTINGS")
+            AWS_AUTH=$(jq -r '.awsAuthRefresh // empty' "$GLOBAL_SETTINGS")
+
+            # Build settings with bedrock config
+            cat > "$TEST_CONFIG/settings.json" << EOF
+{
+  "env": $ENV_SETTINGS,
+  $([ -n "$AWS_AUTH" ] && echo "\"awsAuthRefresh\": \"$AWS_AUTH\",")
+  "permissions": {
+    "allow": [
+      "Bash(echo:*)",
+      "Bash(git status:*)",
+      "Bash(ls:*)",
+      "Bash(pwd:*)",
+      "Bash(uv run:*)"
+    ]
+  },
+  "hooks": {}
+}
+EOF
+            log "Created settings.json with bedrock config from global settings"
+        else
+            # Fallback to minimal settings
+            cat > "$TEST_CONFIG/settings.json" << EOF
+{
+  "permissions": {
+    "allow": [
+      "Bash(echo:*)",
+      "Bash(git status:*)",
+      "Bash(ls:*)",
+      "Bash(pwd:*)",
+      "Bash(uv run:*)"
+    ]
+  },
+  "hooks": {}
+}
+EOF
+            log "Created minimal settings.json (no global config found)"
+        fi
+    fi
+    
+    # Create empty installed_plugins.json
+    if [ ! -f "$TEST_CONFIG/plugins/installed_plugins.json" ]; then
+        echo '{"version": 2, "plugins": {}}' > "$TEST_CONFIG/plugins/installed_plugins.json"
+        log "Created installed_plugins.json"
+    fi
+    
+    log "Setup complete!"
+}
+
+install_plugin() {
+    local plugin="${1:-tool-routing}"
+    log "Installing $plugin from local-test marketplace..."
+    
+    # Run claude plugin install with our test config
+    CLAUDE_CONFIG_DIR="$TEST_CONFIG" claude plugin install "$plugin@local-test"
+    
+    log "Plugin installed. Restart claude to load hooks."
+}
+
+show_status() {
+    log "Test environment status:"
+    echo ""
+    
+    if [ -d "$TEST_CONFIG" ]; then
+        echo "Config directory: $TEST_CONFIG"
+        echo ""
+        
+        echo "Marketplaces:"
+        if [ -f "$TEST_CONFIG/plugins/known_marketplaces.json" ]; then
+            cat "$TEST_CONFIG/plugins/known_marketplaces.json" | jq -r 'keys[]' 2>/dev/null || echo "  (error reading)"
+        else
+            echo "  (none)"
+        fi
+        echo ""
+        
+        echo "Installed plugins:"
+        if [ -f "$TEST_CONFIG/plugins/installed_plugins.json" ]; then
+            cat "$TEST_CONFIG/plugins/installed_plugins.json" | jq -r '.plugins | keys[]' 2>/dev/null || echo "  (none or error)"
+        else
+            echo "  (none)"
+        fi
+        echo ""
+        
+        echo "Hooks in settings.json:"
+        if [ -f "$TEST_CONFIG/settings.json" ]; then
+            cat "$TEST_CONFIG/settings.json" | jq '.hooks' 2>/dev/null || echo "  (error reading)"
+        fi
+    else
+        warn "Test config not initialized. Run: test-claude --setup"
+    fi
+}
+
+clean_config() {
+    warn "Removing test configuration..."
+    rm -rf "$TEST_CONFIG"
+    log "Clean complete. Run --setup to reinitialize."
+}
+
+reset_settings() {
+    log "Resetting settings.json..."
+    rm -f "$TEST_CONFIG/settings.json"
+    setup_marketplace
+}
+
+# Parse arguments
+case "${1:-}" in
+    --setup)
+        setup_marketplace
+        exit 0
+        ;;
+    --install)
+        shift
+        install_plugin "$@"
+        exit 0
+        ;;
+    --status)
+        show_status
+        exit 0
+        ;;
+    --clean)
+        clean_config
+        exit 0
+        ;;
+    --reset)
+        reset_settings
+        exit 0
+        ;;
+    --help|-h)
+        usage
+        exit 0
+        ;;
+esac
+
+# Verify setup exists
+if [ ! -d "$TEST_CONFIG" ]; then
+    error "Test config not initialized. Run: test-claude --setup"
+    exit 1
+fi
+
+# Run claude with test config
+log "Running claude with CLAUDE_CONFIG_DIR=$TEST_CONFIG"
+exec env CLAUDE_CONFIG_DIR="$TEST_CONFIG" claude "$@"
