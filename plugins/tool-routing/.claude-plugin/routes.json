@@ -1,0 +1,5 @@
+{
+  "routes": [
+    "./hooks/tool-routes.yaml"
+  ]
+}
