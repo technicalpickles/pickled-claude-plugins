@@ -39,7 +39,7 @@
     {
       "name": "tool-routing",
       "source": "./plugins/tool-routing",
-      "version": "1.1.0"
+      "version": "1.1.1"
     },
     {
       "name": "stay-on-target",
