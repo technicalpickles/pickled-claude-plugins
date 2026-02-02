@@ -80,4 +80,13 @@ Example: `jwt-authentication.md`, `fix-login-bug.md`
 
 ## After Parking
 
-Report: "Parked to `[path]`. Use `/unpark` in a new session to resume."
+Report:
+
+```
+Parked to `[path]`.
+
+To resume in a new session:
+/unpark [path]
+```
+
+The `/unpark [path]` command should be copy-pasteable so the user can easily resume.

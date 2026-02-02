@@ -98,9 +98,11 @@ feat(tool-routing)!: change route configuration format
    - Commit format is correct
    - Scopes are valid plugin names
    - Reports what version bumps are needed
+   - **Fails if bumps are pending** (blocks merge until applied)
 5. **Get PR approved**
 6. **Auto-bump:** GitHub Actions commits version updates to your branch
-7. **Merge PR**
+7. **CI re-runs:** Now passes (no pending bumps)
+8. **Merge PR**
 
 ## Local Validation
 

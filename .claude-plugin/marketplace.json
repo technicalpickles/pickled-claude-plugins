@@ -45,6 +45,11 @@
       "name": "stay-on-target",
       "source": "./plugins/stay-on-target",
       "version": "1.0.0"
+    },
+    {
+      "name": "agent-meta",
+      "source": "./plugins/agent-meta",
+      "version": "1.1.0"
     }
   ]
 }
