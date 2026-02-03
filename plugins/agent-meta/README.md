@@ -51,7 +51,7 @@ Default location: `.parkinglot/` in project root (gitignored).
 ## Installation
 
 ```bash
-/plugin install agent-meta@technicalpickles-marketplace
+/plugin install agent-meta@pickled-claude-plugins
 ```
 
 ## See Also

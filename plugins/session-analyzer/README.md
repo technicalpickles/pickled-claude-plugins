@@ -39,5 +39,5 @@ Find failed tool calls in Claude session logs.
 ## Installation
 
 ```bash
-/plugin install session-analyzer@technicalpickles-marketplace
+/plugin install session-analyzer@pickled-claude-plugins
 ```

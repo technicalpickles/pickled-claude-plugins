@@ -5,7 +5,7 @@ Knowledge management for Obsidian vaults. Capture insights from conversations, p
 ## Installation
 
 ```bash
-claude plugin add technicalpickles-marketplace/second-brain
+claude plugin add pickled-claude-plugins/second-brain
 ```
 
 ## Quick Start

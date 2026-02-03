@@ -54,5 +54,5 @@ uv run pytest tests/ -v
 ## Installation
 
 ```bash
-/plugin install working-in-monorepos@technicalpickles-marketplace
+/plugin install working-in-monorepos@pickled-claude-plugins
 ```
