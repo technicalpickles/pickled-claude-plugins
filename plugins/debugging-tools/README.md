@@ -18,5 +18,5 @@ Use when user mentions MCPProxy/MCP tools or when you need to discover or call t
 ## Installation
 
 ```bash
-/plugin install debugging-tools@technicalpickles-marketplace
+/plugin install debugging-tools@pickled-claude-plugins
 ```

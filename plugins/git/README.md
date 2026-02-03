@@ -79,5 +79,5 @@ Update your branch with upstream changes, intelligently resolving conflicts.
 ## Installation
 
 ```bash
-/plugin install git@technicalpickles-marketplace
+/plugin install git@pickled-claude-plugins
 ```

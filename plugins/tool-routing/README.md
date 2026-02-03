@@ -7,7 +7,7 @@ Intercepts tool calls and suggests better alternatives. When Claude tries to use
 Add to your Claude Code plugins:
 
 ```bash
-claude plugin add technicalpickles-marketplace/tool-routing
+claude plugin add pickled-claude-plugins/tool-routing
 ```
 
 ## Quick Example
