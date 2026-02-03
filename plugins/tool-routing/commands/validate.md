@@ -16,7 +16,28 @@ This plugin is part of the `pickled-claude-plugins` monorepo. Routes are contrib
 | dev-tools | `hooks/tool-routes.yaml` | atlassian |
 | git | `skills/pull-request/tool-routes.yaml` | github-pr, git-commit-multiline, gh-pr-create-multiline |
 | ci-cd-tools | `skills/working-with-buildkite-builds/tool-routes.yaml` | buildkite |
-| mcpproxy | `skills/working-with-mcp/tool-routes.yaml` | bash-mcp-cli, bash-mcp-tool |
+
+## Quick Validation (Isolated Environment)
+
+Use `test-claude` to validate in an isolated environment without affecting your normal Claude config:
+
+```bash
+# From repo root - sets up config, installs all plugins, starts claude
+./bin/test-claude
+
+# Or run validation commands in the isolated env
+CLAUDE_CONFIG_DIR="$PWD/tmp/test-claude-config" \
+  uv run --directory plugins/tool-routing tool-routing list
+
+# Should show: "Routes (merged from 4 sources)"
+```
+
+Use `./bin/test-claude --clean` to remove the test config and start fresh.
+
+This approach:
+- Doesn't modify your user plugin state
+- Installs plugins from local source (not marketplace cache)
+- Tests the actual discovery path Claude Code uses
 
 ## Step 1: Validate Plugin Manifests
 
@@ -50,18 +71,39 @@ These tests catch **silent failures** where hooks.json is valid JSON but wrong f
 | `"type": "preToolUse"` | `"type": "command"` |
 | `$CLAUDE_PLUGIN_ROOT` | `${CLAUDE_PLUGIN_ROOT}` (with braces) |
 
-## Step 3: Run Route Tests (All Plugins)
+## Step 3: Run Route Pattern Tests
 
-Test that route patterns match correctly across **all plugins in the monorepo**:
+Test that route patterns match correctly:
+
+### Option A: Using test-claude (Recommended)
+
+Uses isolated config with all plugins installed:
 
 ```bash
-cd plugins/tool-routing
-CLAUDE_PLUGIN_ROOT="$PWD" CLAUDE_PLUGINS_DIR="../" uv run tool-routing test
+# Ensure test config exists (setup + exit immediately)
+./bin/test-claude -p ""
+
+# Run tests in isolated env
+CLAUDE_CONFIG_DIR="$PWD/tmp/test-claude-config" \
+  uv run --directory plugins/tool-routing tool-routing test
 ```
 
-This discovers and tests routes from all plugins, not just tool-routing.
+### Option B: Using explicit routes (No discovery)
 
-**Expected output:** Routes from 5 sources, 30+ tests passing.
+Bypasses discovery entirely - useful for testing specific route files:
+
+```bash
+TOOL_ROUTING_ROUTES="plugins/tool-routing/hooks/tool-routes.yaml,plugins/git/skills/pull-request/tool-routes.yaml,plugins/ci-cd-tools/skills/working-with-buildkite-builds/tool-routes.yaml" \
+  uv run --directory plugins/tool-routing tool-routing test
+```
+
+### Option C: Using user's enabled plugins
+
+Uses your current Claude config - results depend on which plugins you have enabled:
+
+```bash
+CLAUDE_PROJECT_ROOT="$PWD" uv run --directory plugins/tool-routing tool-routing test
+```
 
 ## Step 4: Test at Runtime
 
@@ -99,23 +141,35 @@ Look for:
 | "No module named tool_routing" | Wrong working directory | Run from plugin root with `uv run` |
 | Plugin not in list | Missing manifest | Create `.claude-plugin/plugin.json` |
 | Tests fail on matcher format | Old hooks.json format | Update to object-keyed structure |
-| Only 1 route source found | Stale cache or wrong plugins_dir | See troubleshooting in route-discovery.md |
+| Fewer sources than expected | Plugin not enabled, or wrong project path | Use test-claude or TOOL_ROUTING_ROUTES |
 
-## Step 5a: Verify Cross-Plugin Route Discovery
+## Troubleshooting Route Discovery
 
-**Critical check:** Ensure routes from ALL plugins are discovered, not just tool-routing.
+If `tool-routing list` shows fewer sources than expected:
 
-```bash
-cd plugins/tool-routing
-CLAUDE_PLUGIN_ROOT="$PWD" CLAUDE_PLUGINS_DIR="../" uv run tool-routing list
-```
+1. **Use test-claude for reliable results** - avoids project path issues:
+   ```bash
+   ./bin/test-claude --clean                  # Remove old config
+   ./bin/test-claude -p ""                    # Reinitialize (exits immediately)
+   CLAUDE_CONFIG_DIR="$PWD/tmp/test-claude-config" uv run --directory plugins/tool-routing tool-routing list
+   ```
 
-**Expected:** "Routes (merged from 5 sources)"
+2. **Check plugin enabled status:**
+   ```bash
+   claude plugin list --json | jq '.[] | select(.enabled) | {id, scope, projectPath}'
+   ```
 
-If you only see 1 source:
-1. Check CLAUDE_PLUGINS_DIR is set correctly
-2. Check sibling plugins have `hooks/tool-routes.yaml` or `skills/*/tool-routes.yaml`
-3. See `docs/route-discovery.md#troubleshooting` for more diagnostics
+3. **Check routes.json manifests exist:**
+   ```bash
+   for p in tool-routing git ci-cd-tools dev-tools; do
+     echo "=== $p ==="
+     cat plugins/$p/.claude-plugin/routes.json 2>/dev/null || echo "No routes.json"
+   done
+   ```
+
+4. **Project path matching:** Local-scoped plugins require exact `projectPath` match. Running from `plugins/tool-routing/` won't find plugins scoped to the repo root.
+
+See `docs/route-discovery.md#troubleshooting` for more details.
 
 ## Step 6: Run Integration Tests (Optional)
 
