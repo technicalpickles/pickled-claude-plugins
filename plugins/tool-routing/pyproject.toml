@@ -1,6 +1,6 @@
 [project]
 name = "tool-routing"
-version = "0.1.0"
+version = "0.2.0"
 description = "Claude Code plugin for routing tool calls to better alternatives"
 requires-python = ">=3.9"
 dependencies = [
