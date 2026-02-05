@@ -6,6 +6,7 @@ allowed-tools:
   - Read(~/.claude/vaults/**/.obsidian/*.json)
   - Read(~/.claude/vaults/**/*.md)
   - Write(~/.claude/vaults/**/*.md)
+  - Edit(~/.claude/vaults/**/*.md)
   - Bash(ls:*)
   - Bash(date:*)
   - Bash(git rev-parse:*)
@@ -33,6 +34,7 @@ Load skill references:
 - `references/zettelkasten.md` for naming
 - `references/note-patterns.md` for Insight Note template
 - `references/routing.md` for destination matching
+- `references/daily-linking.md` for linking to daily note
 
 ## Step 2: Review the Conversation
 
@@ -160,6 +162,30 @@ mv "{inbox}/{filename}" "{vault}/{destination}/"
 ```
 
 **Important:** Only suggest destinations that exist (from `ls` output). Never suggest paths that weren't discovered.
+
+## Step 7: Batch Link to Daily Note
+
+Follow `references/daily-linking.md` to connect all captured notes to today's daily note.
+
+**1. Find today's daily note:**
+```bash
+cat "{vault}/.obsidian/daily-notes.json" 2>/dev/null
+date +"%Y-%m-%d"
+```
+
+**2. If daily note exists, batch-add links to `## Links` section:**
+```markdown
+- [[{filename1 without .md}]] - {description1}
+- [[{filename2 without .md}]] - {description2}
+- [[{filename3 without .md}]] - {description3}
+```
+
+**3. Confirm:**
+```
+✓ Linked {N} notes to daily note: Fleeting/{date}.md
+```
+
+If daily note doesn't exist, skip silently - notes are already captured.
 
 ## Constraints
 

@@ -18,6 +18,25 @@ jobs:
       - name: Install jq
         run: sudo apt-get install -y jq
 
+      - name: Verify marketplace name matches repo name
+        run: |
+          # Extract repo name from git remote (works regardless of checkout directory)
+          REMOTE_URL=$(git remote get-url origin)
+          REPO_NAME=$(basename "$REMOTE_URL" .git)
+          MARKETPLACE_NAME=$(jq -r '.name' .claude-plugin/marketplace.json)
+
+          echo "Repository name (from remote): $REPO_NAME"
+          echo "Marketplace name: $MARKETPLACE_NAME"
+
+          if [[ "$REPO_NAME" != "$MARKETPLACE_NAME" ]]; then
+            echo ""
+            echo "❌ Marketplace name does not match repository name!"
+            echo "   Update .claude-plugin/marketplace.json 'name' field to: $REPO_NAME"
+            exit 1
+          fi
+
+          echo "✓ Marketplace name matches repository name"
+
       - name: Validate conventional commits
         run: |
           echo "Validating conventional commit format..."

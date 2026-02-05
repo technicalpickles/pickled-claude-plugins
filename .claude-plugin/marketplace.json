@@ -1,5 +1,5 @@
 {
-  "name": "technicalpickles-marketplace",
+  "name": "pickled-claude-plugins",
   "description": "Personal plugins marketplace for Josh Nichols",
   "owner": {
     "name": "Josh Nichols",
@@ -34,12 +34,12 @@
     {
       "name": "second-brain",
       "source": "./plugins/second-brain",
-      "version": "1.2.0"
+      "version": "1.3.0"
     },
     {
       "name": "tool-routing",
       "source": "./plugins/tool-routing",
-      "version": "1.1.1"
+      "version": "1.2.0"
     },
     {
       "name": "stay-on-target",

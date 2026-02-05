@@ -7,6 +7,7 @@ allowed-tools:
   - Read(~/.claude/vaults/**/.obsidian/*.json)
   - Read(~/.claude/vaults/**/*.md)
   - Write(~/.claude/vaults/**/*.md)
+  - Edit(~/.claude/vaults/**/*.md)
   - Bash(ls:*)
   - Bash(date:*)
   - Bash(git rev-parse:*)
@@ -36,6 +37,7 @@ Load skill references:
 - `references/zettelkasten.md` for naming
 - `references/note-patterns.md` for Insight Note template
 - `references/routing.md` for destination matching
+- `references/daily-linking.md` for linking to daily note
 
 ## Step 2: Identify the Insight
 
@@ -179,6 +181,29 @@ mv "{inbox}/{filename}" "{vault}/{selected-destination}/"
 ```
 
 If all destinations score <20%, recommend inbox without asking.
+
+## Step 8: Link to Daily Note
+
+Follow `references/daily-linking.md` to connect the captured note to today's daily note.
+
+**1. Find today's daily note:**
+```bash
+# Get daily notes folder from config
+cat "{vault}/.obsidian/daily-notes.json" 2>/dev/null
+date +"%Y-%m-%d"
+```
+
+**2. If daily note exists, add link to `## Links` section:**
+```markdown
+- [[{filename without .md}]] - {brief description of the insight}
+```
+
+**3. Confirm linking:**
+```
+✓ Linked to daily note: Fleeting/{date}.md
+```
+
+If daily note doesn't exist, skip silently - the note is already captured.
 
 ## Constraints
 

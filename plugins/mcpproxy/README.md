@@ -24,5 +24,5 @@ Use when working with MCPProxy and MCP tools - detecting connection status, disc
 ## Installation
 
 ```bash
-/plugin install mcpproxy@technicalpickles-marketplace
+/plugin install mcpproxy@pickled-claude-plugins
 ```
