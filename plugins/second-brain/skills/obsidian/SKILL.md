@@ -103,3 +103,4 @@ For methodology (tool-agnostic):
 - `references/zettelkasten.md` - Naming conventions
 - `references/note-patterns.md` - Note templates
 - `references/routing.md` - Routing algorithm with disambiguation support
+- `references/daily-linking.md` - Linking captured notes to daily note
