@@ -1,6 +1,6 @@
 [project]
 name = "working-in-monorepos-tests"
-version = "0.1.0"
+version = "1.0.0"
 description = "Tests for working-in-monorepos plugin"
 requires-python = ">=3.11"
 
