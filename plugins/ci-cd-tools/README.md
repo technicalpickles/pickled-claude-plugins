@@ -35,5 +35,5 @@ Use when creating or modifying Buildkite pipeline configurations and working wit
 ## Installation
 
 ```bash
-/plugin install ci-cd-tools@technicalpickles-marketplace
+/plugin install ci-cd-tools@pickled-claude-plugins
 ```

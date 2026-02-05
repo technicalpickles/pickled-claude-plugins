@@ -22,19 +22,17 @@ This plugin is part of the `pickled-claude-plugins` monorepo. Routes are contrib
 Use `test-claude` to validate in an isolated environment without affecting your normal Claude config:
 
 ```bash
-# From repo root
-./bin/test-claude --setup
-./bin/test-claude --install tool-routing
-./bin/test-claude --install git
-./bin/test-claude --install ci-cd-tools
-./bin/test-claude --install dev-tools
+# From repo root - sets up config, installs all plugins, starts claude
+./bin/test-claude
 
-# Run validation in isolated env
+# Or run validation commands in the isolated env
 CLAUDE_CONFIG_DIR="$PWD/tmp/test-claude-config" \
   uv run --directory plugins/tool-routing tool-routing list
 
 # Should show: "Routes (merged from 4 sources)"
 ```
+
+Use `./bin/test-claude --clean` to remove the test config and start fresh.
 
 This approach:
 - Doesn't modify your user plugin state
@@ -82,7 +80,10 @@ Test that route patterns match correctly:
 Uses isolated config with all plugins installed:
 
 ```bash
-# After running Quick Validation setup above
+# Ensure test config exists (setup + exit immediately)
+./bin/test-claude -p ""
+
+# Run tests in isolated env
 CLAUDE_CONFIG_DIR="$PWD/tmp/test-claude-config" \
   uv run --directory plugins/tool-routing tool-routing test
 ```
@@ -148,8 +149,8 @@ If `tool-routing list` shows fewer sources than expected:
 
 1. **Use test-claude for reliable results** - avoids project path issues:
    ```bash
-   ./bin/test-claude --clean && ./bin/test-claude --setup
-   ./bin/test-claude --install tool-routing
+   ./bin/test-claude --clean                  # Remove old config
+   ./bin/test-claude -p ""                    # Reinitialize (exits immediately)
    CLAUDE_CONFIG_DIR="$PWD/tmp/test-claude-config" uv run --directory plugins/tool-routing tool-routing list
    ```
 

@@ -18,7 +18,7 @@ A Claude Code plugin that enforces intentional, focused development.
 ## Installation
 
 ```bash
-/plugin install stay-on-target@technicalpickles-marketplace
+/plugin install stay-on-target@pickled-claude-plugins
 ```
 
 ## Configuration

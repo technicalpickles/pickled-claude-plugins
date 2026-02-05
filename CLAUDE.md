@@ -1,6 +1,6 @@
 # Claude Code Plugins Monorepo
 
-This repository contains Claude Code plugins for the `technicalpickles-marketplace`.
+This repository contains Claude Code plugins for the `pickled-claude-plugins`.
 
 ## Repository Structure
 
@@ -32,8 +32,8 @@ When installed, plugins are copied to cache. Environment:
 
 **Changes to local source require reinstall to take effect:**
 ```bash
-/plugin uninstall {plugin}@technicalpickles-marketplace
-/plugin install {plugin}@technicalpickles-marketplace
+/plugin uninstall {plugin}@pickled-claude-plugins
+/plugin install {plugin}@pickled-claude-plugins
 # Restart Claude Code
 ```
 
@@ -85,9 +85,9 @@ This can happen with directory-source marketplaces.
 
 **Fix:**
 ```bash
-rm -rf ~/.claude/plugins/cache/technicalpickles-marketplace/{plugin}/
-/plugin uninstall {plugin}@technicalpickles-marketplace
-/plugin install {plugin}@technicalpickles-marketplace
+rm -rf ~/.claude/plugins/cache/pickled-claude-plugins/{plugin}/
+/plugin uninstall {plugin}@pickled-claude-plugins
+/plugin install {plugin}@pickled-claude-plugins
 ```
 
 ## Environment Variables
