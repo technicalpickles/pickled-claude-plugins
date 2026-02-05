@@ -68,7 +68,7 @@ function log(message) {
 
 function getBuildStatus() {
   try {
-    const cmd = `npx bktide build --format json gusto/${pipeline}#${buildNumber}`;
+    const cmd = `npx bktide@latest build --format json ${org}/${pipeline}#${buildNumber}`;
     const output = execSync(cmd, {
       encoding: 'utf8',
       stdio: ['pipe', 'pipe', 'pipe'],

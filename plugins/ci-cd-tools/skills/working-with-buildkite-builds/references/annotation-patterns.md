@@ -65,10 +65,17 @@ Annotation response includes:
 - `body_html`: HTML content of the annotation
 - `created_at`: Timestamp
 
-### Via bktide
+### Via bktide snapshot (Preferred)
 
 ```bash
-npx bktide annotations gusto/zenpayroll#1359675
+npx bktide@latest snapshot <buildkite-url>
+# Annotations are saved to annotations.json in the snapshot directory
+```
+
+### Via bktide annotations command
+
+```bash
+npx bktide@latest annotations gusto/zenpayroll#1359675
 ```
 
 ## Interpreting Annotations

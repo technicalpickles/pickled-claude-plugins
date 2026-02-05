@@ -6,48 +6,39 @@ This document provides complete capability information for all Buildkite status 
 
 Three tool categories exist with different strengths and limitations:
 
-1. **MCP Tools** - Direct Buildkite API access via Model Context Protocol
-2. **bktide CLI** - Human-readable command-line tool (npm package)
-3. **Bundled Scripts** - Helper wrappers in this skill's `scripts/` directory
+1. **bktide CLI** - Primary tool, especially `snapshot` command for comprehensive build investigation
+2. **MCP Tools** - Direct Buildkite API access via Model Context Protocol (fallback, programmatic access)
+3. **Bundled Scripts** - Legacy helper wrappers (mostly superseded by bktide snapshot)
 
 ## Capability Matrix
 
-| Capability            | MCP Tools                       | bktide                  | Scripts                    | Notes                      |
-| --------------------- | ------------------------------- | ----------------------- | -------------------------- | -------------------------- |
-| List organizations    | ✅ `buildkite:list_orgs`        | ❌                      | ❌                         |                            |
-| List pipelines        | ✅ `buildkite:list_pipelines`   | ✅ `bktide pipelines`   | ❌                         |                            |
-| List builds           | ✅ `buildkite:list_builds`      | ✅ `bktide builds`      | ✅ `find-commit-builds.js` | Scripts are specialized    |
-| Get build details     | ✅ `buildkite:get_build`        | ✅ `bktide build`       | ❌                         |                            |
-| Get annotations       | ✅ `buildkite:list_annotations` | ✅ `bktide annotations` | ❌                         |                            |
-| **Retrieve job logs** | **✅ `buildkite:get_logs`**     | **❌ NO**               | **✅ `get-build-logs.js`** | **bktide cannot get logs** |
-| Get log metadata      | ✅ `buildkite:get_logs_info`    | ❌                      | ❌                         |                            |
-| List artifacts        | ✅ `buildkite:list_artifacts`   | ❌                      | ❌                         |                            |
-| Wait for build        | ✅ `buildkite:wait_for_build`   | ❌                      | ✅ `wait-for-build.js`     | MCP preferred              |
-| Unblock jobs          | ✅ `buildkite:unblock_job`      | ❌                      | ❌                         |                            |
-| Real-time updates     | ✅                              | ❌                      | ✅                         | Via polling                |
-| Human-readable output | ❌ (JSON)                       | ✅                      | Varies                     |                            |
-| Works offline         | ❌                              | ❌                      | ❌                         | All need network           |
-| Requires auth         | ✅ (MCP config)                 | ✅ (BK_TOKEN)           | ✅ (uses bktide)           |                            |
+| Capability            | bktide snapshot     | bktide CLI          | MCP Tools                       | Notes                          |
+| --------------------- | ------------------- | ------------------- | ------------------------------- | ------------------------------ |
+| Parse any BK URL      | ✅                  | ❌                  | ❌                              | snapshot handles URL parsing   |
+| List pipelines        | ❌                  | ✅ `pipelines`      | ✅ `buildkite:list_pipelines`   |                                |
+| List builds           | ❌                  | ✅ `builds`         | ✅ `buildkite:list_builds`      |                                |
+| Get build details     | ✅ (build.json)     | ✅ `build`          | ✅ `buildkite:get_build`        |                                |
+| Get annotations       | ✅ (annotations.json) | ✅ `annotations`  | ✅ `buildkite:list_annotations` |                                |
+| **Retrieve job logs** | **✅** (steps/*/log.txt) | **❌**         | **✅ `buildkite:get_logs`**     | snapshot captures automatically |
+| Save to files         | ✅                  | ❌                  | ❌                              | For later analysis             |
+| List artifacts        | ❌                  | ❌                  | ✅ `buildkite:list_artifacts`   |                                |
+| Wait for build        | ❌                  | ❌                  | ✅ `buildkite:wait_for_build`   |                                |
+| Unblock jobs          | ❌                  | ❌                  | ✅ `buildkite:unblock_job`      |                                |
+| Human-readable output | ✅                  | ✅                  | ❌ (JSON)                       |                                |
 
 ## Detailed Tool Information
 
-### MCP Tools (Primary)
+### MCP Tools (Fallback / Programmatic Access)
 
 **Access Method:** `mcp__MCPProxy__call_tool("buildkite:<tool>", {...})`
 
 **Authentication:** Configured in MCP server settings (typically uses `BUILDKITE_API_TOKEN`)
 
-**Pros:**
-
-- Complete API coverage
-- Always available (no external dependencies)
-- Real-time data
-- Structured JSON responses
-
-**Cons:**
-
-- Verbose JSON output
-- Requires parsing for human reading
+**When to use:**
+- bktide not available
+- Need `wait_for_build` (polling until completion)
+- Need `unblock_job` (manual approval steps)
+- Programmatic/automated workflows
 
 **Key Tools:**
 
@@ -97,37 +88,38 @@ Parameters:
 
 Returns: Final build state when complete or timeout
 
-### bktide CLI (Secondary)
+### bktide CLI (Primary)
 
-**Access Method:** `npx bktide <command>`
+**Access Method:** `npx bktide@latest <command>`
 
 **Authentication:** `BK_TOKEN` environment variable or `~/.bktide/config`
 
-**Pros:**
-
-- Human-readable colored output
-- Intuitive command structure
-- Good for interactive terminal work
-
-**Cons:**
-
-- External npm dependency
-- **CANNOT retrieve job logs** (most critical limitation)
-- Limited compared to full API
-- Requires npx/node installed
-
 **Key Commands:**
 
+#### `snapshot` (Preferred for Investigations)
+
 ```bash
-npx bktide pipelines <org>                    # List pipelines
-npx bktide builds <org>/<pipeline>            # List recent builds
-npx bktide build <org>/<pipeline>/<number>    # Build details
-npx bktide build <org>/<pipeline>/<number> --jobs  # Show job summary
-npx bktide build <org>/<pipeline>/<number> --failed # Show failed jobs only
-npx bktide annotations <org>/<pipeline>/<number>    # Show annotations
+npx bktide@latest snapshot <buildkite-url>     # Capture build with failed/broken steps
+npx bktide@latest snapshot --all <url>         # Capture all steps including passing
 ```
 
-**Critical**: bktide has NO command for retrieving logs. The `build` command shows job states and names, but NOT log content.
+Takes any Buildkite URL (build URL, step URL, etc.) and saves:
+- `manifest.json` - Step index with states and exit codes
+- `build.json` - Full build metadata
+- `annotations.json` - Build annotations
+- `steps/<id>/log.txt` - Log for each captured step
+- `steps/<id>/step.json` - Step metadata
+
+Output location: `./tmp/bktide/snapshots/<org>/<pipeline>/<build>/`
+
+#### Other Commands
+
+```bash
+npx bktide@latest pipelines <org>                    # List pipelines
+npx bktide@latest builds <org>/<pipeline>            # List recent builds
+npx bktide@latest build <org>/<pipeline>#<number>    # Build details
+npx bktide@latest annotations <org>/<pipeline>#<number>    # Show annotations
+```
 
 ### Bundled Scripts (Tertiary)
 
@@ -202,55 +194,49 @@ Features:
 
 ## Decision Matrix: Which Tool to Use
 
+### Use `bktide snapshot` When:
+
+- Investigating a build failure (most common case)
+- Given a Buildkite URL to analyze
+- Need to review logs from multiple steps
+- Want everything saved to files for analysis
+
+### Use other bktide commands When:
+
+- Listing pipelines or builds
+- Getting quick status overview
+- Interactive terminal work
+
 ### Use MCP Tools When:
 
-- Getting build details
-- **Retrieving job logs** (ONLY option with bktide)
-- Waiting for builds (preferred over script)
-- Unblocking jobs
-- Automating workflows
-- Need structured data
-
-### Use bktide When:
-
-- Interactive terminal work
-- Want human-readable summary
-- Listing pipelines/builds
-- Getting quick status overview
-- **NOT when you need logs** (it can't do this)
-
-### Use Scripts When:
-
-- Need specialized workflow (find commits)
-- Want background monitoring
-- MCP tools fail (fallback)
-- Automating repetitive tasks
+- Waiting for a build to complete (`wait_for_build`)
+- Unblocking manual approval steps (`unblock_job`)
+- bktide not available
+- Need programmatic/structured JSON data
 
 ## Common Mistakes
 
-### ❌ Trying to get logs with bktide
+### ❌ Not using snapshot for investigations
 
-**Don't**: `npx bktide build <org>/<pipeline>/<number> --logs`
+**Don't**: Manually parse URLs and make multiple API calls
 
-**Why**: This flag doesn't exist. bktide cannot retrieve logs.
+**Do**: `npx bktide@latest snapshot <url>` - handles everything automatically
 
-**Do**: Use `buildkite:get_logs` MCP tool
+### ❌ Using step ID for MCP log retrieval
 
-### ❌ Using step ID for log retrieval
-
-**Don't**: Extract `sid=019a5f...` from URL and use directly
+**Don't**: Extract `sid=019a5f...` from URL and use with `get_logs`
 
 **Why**: Step IDs ≠ Job UUIDs. MCP tools need job UUIDs.
 
-**Do**: Call `buildkite:get_build` to get job details, extract `uuid` field
+**Do**: Use `bktide snapshot` (handles this automatically), or call `get_build` to get job UUIDs
 
-### ❌ Abandoning MCP tools when script fails
+### ❌ Falling back to GitHub tools
 
-**Don't**: "Script failed, I'll use GitHub instead"
+**Don't**: "bktide failed, I'll use `gh pr view` instead"
 
-**Why**: Scripts depend on bktide. MCP tools are independent.
+**Why**: GitHub only shows summaries, loses critical information.
 
-**Do**: Use MCP tools directly when scripts fail
+**Do**: Try MCP tools as fallback, or fix bktide issue
 
 ## Troubleshooting
 

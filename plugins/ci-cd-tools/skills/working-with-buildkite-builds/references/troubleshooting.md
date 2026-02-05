@@ -165,7 +165,7 @@ console.log(job.finished_at); // Should not be null for terminal state
 Use MCP tools instead (preferred):
 
 ```javascript
-// Instead of: npx bktide build gusto/payroll-building-blocks/123
+// Instead of: npx bktide@latest build gusto/payroll-building-blocks#123
 mcp__MCPProxy__call_tool('buildkite:get_build', {
   org_slug: 'gusto',
   pipeline_slug: 'payroll-building-blocks',
@@ -183,10 +183,17 @@ npm install -g @anthropic/bktide
 
 ### Error: "Cannot read logs with bktide"
 
-**Cause**: bktide does not have log retrieval capability
+**Cause**: The `bktide build` command does not retrieve logs
 
 **Solution**:
-Use MCP tools for logs:
+Use `bktide snapshot` (preferred) - it captures logs automatically:
+
+```bash
+npx bktide@latest snapshot <buildkite-url>
+# Logs are saved to ./tmp/bktide/snapshots/<org>/<pipeline>/<build>/steps/*/log.txt
+```
+
+Or use MCP tools as fallback:
 
 ```javascript
 mcp__MCPProxy__call_tool('buildkite:get_logs', {
@@ -335,26 +342,28 @@ const failedRspecJobs = build.jobs.filter(
 ```
 Unable to investigate build failure?
 │
-├─ Can't get build details
-│  ├─ Check URL format → [url-parsing.md]
-│  ├─ Check org/pipeline slugs → lowercase, hyphenated
+├─ Start here: npx bktide@latest snapshot <url>
+│  └─ Handles URL parsing, metadata, and logs automatically
+│
+├─ Snapshot not working?
+│  ├─ Check BK_TOKEN environment variable
+│  ├─ Try MCP tools as fallback
 │  └─ Check auth → BUILDKITE_API_TOKEN configured
 │
-├─ Can't get job logs
-│  ├─ Using bktide? → Use MCP tools instead [tool-capabilities.md]
-│  ├─ Getting "job not found"? → Using step ID instead of job UUID [url-parsing.md]
-│  ├─ Empty logs? → Check job state (started_at, finished_at)
-│  └─ Still failing? → Report to human partner (may be auth/permission)
+├─ Need logs for specific job?
+│  ├─ Snapshot captures failed/broken steps by default
+│  ├─ Use --all flag to capture all steps
+│  └─ Or use MCP get_logs with job UUID (not step ID!)
 │
 ├─ Confused about job states
 │  ├─ Many "broken" jobs? → Normal, means skipped [buildkite-states.md]
 │  ├─ "soft_failed"? → Failed but non-blocking
-│  └─ Can't find failed job? → Filter with job_state: "failed"
+│  └─ Check manifest.json for exit codes
 │
 └─ Tool not working
+   ├─ bktide error? → Use MCP tools as fallback
    ├─ MCP tool error? → Check auth, verify slugs
-   ├─ bktide error? → Use MCP tools instead
-   └─ Script error? → Use MCP tools directly
+   └─ Report to human partner if all tools fail
 ```
 
 ## See Also

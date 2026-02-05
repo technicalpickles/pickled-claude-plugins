@@ -52,7 +52,7 @@ for (let i = 2; i < args.length; i++) {
 
 function getPipelines() {
   try {
-    const cmd = `npx bktide pipelines --format json ${org}`;
+    const cmd = `npx bktide@latest pipelines --format json ${org}`;
     const output = execSync(cmd, {
       encoding: 'utf8',
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -65,7 +65,7 @@ function getPipelines() {
 
 function getBuildsForPipeline(pipeline, commit, branch) {
   try {
-    let cmd = `npx bktide builds --format json ${org}/${pipeline}`;
+    let cmd = `npx bktide@latest builds --format json ${org}/${pipeline}`;
     if (commit) {
       // Note: bktide might not support commit filtering directly,
       // so we'll fetch recent builds and filter
