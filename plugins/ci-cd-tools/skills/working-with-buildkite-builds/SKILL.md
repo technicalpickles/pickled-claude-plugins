@@ -26,11 +26,64 @@ Use this skill when:
 
 Use tools in this priority order:
 
-### Primary: MCP Tools (Always Use These First)
+### Primary: bktide snapshot (Use This First)
 
-**Reliability**: Direct Buildkite API access, always available
-**Capabilities**: All operations (list, get, wait, unblock)
-**When**: Default choice for ALL workflows
+**Command**: `npx bktide@latest snapshot <buildkite-url>`
+
+The `snapshot` command is the **preferred** approach for investigating builds. It:
+- Parses any Buildkite URL automatically (build URL, step URL, etc.)
+- Downloads build metadata, annotations, and logs for failed steps
+- Saves everything to structured files for easy analysis
+- Provides actionable next-step commands
+
+```bash
+# Basic usage - captures failed/broken steps
+npx bktide@latest snapshot https://buildkite.com/org/pipeline/builds/123
+
+# Capture all steps including passing ones
+npx bktide@latest snapshot --all https://buildkite.com/org/pipeline/builds/123
+```
+
+**Output structure:**
+```
+./tmp/bktide/snapshots/<org>/<pipeline>/<build>/
+├── manifest.json      # Step index with states and exit codes
+├── build.json         # Full build metadata
+├── annotations.json   # Build annotations
+└── steps/
+    ├── 01-step-name/
+    │   ├── log.txt    # Full log output
+    │   └── step.json  # Step metadata
+    └── 02-another-step/
+        └── ...
+```
+
+**Useful follow-up commands** (shown by snapshot):
+```bash
+# List failures
+jq -r '.steps[] | select(.state == "failed") | "\(.id): \(.label)"' ./tmp/bktide/snapshots/<org>/<pipeline>/<build>/manifest.json
+
+# View a log
+cat ./tmp/bktide/snapshots/<org>/<pipeline>/<build>/steps/<step-id>/log.txt
+
+# Search for errors across all logs
+grep -r "Error\|Failed\|Exception" ./tmp/bktide/snapshots/<org>/<pipeline>/<build>/steps/
+```
+
+### Secondary: Other bktide Commands
+
+For quick queries without full snapshot:
+
+```bash
+npx bktide@latest pipelines <org>                    # List pipelines
+npx bktide@latest builds <org>/<pipeline>            # List builds
+npx bktide@latest build <org>/<pipeline>#<build>     # Get build details
+npx bktide@latest annotations <org>/<pipeline>#<build>  # Show annotations
+```
+
+### Tertiary: MCP Tools (Fallback)
+
+**When**: bktide unavailable, or need programmatic access (wait_for_build, unblock)
 
 Available MCP tools:
 
@@ -39,65 +92,24 @@ Available MCP tools:
 - `buildkite:list_annotations` - Get annotations for a build
 - `buildkite:get_pipeline` - Get pipeline configuration
 - `buildkite:list_pipelines` - List all pipelines in an org
-- **`buildkite:wait_for_build`** - Wait for a build to complete (PREFERRED for monitoring)
-- **`buildkite:get_logs`** - Retrieve job logs (CRITICAL for debugging failures)
+- **`buildkite:wait_for_build`** - Wait for a build to complete (useful for monitoring)
+- **`buildkite:get_logs`** - Retrieve job logs
 - `buildkite:get_logs_info` - Get log metadata
 - `buildkite:list_artifacts` - List build artifacts
 
-### Secondary: bktide CLI (Convenience)
-
-**Purpose**: Human-readable terminal output
-**Limitation**: External dependency, requires npm/npx
-**When**: Interactive terminal work when MCP output is too verbose
-
-**Critical Limitation**: bktide CANNOT retrieve job logs. It only displays build summaries and job lists. For log retrieval, always use MCP tools.
-
-Common commands:
-
-```bash
-npx bktide pipelines <org>                    # List pipelines
-npx bktide builds <org>/<pipeline>            # List builds
-npx bktide build <org>/<pipeline>#<build>     # Get build details
-npx bktide annotations <org>/<pipeline>#<build>  # Show annotations
-```
-
-### Tertiary: Bundled Scripts (Helper Wrappers)
-
-**Purpose**: Pre-built workflows combining multiple tool calls
-**Limitation**: External dependencies (bktide, specific versions)
-**When**: Convenience wrappers only - use MCP tools if scripts fail
-
-This skill includes scripts for common workflows:
-
-- **`scripts/wait-for-build.js`** - Background monitoring script that polls until build completion
-- **`scripts/find-commit-builds.js`** - Find builds matching a specific commit SHA
-
 ### Tool Capability Matrix
 
-Different tools have different capabilities. Understanding these limitations prevents wasted effort.
-
-**Key Capabilities:**
-
-| Capability        | MCP Tools | bktide | Scripts |
-| ----------------- | --------- | ------ | ------- |
-| List builds       | ✅        | ✅     | ✅      |
-| Get build details | ✅        | ✅     | ✅      |
-| Get annotations   | ✅        | ✅     | ❌      |
-| **Retrieve logs** | **✅**    | **❌** | **✅**  |
-| Wait for build    | ✅        | ❌     | ✅      |
-| Unblock jobs      | ✅        | ❌     | ❌      |
-
-**Most Important**: Only MCP tools and scripts can retrieve job logs. bktide cannot.
-
-For complete capability details and examples, see [references/tool-capabilities.md](references/tool-capabilities.md).
+| Capability        | bktide snapshot | bktide CLI | MCP Tools |
+| ----------------- | --------------- | ---------- | --------- |
+| Parse any BK URL  | ✅              | ❌         | ❌        |
+| Get build details | ✅              | ✅         | ✅        |
+| Get annotations   | ✅              | ✅         | ✅        |
+| **Retrieve logs** | **✅**          | ❌         | ✅        |
+| Save to files     | ✅              | ❌         | ❌        |
+| Wait for build    | ❌              | ❌         | ✅        |
+| Unblock jobs      | ❌              | ❌         | ✅        |
 
 ### When Tools Fail: Fallback Hierarchy
-
-**If wait-for-build.js script fails:**
-
-1. ✅ Use `buildkite:wait_for_build` MCP tool instead (preferred)
-2. ✅ Use `buildkite:get_build` MCP tool in a polling loop
-3. ❌ Do NOT fall back to `gh pr view` or GitHub tools
 
 **If bktide fails:**
 
@@ -111,157 +123,114 @@ For complete capability details and examples, see [references/tool-capabilities.
 3. ✅ Report the MCP failure to your human partner
 4. ❌ Do NOT fall back to GitHub tools
 
-**Critical**: One tool failing does NOT mean the entire skill is invalid. Move up the hierarchy, don't abandon Buildkite tools.
+**Critical**: One tool failing does NOT mean the entire skill is invalid. Move to fallback tools, don't abandon Buildkite tools.
 
 ## Core Workflows
 
 ### 1. Investigating a Build from URL (Most Common)
 
-When a user provides a Buildkite URL for a failing build, follow this workflow to investigate.
+When a user provides a Buildkite URL for a failing build, use `bktide snapshot` to gather all context.
 
-**Example URL formats:**
+**Step 1: Capture the build snapshot**
 
+```bash
+npx bktide@latest snapshot <buildkite-url>
+```
+
+This works with any Buildkite URL format:
 - Build URL: `https://buildkite.com/org/pipeline/builds/12345`
 - Step URL: `https://buildkite.com/org/pipeline/builds/12345/steps/canvas?sid=019a5f...`
 
-**Step 1: Extract build identifiers from URL**
+The snapshot command will:
+- Parse the URL automatically
+- Download build metadata, annotations, and logs
+- Save everything to `./tmp/bktide/snapshots/<org>/<pipeline>/<build>/`
+- Show a summary and helpful next-step commands
 
-Parse the URL to extract:
+**Step 2: Review the summary**
 
-- Organization slug (e.g., "gusto")
-- Pipeline slug (e.g., "payroll-building-blocks")
-- Build number (e.g., "12345")
+The command output shows:
+- Build state (passed/failed/running)
+- Step counts (how many passed/failed/broken)
+- Snapshot location
 
-Ignore the `sid` query parameter - it's a step ID, not needed for initial investigation.
+**Step 3: Analyze failed steps**
 
-**Step 2: Get build overview**
+```bash
+# List failed steps
+jq -r '.steps[] | select(.exit_status != "0" and .exit_status != null) | "\(.id): \(.label) (exit \(.exit_status))"' ./tmp/bktide/snapshots/<org>/<pipeline>/<build>/manifest.json
 
-```javascript
-mcp__MCPProxy__call_tool('buildkite:get_build', {
-  org_slug: '<org>',
-  pipeline_slug: '<pipeline>',
-  build_number: '<build-number>',
-  detail_level: 'summary',
-});
+# View a specific log
+cat ./tmp/bktide/snapshots/<org>/<pipeline>/<build>/steps/<step-id>/log.txt
+
+# Search for errors across all logs
+grep -r "Error\|Failed\|Exception" ./tmp/bktide/snapshots/<org>/<pipeline>/<build>/steps/
 ```
 
-Check the overall build state: `passed`, `failed`, `running`, `blocked`, `canceled`.
-
-**Step 3: Identify failed jobs**
-
-If build state is `failed`, get detailed job information:
-
-```javascript
-mcp__MCPProxy__call_tool('buildkite:get_build', {
-  org_slug: '<org>',
-  pipeline_slug: '<pipeline>',
-  build_number: '<build-number>',
-  detail_level: 'detailed',
-  job_state: 'failed',
-});
-```
-
-This returns only jobs with `state: "failed"` (not "broken" - see state reference).
-
-**Step 4: Retrieve logs for failed jobs**
-
-For each failed job, extract its `uuid` field and retrieve logs. See "Retrieving Job Logs" workflow below for detailed instructions.
-
-**Step 5: Analyze error output**
+**Step 4: Analyze error output**
 
 Look for:
-
 - Stack traces
 - Test failure messages
 - Exit codes and error messages
 - File paths and line numbers
 
-**Step 6: Reproduce locally**
+**Step 5: Reproduce locally**
 
 Follow the "Reproducing Build Failures Locally" workflow below to:
-
-1. Extract the exact command CI ran
+1. Extract the exact command CI ran (visible in the log)
 2. Translate it to a local equivalent
 3. Triage if local reproduction isn't feasible
-
-See the dedicated workflow section for detailed steps.
 
 ---
 
 ### 2. Retrieving Job Logs
 
-**CRITICAL**: This is the most important capability. Without logs, you cannot debug failures.
+**Preferred: Use bktide snapshot** (see workflow 1)
 
-Once you've identified a failed job, retrieve its logs to see the actual error.
+The `snapshot` command automatically downloads logs for failed/broken steps. After running snapshot:
 
-**Prerequisites:**
+```bash
+# View a specific step's log
+cat ./tmp/bktide/snapshots/<org>/<pipeline>/<build>/steps/<step-id>/log.txt
 
-- Organization slug
-- Pipeline slug
-- Build number
-- Job UUID (from build details)
+# Search across all captured logs
+grep -r "pattern" ./tmp/bktide/snapshots/<org>/<pipeline>/<build>/steps/
+```
 
-**Important**: Job UUIDs ≠ Step IDs. URLs contain step IDs (`sid=019a5f...`), but MCP tools need job UUIDs from the build details response.
+**Fallback: MCP tools**
+
+If you need logs without running snapshot (e.g., for a specific job, or snapshot isn't available):
 
 **Step 1: Get the job UUID**
 
-If you have a job label (e.g., "ste rspec"), use `get_build` with `detail_level: "detailed"`:
-
 ```javascript
 mcp__MCPProxy__call_tool('buildkite:get_build', {
-  org_slug: 'gusto',
-  pipeline_slug: 'payroll-building-blocks',
-  build_number: '29627',
+  org_slug: '<org>',
+  pipeline_slug: '<pipeline>',
+  build_number: '<build-number>',
   detail_level: 'detailed',
   job_state: 'failed',
 });
 ```
 
-In the response, find the job by matching the `label` field. Extract its `uuid` field (format: `019a5f20-2d30-4c67-9edd-...`).
+Find the job by matching the `label` field. Extract its `uuid` field.
 
-**Step 2: Retrieve logs using the job UUID**
-
-Use the MCP tool to get logs:
+**Step 2: Retrieve logs**
 
 ```javascript
 mcp__MCPProxy__call_tool('buildkite:get_logs', {
-  org_slug: 'gusto',
-  pipeline_slug: 'payroll-building-blocks',
-  build_number: '29627',
+  org_slug: '<org>',
+  pipeline_slug: '<pipeline>',
+  build_number: '<build-number>',
   job_id: '<job-uuid>',
 });
 ```
 
-The response contains the log output from the job execution.
-
 **Common Issues:**
 
-- **"job not found" error**: You likely provided a step ID instead of a job UUID. Step IDs come from URLs (`sid=019a5f...`). Job UUIDs come from `get_build` API responses. Solution: Call `get_build` with `detail_level: "detailed"` to find the correct job UUID.
-
-- **Empty logs**: The job may not have started yet, or logs may not be available yet. Check the job's `state` field first - it should be in a terminal state (`passed`, `failed`, `canceled`).
-
-- **Multiple jobs with same label**: Some pipelines parallelize jobs with the same label (e.g., "rspec (1/10)", "rspec (2/10)"). Filter by the full label string to find the specific failed job.
-
-**Fallback Strategy:**
-
-If MCP tools fail (e.g., connection issues, permissions), you can:
-
-1. Construct the log URL manually and view in browser:
-
-   ```
-   https://buildkite.com/{org}/{pipeline}/builds/{build}/jobs/{job-uuid}
-   ```
-
-2. Use the bundled script (if available):
-   ```bash
-   ~/.claude/skills/buildkite-status/scripts/get-build-logs.js <org> <pipeline> <build> <job-uuid>
-   ```
-
-**Why bktide Cannot Help:**
-
-The bktide CLI does NOT have a logs command. It can show build summaries and job lists, but cannot retrieve log content. Always use MCP tools for log retrieval.
-
-See [references/tool-capabilities.md](references/tool-capabilities.md) for complete tool capability matrix.
+- **"job not found" error**: You likely provided a step ID instead of a job UUID. Step IDs come from URLs (`sid=019a5f...`). Job UUIDs come from `get_build` API responses.
+- **Empty logs**: The job may not have started yet. Check the job's `state` field first.
 
 ---
 
@@ -292,7 +261,7 @@ mcp__MCPProxy__call_tool('buildkite:list_builds', {
 Or use bktide:
 
 ```bash
-npx bktide builds --format json <org>/<pipeline>
+npx bktide@latest builds --format json <org>/<pipeline>
 ```
 
 **Step 3: Progressive disclosure of status**

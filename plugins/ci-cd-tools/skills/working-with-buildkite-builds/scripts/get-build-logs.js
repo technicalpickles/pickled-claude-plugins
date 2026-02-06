@@ -37,7 +37,7 @@ function usage() {
 function getBuildDetails(org, pipeline, build) {
   try {
     const output = execSync(
-      `npx bktide build ${org}/${pipeline}/${build} --format json`,
+      `npx bktide@latest build ${org}/${pipeline}#${build} --format json`,
       { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] }
     );
     return JSON.parse(output);
