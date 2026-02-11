@@ -37,14 +37,10 @@ The `snapshot` command is the **preferred** approach for investigating builds. I
 - Provides actionable next-step commands
 
 ```bash
-# Default: captures failed/broken steps only (recommended for most cases)
-# Use for investigating failures - you only need logs from steps that failed
 npx bktide@latest snapshot https://buildkite.com/org/pipeline/builds/123
-
-# --all: captures all steps including passing ones
-# Use when: verifying output of passing steps, debugging non-failure issues, or auditing what ran
-npx bktide@latest snapshot --all https://buildkite.com/org/pipeline/builds/123
 ```
+
+Run `bktide snapshot --help` for all options, or `bktide prime` for detailed LLM-friendly usage guidance.
 
 **Output structure:**
 ```
