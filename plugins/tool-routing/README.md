@@ -4,10 +4,10 @@ Intercepts tool calls and suggests better alternatives. When Claude tries to use
 
 ## Installation
 
-Add to your Claude Code plugins:
+Requires the [pickled-claude-plugins marketplace](../../README.md#installation). Then:
 
 ```bash
-claude plugin add pickled-claude-plugins/tool-routing
+/plugin install tool-routing@pickled-claude-plugins
 ```
 
 ## Quick Example

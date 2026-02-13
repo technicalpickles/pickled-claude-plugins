@@ -34,6 +34,8 @@ Use when creating or modifying Buildkite pipeline configurations and working wit
 
 ## Installation
 
+Requires the [pickled-claude-plugins marketplace](../../README.md#installation). Then:
+
 ```bash
 /plugin install ci-cd-tools@pickled-claude-plugins
 ```

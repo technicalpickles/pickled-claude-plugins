@@ -17,6 +17,8 @@ A Claude Code plugin that enforces intentional, focused development.
 
 ## Installation
 
+Requires the [pickled-claude-plugins marketplace](../../README.md#installation). Then:
+
 ```bash
 /plugin install stay-on-target@pickled-claude-plugins
 ```

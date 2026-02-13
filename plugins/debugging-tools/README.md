@@ -17,6 +17,8 @@ Use when user mentions MCPProxy/MCP tools or when you need to discover or call t
 
 ## Installation
 
+Requires the [pickled-claude-plugins marketplace](../../README.md#installation). Then:
+
 ```bash
 /plugin install debugging-tools@pickled-claude-plugins
 ```
