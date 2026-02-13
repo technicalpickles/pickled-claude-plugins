@@ -186,7 +186,7 @@ mise use node@20  # Adds to project config
 
 **Symptom**: Tools work in terminal but not in IDE/scripts
 
-See `@references/dev-tools/shims-html.md` for detailed explanation.
+See [references/dev-tools/shims-html.md](references/dev-tools/shims-html.md) for detailed explanation.
 
 **Quick fix** for non-interactive contexts:
 ```bash
@@ -225,12 +225,12 @@ echo $PATH | tr ':' '\n' | grep mise
 
 ## Available References
 
-- `@references/cli/use-html.md` - Full `mise use` documentation
-- `@references/cli/doctor-html.md` - Diagnostic commands
-- `@references/cli/activate-html.md` - Shell activation
-- `@references/cli/which-html.md` - Path resolution
-- `@references/dev-tools/shims-html.md` - Shims vs PATH activation
-- `@references/guides/getting-started.md` - Setup guide
+- [references/cli/use-html.md](references/cli/use-html.md) - Full `mise use` documentation
+- [references/cli/doctor-html.md](references/cli/doctor-html.md) - Diagnostic commands
+- [references/cli/activate-html.md](references/cli/activate-html.md) - Shell activation
+- [references/cli/which-html.md](references/cli/which-html.md) - Path resolution
+- [references/dev-tools/shims-html.md](references/dev-tools/shims-html.md) - Shims vs PATH activation
+- [references/guides/getting-started.md](references/guides/getting-started.md) - Setup guide
 
 ## Red Flags - You're About to Violate
 

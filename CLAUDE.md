@@ -148,6 +148,22 @@ Version bumps happen automatically when PRs are approved.
 - `plugins/tool-routing/docs/tests/` - Test scenarios and baseline results
 - `plugins/tool-routing/docs/retrospectives/` - Investigation notes
 
+## Skill Authoring
+
+### Referencing Files in Skills
+
+In SKILL.md files, use standard markdown links to reference other files:
+
+```markdown
+# Correct - standard markdown link
+See [references/index.md](references/index.md) for complete list.
+
+# Wrong - @ imports only work in CLAUDE.md, not SKILL.md
+See `@references/index.md` for complete list.
+```
+
+The `@path/to/file` import syntax is a CLAUDE.md-specific feature. In SKILL.md files, Claude reads linked files on demand using progressive disclosure.
+
 ## Contributing
 
 1. Create a branch from `main`

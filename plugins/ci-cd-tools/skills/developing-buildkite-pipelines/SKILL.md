@@ -53,7 +53,7 @@ When editing pipeline steps that use plugins:
    - Default org `buildkite-plugins` if no org specified
    - Parse explicit org from `{org}/{plugin}#version` format
 3. **Load documentation:**
-   - **Cached:** Check `@references/plugins/{plugin-name}.md`
+   - **Cached:** Check [references/plugins/{plugin-name}.md](references/plugins/)
    - **Official (not cached):** Fetch from Buildkite directory or GitHub
    - **Internal:** Fetch README from `github.com/{org}/{plugin}-buildkite-plugin`
 4. **Match versions** - If pipeline specifies version, fetch that version's docs from GitHub tag
@@ -74,7 +74,7 @@ https://github.com/{org}/{plugin-name}-buildkite-plugin/tree/{version}
 
 **"Is there a plugin for X?"**
 
-1. Check `@references/plugins/index.md` for common plugins by category
+1. Check [references/plugins/index.md](references/plugins/index.md) for common plugins by category
 2. Fetch Buildkite directory: `https://buildkite.com/resources/plugins/`
 3. Search by task type (caching, docker, secrets, etc.)
 
@@ -101,7 +101,7 @@ Before writing or modifying pipeline YAML:
 ```markdown
 **I need to reference the Buildkite documentation for [specific feature].**
 
-Let me check: @references/[relevant-doc].md
+Let me read [references/[relevant-doc].md](references/).
 ```
 
 **For buildkite-builder pipelines:**
@@ -111,7 +111,7 @@ Before writing or modifying pipeline.rb:
 ```markdown
 **I need to reference buildkite-builder documentation for [specific feature].**
 
-Let me check: @references/buildkite-builder/[relevant-doc].md
+Let me read [references/buildkite-builder/[relevant-doc].md](references/buildkite-builder/).
 ```
 
 **Available references:**
@@ -122,9 +122,9 @@ Let me check: @references/buildkite-builder/[relevant-doc].md
 - `conditionals.md` - if/branches for conditional execution
 - `artifacts.md` - Uploading and downloading build artifacts
 
-See `@references/index.md` for complete list.
+See [references/index.md](references/index.md) for complete list.
 
-**Plugin references (see @references/plugins/index.md for full list):**
+**Plugin references (see [references/plugins/index.md](references/plugins/index.md) for full list):**
 - `plugins/docker.md` - Docker container execution
 - `plugins/docker-compose.md` - Multi-container environments
 - `plugins/artifacts.md` - Artifact upload/download
@@ -143,7 +143,7 @@ See `@references/index.md` for complete list.
 - `buildkite-builder/plugins.md` - Plugin usage in DSL
 - `buildkite-builder/environment.md` - Environment variables
 
-See `@references/buildkite-builder/index.md` for complete guide.
+See [references/buildkite-builder/index.md](references/buildkite-builder/index.md) for complete guide.
 
 ### 3. Validate Syntax
 
@@ -186,12 +186,12 @@ Before modifying any step with plugins:
 
 1. **Identify all plugins** in the step's `plugins:` block
 2. **For each plugin:**
-   - Check `@references/plugins/{name}.md` for cached docs
+   - Check [references/plugins/{name}.md](references/plugins/) for cached docs
    - If not cached, fetch from Buildkite directory or GitHub
    - If version specified, fetch version-specific docs
 3. **Then proceed** with changes using accurate configuration reference
 
-See `@references/plugins/index.md` for lookup workflow and common plugins.
+See [references/plugins/index.md](references/plugins/index.md) for lookup workflow and common plugins.
 
 ## buildkite-builder Troubleshooting Mode
 
