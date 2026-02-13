@@ -137,6 +137,23 @@ fix(ci-cd-tools): handle timeout # → patch bump
 chore: update deps               # → no bump
 ```
 
+### Commit Scope Rules
+
+Scope must match `[a-z0-9-]+` (lowercase letters, numbers, hyphens only).
+
+**Valid scopes:**
+- `feat(git): ...` - single plugin name
+- `fix(ci-cd-tools): ...` - plugin with hyphens
+- `fix: ...` - no scope (for cross-cutting changes)
+
+**Invalid scopes:**
+- `fix(ci-cd-tools,dev-tools): ...` - commas not allowed
+- `fix(CI-CD): ...` - uppercase not allowed
+
+For changes touching multiple plugins, either:
+1. Use no scope: `fix: use markdown links in skills`
+2. Make separate commits per plugin
+
 Version bumps happen automatically when PRs are approved.
 
 → Full details: [`docs/versioning.md`](docs/versioning.md)
