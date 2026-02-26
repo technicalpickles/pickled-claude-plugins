@@ -46,26 +46,7 @@ EOF
 setup_config() {
     log "Setting up test config..."
 
-    # Create directories
-    mkdir -p "$TEST_CONFIG/plugins/cache"
-    mkdir -p "$TEST_CONFIG/plugins/marketplaces"
-
-    # Symlink our repo as a marketplace
-    ln -sf "$REPO_ROOT" "$TEST_CONFIG/plugins/marketplaces/local-test"
-
-    # Create known_marketplaces.json
-    cat > "$TEST_CONFIG/plugins/known_marketplaces.json" << EOF
-{
-  "local-test": {
-    "source": {
-      "source": "directory",
-      "path": "$REPO_ROOT"
-    },
-    "installLocation": "$TEST_CONFIG/plugins/marketplaces/local-test",
-    "lastUpdated": "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
-  }
-}
-EOF
+    mkdir -p "$TEST_CONFIG"
 
     # Create settings.json with bedrock settings from global config
     GLOBAL_SETTINGS="$HOME/.claude/settings.json"
@@ -110,19 +91,21 @@ EOF
 EOF
     fi
 
-    # Create empty installed_plugins.json
-    echo '{"version": 2, "plugins": {}}' > "$TEST_CONFIG/plugins/installed_plugins.json"
+    # Register this repo as a marketplace (CLI creates all plugin directories)
+    log "Adding local marketplace..."
+    CLAUDE_CONFIG_DIR="$TEST_CONFIG" claude plugin marketplace add "$REPO_ROOT"
 }
 
 install_all_plugins() {
-    log "Installing plugins from local-test marketplace..."
+    # Marketplace name comes from .claude-plugin/marketplace.json "name" field
+    MARKETPLACE_NAME=$(jq -r '.name' "$REPO_ROOT/.claude-plugin/marketplace.json")
+    log "Installing plugins from $MARKETPLACE_NAME marketplace..."
 
-    # Find all plugins with .claude-plugin directories
     for plugin_dir in "$REPO_ROOT"/plugins/*/; do
         if [ -d "$plugin_dir/.claude-plugin" ]; then
             plugin_name=$(basename "$plugin_dir")
             log "  Installing $plugin_name..."
-            CLAUDE_CONFIG_DIR="$TEST_CONFIG" claude plugin install "$plugin_name@local-test" 2>/dev/null || {
+            CLAUDE_CONFIG_DIR="$TEST_CONFIG" claude plugin install "$plugin_name@$MARKETPLACE_NAME" 2>/dev/null || {
                 warn "  Failed to install $plugin_name (may not be in marketplace.json)"
             }
         fi
