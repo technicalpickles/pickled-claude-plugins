@@ -113,6 +113,46 @@ else
 fi
 echo
 
+# Check 5: Python plugins' pyproject.toml version matches marketplace.json
+echo "Checking pyproject.toml versions match marketplace.json..."
+if [[ -f "$MARKETPLACE_JSON" ]]; then
+    for pyproject in "$PLUGINS_DIR"/*/pyproject.toml; do
+        [[ -f "$pyproject" ]] || continue
+
+        plugin_dir=$(dirname "$pyproject")
+        plugin_name=$(basename "$plugin_dir")
+
+        # Get version from pyproject.toml (format: version = "1.0.0")
+        pyproject_version=$(grep -E '^version\s*=' "$pyproject" | head -1 | cut -d'"' -f2)
+
+        if [[ -z "$pyproject_version" ]]; then
+            continue  # No version in pyproject.toml, skip
+        fi
+
+        # Get version from marketplace.json
+        marketplace_version=$(jq -r --arg name "$plugin_name" '.plugins[] | select(.name == $name) | .version' "$MARKETPLACE_JSON" 2>/dev/null || echo "")
+
+        if [[ -z "$marketplace_version" ]]; then
+            continue  # Plugin not in marketplace, other check will catch this
+        fi
+
+        if [[ "$pyproject_version" != "$marketplace_version" ]]; then
+            echo "  ERROR: Version mismatch for '$plugin_name':"
+            echo "         pyproject.toml: $pyproject_version"
+            echo "         marketplace.json: $marketplace_version"
+            echo "         These must match. Update one to match the other."
+            errors=$((errors + 1))
+        fi
+    done
+
+    if [[ $errors -eq 0 ]]; then
+        echo "  OK: All pyproject.toml versions match marketplace.json"
+    fi
+else
+    echo "  WARNING: marketplace.json not found at $MARKETPLACE_JSON"
+fi
+echo
+
 # Summary
 if [[ $errors -gt 0 ]]; then
     echo "FAILED: $errors error(s) found"
