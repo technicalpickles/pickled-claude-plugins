@@ -14,6 +14,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TEST_CONFIG="$REPO_ROOT/tmp/test-claude-config"
+MARKETPLACE_NAME=$(jq -r '.name' "$REPO_ROOT/.claude-plugin/marketplace.json")
 
 # Colors for output
 RED='\033[0;31m'
@@ -46,26 +47,7 @@ EOF
 setup_config() {
     log "Setting up test config..."
 
-    # Create directories
-    mkdir -p "$TEST_CONFIG/plugins/cache"
-    mkdir -p "$TEST_CONFIG/plugins/marketplaces"
-
-    # Symlink our repo as a marketplace
-    ln -sf "$REPO_ROOT" "$TEST_CONFIG/plugins/marketplaces/local-test"
-
-    # Create known_marketplaces.json
-    cat > "$TEST_CONFIG/plugins/known_marketplaces.json" << EOF
-{
-  "local-test": {
-    "source": {
-      "source": "directory",
-      "path": "$REPO_ROOT"
-    },
-    "installLocation": "$TEST_CONFIG/plugins/marketplaces/local-test",
-    "lastUpdated": "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
-  }
-}
-EOF
+    mkdir -p "$TEST_CONFIG"
 
     # Create settings.json with bedrock settings from global config
     GLOBAL_SETTINGS="$HOME/.claude/settings.json"
@@ -110,22 +92,24 @@ EOF
 EOF
     fi
 
-    # Create empty installed_plugins.json
-    echo '{"version": 2, "plugins": {}}' > "$TEST_CONFIG/plugins/installed_plugins.json"
+    # Register this repo as a marketplace (CLI creates all plugin directories)
+    log "Adding local marketplace..."
+    CLAUDE_CONFIG_DIR="$TEST_CONFIG" claude plugin marketplace add "$REPO_ROOT"
 }
 
 install_all_plugins() {
-    log "Installing plugins from local-test marketplace..."
+    log "Installing plugins from $MARKETPLACE_NAME marketplace..."
 
-    # Find all plugins with .claude-plugin directories
-    for plugin_dir in "$REPO_ROOT"/plugins/*/; do
-        if [ -d "$plugin_dir/.claude-plugin" ]; then
-            plugin_name=$(basename "$plugin_dir")
-            log "  Installing $plugin_name..."
-            CLAUDE_CONFIG_DIR="$TEST_CONFIG" claude plugin install "$plugin_name@local-test" 2>/dev/null || {
-                warn "  Failed to install $plugin_name (may not be in marketplace.json)"
-            }
+    local marketplace="$REPO_ROOT/.claude-plugin/marketplace.json"
+    jq -r '.plugins[] | select(.source | type == "string") | "\(.name)\t\(.source)"' \
+        "$marketplace" | while IFS=$'\t' read -r name source; do
+        full_path="$REPO_ROOT/${source#./}"
+        if [ ! -d "$full_path" ]; then
+            error "Plugin '$name' source not found at $full_path"
+            exit 1
         fi
+        log "  Installing $name..."
+        CLAUDE_CONFIG_DIR="$TEST_CONFIG" claude plugin install "$name@$MARKETPLACE_NAME"
     done
 }
 
@@ -147,12 +131,15 @@ case "${1:-}" in
         ;;
 esac
 
-# Setup if needed
+# One-time setup (settings.json + marketplace registration)
 if [ ! -d "$TEST_CONFIG" ]; then
     setup_config
-    install_all_plugins
-    log "Setup complete!"
 fi
+
+# Always update marketplace and reinstall plugins (picks up source changes)
+log "Updating $MARKETPLACE_NAME marketplace..."
+CLAUDE_CONFIG_DIR="$TEST_CONFIG" claude plugin marketplace update "$MARKETPLACE_NAME"
+install_all_plugins
 
 # Run claude with test config
 log "Starting claude with test config..."
