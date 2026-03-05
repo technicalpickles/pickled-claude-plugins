@@ -13,6 +13,11 @@ allowed-tools:
   - Bash(git rev-parse:*)
   - Bash(git branch:*)
   - Bash(mv:*)
+  - Bash(which:qmd)
+  - Bash(qmd:query *)
+  - Bash(qmd:collection list)
+  - Bash(qmd:get *)
+  - Bash(qmd:status)
 ---
 
 # Capture Insight
@@ -37,6 +42,7 @@ Load skill references:
 - `references/zettelkasten.md` for naming
 - `references/note-patterns.md` for Insight Note template
 - `references/routing.md` for destination matching
+- `references/connecting.md` for connection discovery
 - `references/daily-linking.md` for linking to daily note
 
 ## Step 2: Identify the Insight
@@ -182,7 +188,39 @@ mv "{inbox}/{filename}" "{vault}/{selected-destination}/"
 
 If all destinations score <20%, recommend inbox without asking.
 
-## Step 8: Link to Daily Note
+## Step 8: Discover Connections
+
+Follow `references/connecting.md` algorithm to find related notes in the vault.
+
+**1. Check prerequisites:**
+```bash
+which qmd
+```
+
+If qmd is not available, skip to Step 9 (don't fail the capture).
+
+**2. Extract query terms** from the captured note's title and body.
+
+**3. Run semantic search:**
+```bash
+qmd query "{terms}" -c {collection} -n 15 --json
+```
+
+**4. Filter and rank** per the connecting reference (remove self, already-linked, low-relevance, daily notes; enrich with TK/See Also signals; rank).
+
+**5. If connections found (any candidates above 30%):**
+
+Present candidates and let user multi-select which to connect.
+
+**6. For selected connections:**
+- Add `## Related` section to the captured note with wiki-links
+- Offer backlink weaving for notes with See Also/Related/TK sections
+
+**7. If no connections above threshold,** skip silently and continue.
+
+Note: The captured note won't be in qmd's index yet. That's fine. We're searching FROM the note's content, not for it.
+
+## Step 9: Link to Daily Note
 
 Follow `references/daily-linking.md` to connect the captured note to today's daily note.
 
