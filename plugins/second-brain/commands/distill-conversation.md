@@ -12,6 +12,11 @@ allowed-tools:
   - Bash(git rev-parse:*)
   - Bash(git branch:*)
   - Bash(mv:*)
+  - Bash(which:qmd)
+  - Bash(qmd:query *)
+  - Bash(qmd:collection list)
+  - Bash(qmd:get *)
+  - Bash(qmd:status)
 ---
 
 # Distill Conversation
@@ -34,6 +39,7 @@ Load skill references:
 - `references/zettelkasten.md` for naming
 - `references/note-patterns.md` for Insight Note template
 - `references/routing.md` for destination matching
+- `references/connecting.md` for connection discovery
 - `references/daily-linking.md` for linking to daily note
 
 ## Step 2: Review the Conversation
@@ -163,7 +169,45 @@ mv "{inbox}/{filename}" "{vault}/{destination}/"
 
 **Important:** Only suggest destinations that exist (from `ls` output). Never suggest paths that weren't discovered.
 
-## Step 7: Batch Link to Daily Note
+## Step 7: Batch Connection Discovery
+
+Follow `references/connecting.md` to find connections for captured notes.
+
+**1. Check prerequisites:**
+```bash
+which qmd
+```
+
+If qmd is not available, skip to Step 8 (don't fail the capture).
+
+**2. Run discovery for each captured note:**
+
+For each note, extract query terms and run `qmd query`. Filter and rank candidates per the connecting reference.
+
+**3. Collect results and present as batch:**
+
+```
+Found connections for {M} of {N} captured notes:
+
+- {Note A title}: {count} related notes
+- {Note C title}: {count} related notes
+- {Note E title}: no connections found
+
+(A) Review and connect all
+(B) Skip connections for now
+```
+
+**4. If user picks (A):** Walk through each note's connections using the standard presentation and multi-select flow from the connecting reference. For each note:
+- Show candidates with scores and snippets
+- Let user multi-select which to connect
+- Add forward links (## Related section)
+- Offer backlink weaving
+
+**5. If user picks (B):** Skip connections, continue to daily linking.
+
+Note: Newly captured notes won't be in qmd's index yet. That's fine. We search FROM each note's content, not for it.
+
+## Step 8: Batch Link to Daily Note
 
 Follow `references/daily-linking.md` to connect all captured notes to today's daily note.
 
