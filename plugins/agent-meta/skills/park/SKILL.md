@@ -49,6 +49,7 @@ Ensure the directory exists. If using `.parkinglot/`, check it's gitignored.
 # Parked: [Topic]
 
 **Parked:** [Date/time]
+**Session:** [value of $CLAUDE_SESSION_ID if available]
 **Branch:** [branch-name]
 **Worktree:** [path if applicable]
 
