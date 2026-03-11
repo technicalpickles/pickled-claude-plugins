@@ -43,13 +43,18 @@ Resolve location in order:
 
 Ensure the directory exists. If using `.parkinglot/`, check it's gitignored.
 
+## Before Writing
+
+1. Run `echo $CLAUDE_SESSION_ID` via Bash to get the current session ID. If empty, use "unknown".
+2. Gather git branch, worktree path, and other context.
+
 ## Output Format
 
 ```markdown
 # Parked: [Topic]
 
 **Parked:** [Date/time]
-**Session:** [value of $CLAUDE_SESSION_ID if available]
+**Session:** [session ID from Bash]
 **Branch:** [branch-name]
 **Worktree:** [path if applicable]
 
