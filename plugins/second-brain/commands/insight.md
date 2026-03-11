@@ -62,20 +62,38 @@ Ask: "What insight would you like to capture?"
 
 Also review recent conversation context to suggest what might be worth capturing.
 
-## Step 3: Create Note with Provenance
+## Step 3: Create Note Scaffold
 
-Create the note in inbox using sb CLI, which automatically:
-- Generates Zettelkasten filename (YYYYMMDDHHMM format)
-- Collects provenance (repo, branch, commit, timestamp)
-- Writes to inbox
-
-Use **Insight Note** pattern with cleaned up prose (1-3 paragraphs):
+Create the note scaffold using sb CLI (without --content):
 
 ```bash
 npx @techpickles/sb note create \
   --source auto \
-  --title "short descriptive title" \
-  --content "# {Insight Title}
+  --title "short descriptive title"
+```
+
+sb creates the file with frontmatter and title heading only. Returns JSON with the created path:
+```json
+{
+  "path": "/path/to/vault/Inbox/202603111430 short-descriptive-title.md",
+  "filename": "202603111430 short-descriptive-title.md"
+}
+```
+
+The `--source auto` flag tells sb to:
+- Use `source: claude-conversation` in frontmatter
+- Collect git provenance (repo, branch, commit) if in a repo
+- Add `captured: {ISO timestamp}` to frontmatter
+- Generate Zettelkasten filename with current timestamp
+
+Then write the note body using Claude's **Write tool** at the returned path. Read the created file first (to get the exact frontmatter sb wrote), then rewrite with the full note content:
+
+Use **Insight Note** pattern with cleaned up prose (1-3 paragraphs):
+
+```
+{frontmatter from sb, preserved exactly}
+
+# {Insight Title}
 
 {The insight, cleaned up and clearly written. 1-3 paragraphs.}
 
@@ -84,14 +102,10 @@ npx @techpickles/sb note create \
 Captured while {brief description of what you were working on/discussing}.
 
 ---
-*Captured via /second-brain:insight*"
+*Captured via /second-brain:insight*
 ```
 
-The `--source auto` flag tells sb to:
-- Use `source: claude-conversation` in frontmatter
-- Collect git provenance (repo, branch, commit) if in a repo
-- Add `captured: {ISO timestamp}` to frontmatter
-- Generate Zettelkasten filename with current timestamp
+**Why two steps?** The sb call is a short, easy-to-approve Bash command. The Write tool has a clean approval UI for file content. Together they're much easier to review than a single Bash command with embedded multi-paragraph prose.
 
 ## Step 4: Confirm and Analyze for Routing
 
