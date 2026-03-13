@@ -77,6 +77,16 @@ Options:
 
 If option A: Update the handoff file with current findings, then recommend running `/unpark` again.
 
+## Session Chains
+
+Handoff docs may contain a `Session:` field with the session ID that parked the work. This enables tracing work across park/unpark cycles. If present, the session chain looks like:
+
+```
+Session A (parked) -> handoff.md -> Session B (unparked) -> parked again -> ...
+```
+
+Session tracking tools (if available) can use this to link sessions together.
+
 ## Edge Cases
 
 - **Branch doesn't exist:** Offer to create it or pick a different branch
