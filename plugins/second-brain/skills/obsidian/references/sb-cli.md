@@ -37,8 +37,9 @@ Or install globally for faster execution: npm i -g @techpickles/sb
 - `npx @techpickles/sb vault structure` - discover PARA folders as JSON
 
 ### Notes
-- `npx @techpickles/sb note create --source auto --title "..." --content "..."` - create Zettelkasten note in inbox
-- `npx @techpickles/sb note create --source auto --title "..." --content "..." --dry-run` - preview without writing
+- `npx @techpickles/sb note create --source auto --title "..."` - create note scaffold in inbox (frontmatter + heading, returns path as JSON)
+- `npx @techpickles/sb note create --source auto --title "..." --content "..."` - create note with body (use for short content only)
+- `npx @techpickles/sb note create --source auto --title "..." --dry-run` - preview without writing
 - `npx @techpickles/sb note read --note "path/to/note.md"` - parse note as structured JSON
 - `npx @techpickles/sb note context --note "path/to/note.md"` - routing context (keywords, category, related notes)
 - `npx @techpickles/sb note move --from "inbox/note.md" --to "Areas/topic/"` - move note to destination

@@ -100,20 +100,28 @@ Include "None - skip capture" option.
 
 ## Step 5: Capture Selected
 
-For each selected insight, create note with sb:
+For each selected insight, create note scaffold with sb, then write body with Write tool:
 
+**5a. Create scaffold:**
 ```bash
 npx @techpickles/sb note create \
   --source auto \
-  --title "{insight title}" \
-  --content "{insight content with provenance}"
+  --title "{insight title}"
 ```
 
+Parse the returned JSON to get the file path.
+
+**5b. Write note body:**
+
+Read the created file to get the exact frontmatter, then use the Write tool to write the full note (frontmatter + body) using **Insight Note** pattern.
+
+**5c. Repeat** for each selected insight.
+
 This handles:
-- Zettelkasten timestamp filename generation
-- Provenance tracking (git context)
-- Writing to inbox with proper frontmatter
-- Daily note date stamping
+- Zettelkasten timestamp filename generation (sb)
+- Provenance tracking via git context (sb)
+- Writing to inbox with proper frontmatter (sb)
+- Clean prose content (Write tool)
 
 Show confirmation:
 ```
