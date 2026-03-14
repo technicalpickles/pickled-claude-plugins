@@ -89,15 +89,25 @@ def discover_routes_from_manifests(plugins: list[dict]) -> list[Path]:
 
 
 def discover_all_routes(project_path: str | None = None) -> list[Path]:
-    """Discover all route files from enabled plugins.
+    """Discover all route files from enabled plugins and project-local sources.
 
     This is the main entry point for route discovery.
 
     Args:
         project_path: Current project path for filtering local-scoped plugins
+                      and finding project-local routes
 
     Returns:
         List of paths to tool-routes.yaml files
     """
+    # Plugin routes
     plugins = get_enabled_plugins(project_path)
-    return discover_routes_from_manifests(plugins)
+    routes = discover_routes_from_manifests(plugins)
+
+    # Project-local routes (.claude/tool-routes.yaml)
+    if project_path:
+        local_routes = Path(project_path) / ".claude" / "tool-routes.yaml"
+        if local_routes.exists():
+            routes.append(local_routes)
+
+    return sorted(routes)
