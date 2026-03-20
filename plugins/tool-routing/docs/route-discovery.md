@@ -224,21 +224,33 @@ Use `gh pr view <number>` for GitHub PRs.
 
 ### Routes Not Being Discovered
 
-**Symptom:** `tool-routing list` shows fewer sources than expected.
+**Symptom:** `tool-routing list` shows "No routes found" or fewer sources than expected.
 
-**Common causes:**
+**Common causes (check in this order):**
 
-1. **Missing routes.json manifest** - Ensure `.claude-plugin/routes.json` exists
+1. **64KB pipe truncation** (Claude Code bug [#36685](https://github.com/anthropics/claude-code/issues/36685)) - If you have many plugins installed, `claude plugin list --json` output may exceed 64KB and get silently truncated when captured via pipe, producing invalid JSON. Discovery fails silently and returns zero routes.
+
+   Check: `claude plugin list --json | wc -c`. If output is exactly 65536/65537 bytes, you're hitting this.
+
+   **Fixed in tool-routing 1.2.1** (uses file-based capture instead of pipe). If running an older version, update.
+
+2. **enabledPlugins scope bug** (Claude Code bug [#27247](https://github.com/anthropics/claude-code/issues/27247)) - Plugins installed at project/local scope (`--scope local`) report `enabled: false` in the CLI, even though they're in settings. Only plugins in `~/.claude/settings.json` enabledPlugins are treated as enabled for hooks.
+
+   Workaround: Add your plugins to `~/.claude/settings.json` enabledPlugins.
+
+   See [docs/known-claude-code-bugs.md](../../../docs/known-claude-code-bugs.md) for details on both bugs.
+
+3. **Missing routes.json manifest** - Ensure `.claude-plugin/routes.json` exists
    ```bash
    cat ~/.claude/plugins/cache/{marketplace}/{plugin}/{version}/.claude-plugin/routes.json
    ```
 
-2. **Plugin not enabled** - Check with Claude CLI
+4. **Plugin not enabled** - Check with Claude CLI
    ```bash
    claude plugin list --json | jq '.[] | select(.enabled == true) | .id'
    ```
 
-3. **Project path mismatch (local-scoped plugins)** - Local-scoped plugins use **exact path matching**. The plugin's `projectPath` must exactly equal `CLAUDE_PROJECT_ROOT` (or cwd if unset).
+5. **Project path mismatch (local-scoped plugins)** - Local-scoped plugins use **exact path matching**. The plugin's `projectPath` must exactly equal `CLAUDE_PROJECT_ROOT` (or cwd if unset).
 
    Check the plugin's project path:
    ```bash
