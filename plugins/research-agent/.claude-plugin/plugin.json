@@ -1,0 +1,10 @@
+{
+  "name": "research-agent",
+  "description": "Sandboxed web research agent — use for any web research, topic exploration, or multi-source investigation instead of direct WebFetch/WebSearch",
+  "author": {
+    "name": "Josh Nichols",
+    "email": "josh@technicalpickles.com"
+  },
+  "repository": "https://github.com/technicalpickles/pickled-claude-plugins",
+  "license": "MIT"
+}
