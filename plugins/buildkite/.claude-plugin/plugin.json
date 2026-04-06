@@ -1,0 +1,10 @@
+{
+  "name": "buildkite",
+  "description": "Buildkite CI tools: build investigation, pipeline development, and tool preference enforcement",
+  "author": {
+    "name": "Josh Nichols",
+    "email": "josh@technicalpickles.com"
+  },
+  "repository": "https://github.com/technicalpickles/pickled-claude-plugins",
+  "license": "MIT"
+}

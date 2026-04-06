@@ -22,3 +22,4 @@
 
 # Temporary/generated test artifacts
 tmp/
+__pycache__
