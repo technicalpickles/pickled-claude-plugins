@@ -50,6 +50,11 @@
       "name": "agent-meta",
       "source": "./plugins/agent-meta",
       "version": "1.2.0"
+    },
+    {
+      "name": "buildkite",
+      "source": "./plugins/buildkite",
+      "version": "1.0.0"
     }
   ]
 }
