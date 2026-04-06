@@ -9,6 +9,10 @@ description: Use when working with Buildkite CI - checking status, investigating
 
 This skill provides workflows and tools for working with Buildkite CI builds. It covers **checking status, investigating failures, and reproducing issues locally** rather than creating or configuring pipelines. Use this skill when working with Buildkite builds, especially for PR workflows, post-push monitoring, failure investigation, and local reproduction.
 
+## Why bktide snapshot?
+
+One command, one URL, gets you everything: build metadata, annotations, and logs for failed steps, all saved to local files you can grep and re-read without burning API calls. The other tools require you to piece together multiple calls and keep track of job UUIDs vs step IDs.
+
 ## When to Use This Skill
 
 Use this skill when:
@@ -106,6 +110,8 @@ Available MCP tools:
 | Save to files     | ✅              | ❌         | ❌        |
 | Wait for build    | ❌              | ❌         | ✅        |
 | Unblock jobs      | ❌              | ❌         | ✅        |
+
+> This tool preference order can be overridden via `~/.config/pickled-claude-plugins/buildkite.yml`. A PreToolUse hook enforces your preference by intercepting `bk` CLI commands that overlap with bktide capabilities.
 
 ### When Tools Fail: Fallback Hierarchy
 
