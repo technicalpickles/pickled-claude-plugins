@@ -1,5 +1,5 @@
 ---
-name: developing-buildkite-pipelines
+name: developing-pipelines
 description: Use when creating, modifying, or debugging Buildkite pipeline YAML files - ensures current syntax from official docs, validates configurations before proposing changes, and references Buildkite best practices instead of relying on training data
 ---
 

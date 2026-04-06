@@ -1,5 +1,5 @@
 ---
-name: working-with-buildkite-builds
+name: investigating-builds
 description: Use when working with Buildkite CI - checking status, investigating failures, and reproducing issues locally. Provides workflows for monitoring builds, progressive failure investigation, and local reproduction strategies. Use when tempted to use GitHub tools instead of Buildkite-native tools, or when a Buildkite tool fails and you want to fall back to familiar alternatives.
 ---
 

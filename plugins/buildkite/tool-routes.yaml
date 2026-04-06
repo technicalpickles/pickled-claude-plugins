@@ -2,14 +2,14 @@
 # Prevents WebFetch on Buildkite URLs, redirects to the skill
 
 routes:
-  # Buildkite build URLs - use the working-with-buildkite-builds skill
+  # Buildkite build URLs - use the investigating-builds skill
   buildkite:
     tool: WebFetch
     pattern: "https?://buildkite\\.com/[^/]+/[^/]+/builds/\\d+"
     message: |
       Do not use WebFetch for Buildkite build URLs.
 
-      Instead, invoke the buildkite:working-with-buildkite-builds skill,
+      Instead, invoke the buildkite:investigating-builds skill,
       which will guide you to use `npx bktide@latest snapshot <url>`.
 
       bktide snapshot parses Buildkite URLs automatically and downloads
