@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-bk-preference.sh"
+            "command": "uv run --quiet --directory \"${CLAUDE_PLUGIN_ROOT}\" buildkite-check"
           }
         ]
       }
