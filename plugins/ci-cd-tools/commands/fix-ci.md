@@ -41,11 +41,37 @@ Record the starting point:
 - **Branch name**: Current git branch
 - **PR number**: If applicable (`gh pr view --json number`)
 - **Build number**: The failing build
-- **Failure count**: Number of failed jobs
+- **Failure count**: Number of **root** failures (see Step 2.1)
 
 Announce to the user:
 
-> "Starting CI fix session for branch `<branch>` (Build #<number>). I see <N> failed jobs. Let me investigate."
+> "Starting CI fix session for branch `<branch>` (Build #<number>). I see <N> root failures (<M> dependent steps blocked). Let me investigate."
+
+### Step 2.1: Filter to Root Failures
+
+**CRITICAL: Do this immediately after getting build data.** Most CI builds have 1-3 root failures and hundreds of dependent BROKEN steps. Finding the root failures fast is the whole game.
+
+After running `bktide snapshot`, categorize steps by state:
+
+```bash
+jq -r '.steps[].state' manifest.json | sort | uniq -c | sort -rn
+```
+
+**Only these are real failures:**
+- Steps with state `FINISHED` (or `FAILED`) AND a non-zero `exit_status`
+
+**These are NOT failures — do not count or investigate them:**
+- **BROKEN** — Downstream dependencies that never ran. They auto-fix when the root failure is fixed.
+- **RUNNING** — Still in progress. Not failures.
+- **WAITING** / **SCHEDULED** — Haven't started yet.
+- **CANCELED** — Manually or automatically canceled.
+
+Find actual root failures:
+```bash
+jq -r '.steps[] | select((.state == "FINISHED" or .state == "FAILED") and .exit_status != null and .exit_status != 0) | "\(.label) (exit \(.exit_status))"' manifest.json
+```
+
+**Example:** A build reports "466 steps: 43 passed, 397 failed, 361 running" — but filtering reveals 1 actual failure (codeownership validation) and 396 BROKEN dependents. Fix the 1 root cause and everything else passes.
 
 ### Optional: Create Tracking Document
 
@@ -117,11 +143,11 @@ If yes, create `docs/plans/ci-fix-<branch-slug>.md`:
    - Skip and investigate current failures
    - The failures might already be fixed in main
 
-## Step 4: Investigate Failures
+## Step 4: Investigate Root Failures
 
 Use the `investigating-builds` skill to investigate. The skill's tool hierarchy applies: `bktide snapshot` first, then other bktide commands, then MCP tools as fallback.
 
-After gathering build data, identify failure patterns:
+**Investigate only the root failures identified in Step 2.1.** Ignore BROKEN and RUNNING steps entirely — they are noise. Read the logs for each root failure and identify patterns:
 - Test failures (RSpec, Jest, pytest, etc.)
 - Build/compilation errors
 - Linting/type checking errors
