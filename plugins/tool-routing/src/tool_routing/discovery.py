@@ -2,6 +2,7 @@
 
 import json
 import subprocess
+import tempfile
 from pathlib import Path
 
 
@@ -15,20 +16,31 @@ def get_enabled_plugins(project_path: str | None = None) -> list[dict]:
     Returns:
         List of enabled plugin dicts with id, installPath, scope, etc.
     """
-    result = subprocess.run(
-        ["claude", "plugin", "list", "--json"],
-        capture_output=True,
-        text=True,
-        timeout=10
-    )
-
-    if result.returncode != 0:
-        return []
+    # Use a temp file instead of pipe capture to avoid 64KB truncation.
+    # `claude plugin list --json` output exceeds pipe buffer limits when
+    # many plugins are installed across projects.
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
+        tmp_path = tmp.name
 
     try:
-        plugins = json.loads(result.stdout)
-    except json.JSONDecodeError:
-        return []
+        with open(tmp_path, "w") as outfile:
+            result = subprocess.run(
+                ["claude", "plugin", "list", "--json"],
+                stdout=outfile,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=10,
+            )
+
+        if result.returncode != 0:
+            return []
+
+        try:
+            plugins = json.loads(Path(tmp_path).read_text())
+        except json.JSONDecodeError:
+            return []
+    finally:
+        Path(tmp_path).unlink(missing_ok=True)
 
     # Filter to enabled plugins
     enabled = []
