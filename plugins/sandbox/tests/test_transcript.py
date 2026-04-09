@@ -33,10 +33,14 @@ def make_tool_use_entry(command, dangerously_disable=False):
 
 
 def make_tool_error_entry(error_text):
-    """Create a transcript entry representing a tool failure."""
+    """Create a transcript entry representing a tool failure.
+
+    Uses role "user" to match Claude Code's actual JSONL format
+    (Anthropic API convention: tool results are user messages).
+    """
     return {
         "message": {
-            "role": "tool",
+            "role": "user",
             "content": [
                 {
                     "type": "tool_result",
@@ -52,7 +56,7 @@ def make_tool_success_entry(stdout="ok"):
     """Create a transcript entry representing a tool success."""
     return {
         "message": {
-            "role": "tool",
+            "role": "user",
             "content": [
                 {
                     "type": "tool_result",

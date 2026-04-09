@@ -41,7 +41,8 @@ def _is_sandboxed_bash_failure(entries: list[dict], index: int) -> bool:
     """Check if entry at index is a tool error following a sandboxed Bash call."""
     entry = entries[index]
     msg = entry.get("message", {})
-    if msg.get("role") != "tool":
+    # Tool results use role "user" in Claude Code JSONL (Anthropic API format)
+    if msg.get("role") not in ("tool", "user"):
         return False
 
     content = msg.get("content", [])
@@ -49,7 +50,9 @@ def _is_sandboxed_bash_failure(entries: list[dict], index: int) -> bool:
         return False
 
     is_error = any(
-        isinstance(block, dict) and block.get("is_error")
+        isinstance(block, dict)
+        and block.get("type") == "tool_result"
+        and block.get("is_error")
         for block in content
     )
     if not is_error:
