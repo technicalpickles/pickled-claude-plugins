@@ -28,7 +28,8 @@ Options:
                            comparison  — compare options with tradeoff matrix
   -o, --output DIR       Output directory for the report (default: current directory)
   -m, --model MODEL      Model alias to use (e.g. sonnet, opus, haiku)
-  -v, --verbose          Show the agent's reasoning output
+  -t, --timeout SECS     Hard timeout in seconds (default: 300)
+  -v, --verbose          Show tool calls as the agent runs (uses stream-json)
   -h, --help             Show this help message
 
 Examples:
@@ -44,6 +45,7 @@ EOF
 SCOPE="quick"
 OUTPUT_DIR=""
 MODEL=""
+TIMEOUT=300
 VERBOSE=0
 TOPIC=""
 
@@ -76,6 +78,14 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       MODEL="$2"
+      shift 2
+      ;;
+    -t|--timeout)
+      if [[ -z "${2:-}" ]]; then
+        echo "Error: --timeout requires a value in seconds" >&2
+        exit 1
+      fi
+      TIMEOUT="$2"
       shift 2
       ;;
     -v|--verbose)
@@ -148,6 +158,7 @@ trap cleanup EXIT
 
 echo "==> Topic: $TOPIC"
 echo "==> Scope: $SCOPE"
+echo "==> Timeout: ${TIMEOUT}s"
 echo "==> Work directory: $WORK_DIR"
 [[ -n "$MODEL" ]] && echo "==> Model: $MODEL"
 [[ -n "$OUTPUT_DIR" ]] && echo "==> Output: $OUTPUT_DIR"
@@ -218,7 +229,6 @@ CLAUDE_ARGS=(
   -p "$PROMPT"
   --allowedTools "WebFetch,WebSearch,Read,Glob,Grep,Write"
   --dangerously-skip-permissions
-  --output-format text
 )
 
 [[ -n "$MODEL" ]] && CLAUDE_ARGS+=(--model "$MODEL")
@@ -228,11 +238,24 @@ CLAUDE_ARGS=(
 # - dangerously-skip-permissions: safe because tool surface is narrow
 # - cd to temp dir: confines Write to that location
 if [[ "$VERBOSE" -eq 1 ]]; then
-  (cd "$WORK_DIR" && claude "${CLAUDE_ARGS[@]}")
+  # stream-json emits newline-delimited JSON events as they happen.
+  # Tool calls are nested inside assistant message content blocks.
+  # jq extracts tool_use events (name + input fields) so you can see what the agent is fetching.
+  # --verbose is required by claude when using stream-json output format.
+  (cd "$WORK_DIR" && timeout "$TIMEOUT" claude "${CLAUDE_ARGS[@]}" --verbose --output-format stream-json) | \
+    jq -r '
+      if .type == "assistant" then
+        .message.content[] |
+        if .type == "tool_use" then
+          "[" + .name + "] " + (.input | to_entries | map(.key + "=" + (.value | tostring)) | join(" "))
+        else empty end
+      else empty end
+    ' || true
+  CLAUDE_EXIT="${PIPESTATUS[0]}"
 else
-  (cd "$WORK_DIR" && claude "${CLAUDE_ARGS[@]}" 2>/dev/null)
+  (cd "$WORK_DIR" && timeout "$TIMEOUT" claude "${CLAUDE_ARGS[@]}" --output-format text 2>/dev/null)
+  CLAUDE_EXIT=$?
 fi
-CLAUDE_EXIT=$?
 
 echo ""
 
