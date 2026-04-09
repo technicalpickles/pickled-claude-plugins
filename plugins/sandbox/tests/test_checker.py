@@ -40,7 +40,7 @@ class TestCheckPreToolUse:
             },
             {
                 "message": {
-                    "role": "tool",
+                    "role": "user",
                     "content": [{"type": "tool_result", "is_error": True, "content": "Operation not permitted"}],
                 }
             },
