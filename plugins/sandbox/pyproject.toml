@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sandbox-plugin"
+version = "0.1.0"
+description = "Claude Code sandbox enforcement plugin"
+requires-python = ">=3.10"
+
+[project.scripts]
+sandbox-plugin = "sandbox_plugin.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sandbox_plugin"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = ["pytest", "ruff"]
