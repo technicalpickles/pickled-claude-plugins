@@ -1,6 +1,7 @@
 ---
 name: park
 description: Save current work context for later resumption
+allowed-tools: Bash(scripts/get-session-id.sh)
 ---
 
 # Park
@@ -45,7 +46,7 @@ Ensure the directory exists. If using `.parkinglot/`, check it's gitignored.
 
 ## Before Writing
 
-1. Run `echo $CLAUDE_SESSION_ID` via Bash to get the current session ID. If empty, use "unknown".
+1. Run [scripts/get-session-id.sh](scripts/get-session-id.sh) via Bash to get the current session ID. If empty, use "unknown".
 2. Gather git branch, worktree path, and other context.
 
 ## Output Format

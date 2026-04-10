@@ -1,20 +1,19 @@
-# Tool routes for monitoring-buildkite-builds skill
-# Prevents WebFetch on Buildkite URLs, redirects to MCP tools
+# Tool routes for the buildkite plugin
+# Prevents WebFetch on Buildkite URLs, redirects to the skill
 
 routes:
-  # Buildkite - use MCP tools
+  # Buildkite build URLs - use the investigating-builds skill
   buildkite:
     tool: WebFetch
     pattern: "https?://buildkite\\.com/[^/]+/[^/]+/builds/\\d+"
     message: |
-      Use Buildkite MCP tools for build information.
+      Do not use WebFetch for Buildkite build URLs.
 
-      Call: mcp__MCPProxy__retrieve_tools
-      Query: 'buildkite build status pipeline'
+      Instead, invoke the buildkite:investigating-builds skill,
+      which will guide you to use `npx bktide@latest snapshot <url>`.
 
-      MCP tools provide authentication and structured build data.
-
-      Consider using the monitoring-buildkite-builds skill.
+      bktide snapshot parses Buildkite URLs automatically and downloads
+      build metadata, annotations, and logs for failed steps to local files.
     tests:
       - desc: "build URL should block"
         input:

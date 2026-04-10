@@ -4,6 +4,8 @@ argument-hint: [filename | "all"]
 allowed-tools:
   - Read(~/.claude/vaults/**/CLAUDE.md)
   - Read(~/.claude/vaults/**/*.md)
+  - Write(~/.claude/vaults/**/.routing-memory.md)
+  - Edit(~/.claude/vaults/**/.routing-memory.md)
   - Bash(npx @techpickles/sb:*)
 ---
 
@@ -43,6 +45,7 @@ Load skill references:
 - `second-brain:obsidian` for tool mechanics
 - `references/routing.md` for routing algorithm
 - `references/sb-cli.md` for sb command reference
+- `references/routing-memory.md` for routing correction format
 
 ## Step 2: Identify Notes to Route
 
@@ -126,6 +129,21 @@ If found, extract:
 
 These rules override generic matching for semantically similar areas.
 
+## Step 4b: Load Routing Memory
+
+Read `.routing-memory.md` from vault root (via symlink path, e.g. `~/.claude/vaults/primary/.routing-memory.md`). If it doesn't exist, skip this step (no corrections yet).
+
+If the file exists, parse:
+- `auto-route-threshold` from frontmatter
+- `## Corrections` entries with:
+  - Date, original suggestion, user's correction, and reason
+  - Extract patterns: what topics have been corrected before
+- `## Patterns Learned` entries:
+  - Stable routing rules distilled from corrections
+  - Pattern → destination mappings
+
+Store this context for Step 5 scoring.
+
 ## Step 5: Analyze and Score
 
 For each selected note, follow `references/routing.md` algorithm:
@@ -154,19 +172,24 @@ Example output:
 }
 ```
 
-2. **Apply disambiguation rules** (if loaded):
+2. **Apply routing memory** (if loaded in Step 4b):
+   - Check if any correction matches this note's topic/keywords (exact or close match). If so, strongly favor the corrected destination (+40% to that destination).
+   - Check if any learned pattern matches the note's topic/keywords. If so, boost that destination (+20%).
+   - These take precedence over generic signals but come after exact topic matches from corrections.
+
+3. **Apply disambiguation rules** (if loaded):
    - Check edge case mappings first (explicit rules)
    - Apply key question matches (+25% boost)
    - Apply category table matches (+15% boost)
    - Apply disambiguation mismatch penalty (-20%)
 
-3. **Score with generic signals:**
+4. **Score with generic signals:**
    - Keyword match in folder name (40%)
    - Related notes exist in folder (30%)
    - PARA category fit (20%)
    - Recency of folder activity (10%)
 
-4. **Calculate confidence:**
+5. **Calculate confidence:**
    - High (80-100%): Strong match, often with disambiguation support
    - Medium (50-79%): Partial match
    - Low (20-49%): Weak signals
@@ -230,6 +253,39 @@ sb handles the filesystem operation and returns confirmation.
 
 3 notes processed: 2 routed, 1 remaining in inbox
 ```
+
+## Step 8b: Capture Corrections
+
+For each note where the user chose a destination different from the top suggestion:
+
+1. Read `.routing-memory.md` from vault root. If it doesn't exist, create it with defaults:
+   ```markdown
+   ---
+   auto-route-threshold: 70
+   ---
+
+   ## Corrections
+
+   ## Patterns Learned
+   ```
+
+2. Ask: "Quick note on why {chosen} over {suggested}?" (keep it to one sentence)
+
+3. Append the correction to `## Corrections`:
+   ```
+   - {YYYY-MM-DD}: "{note title}" routed to "{suggested}", corrected to "{chosen}"
+     Reason: {user's reason}
+   ```
+
+4. Write/Edit the updated file using the Edit tool
+
+Example correction entry:
+```markdown
+- 2026-03-31: "tmux conditional parsing" routed to "Resources/software engineering/", corrected to "Areas/tool sharpening/"
+  Reason: tmux is a personal tool config, not a programming pattern
+```
+
+This correction becomes available in Step 4b of future routing operations, feeding the learning loop.
 
 ## Examples
 

@@ -8,16 +8,13 @@ allowed-tools:
   - Write(~/.claude/vaults/**/*.md)
   - Edit(~/.claude/vaults/**/*.md)
   - Bash(npx @techpickles/sb:*)
-  - Bash(which:qmd)
-  - Bash(qmd:query *)
-  - Bash(qmd:collection list)
-  - Bash(qmd:get *)
-  - Bash(qmd:status)
 ---
 
 # Capture Insight
 
-Capture an insight from the current conversation to your Obsidian vault.
+Capture an insight from the current conversation to your Obsidian vault inbox.
+
+This command captures raw insights quickly. Processing, routing, and connection discovery happen later via `/second-brain:process-inbox`.
 
 ## Step 1: Load Configuration
 
@@ -41,16 +38,12 @@ Second brain not configured. Run /second-brain:setup first.
 
 Use the symlink path `~/.claude/vaults/{name}` to access the vault for reading CLAUDE.md (e.g., `~/.claude/vaults/primary`).
 
-Read vault's `CLAUDE.md` for structure and routing rules.
+Read vault's `CLAUDE.md` for structure rules.
 
 Load skill references:
 - `second-brain:obsidian` for tool mechanics
 - `references/sb-cli.md` for sb invocation details
 - `references/zettelkasten.md` for naming
-- `references/note-patterns.md` for Insight Note template
-- `references/routing.md` for destination matching
-- `references/connecting.md` for connection discovery
-- `references/daily-linking.md` for linking to daily note
 
 ## Step 2: Identify the Insight
 
@@ -62,200 +55,77 @@ Ask: "What insight would you like to capture?"
 
 Also review recent conversation context to suggest what might be worth capturing.
 
-## Step 3: Create Note Scaffold
+## Step 3: Create or Append to Session Notes
 
-Create the note scaffold using sb CLI (without --content):
+Session notes files collect all insights from a conversation in one place, with cheap metadata attached at capture time.
 
+**Check if session file already exists in this conversation.**
+
+If this is the first `/insight` command in this conversation:
+1. Create a new session notes file using sb CLI:
 ```bash
 npx @techpickles/sb note create \
   --source auto \
-  --title "short descriptive title"
+  --title "{session context}"
 ```
 
-sb creates the file with frontmatter and title heading only. Returns JSON with the created path:
-```json
-{
-  "path": "/path/to/vault/Inbox/202603111430 short-descriptive-title.md",
-  "filename": "202603111430 short-descriptive-title.md"
-}
-```
+Generate the title from conversation context: repo name, current branch, bean ID if available, and what you're working on (e.g., "Debugging auth timeout in zenpayroll").
 
-The `--source auto` flag tells sb to:
-- Use `source: claude-conversation` in frontmatter
-- Collect git provenance (repo, branch, commit) if in a repo
-- Add `captured: {ISO timestamp}` to frontmatter
-- Generate Zettelkasten filename with current timestamp
+The file is created with frontmatter. Read the created file to preserve the exact frontmatter sb wrote.
 
-Then write the note body using Claude's **Write tool** at the returned path. Read the created file first (to get the exact frontmatter sb wrote), then rewrite with the full note content:
+Add `type: session-notes` to the frontmatter if not present. The frontmatter should include:
+- `status: raw`
+- `type: session-notes`
+- `source-session: {topic}`
+- `repo: {repo-name}` (from git context if available)
+- `branch: {branch-name}` (from git context if available)
+- `bean: {bean-id}` (from git context if available)
+- `captured: {ISO timestamp}`
 
-Use **Insight Note** pattern with cleaned up prose (1-3 paragraphs):
+Then write the note structure:
 
-```
-{frontmatter from sb, preserved exactly}
-
-# {Insight Title}
-
-{The insight, cleaned up and clearly written. 1-3 paragraphs.}
-
-## Context
-
-Captured while {brief description of what you were working on/discussing}.
-
+```markdown
 ---
-*Captured via /second-brain:insight*
+status: raw
+type: session-notes
+source-session: {topic}
+repo: {repo-name}
+branch: {branch-name}
+bean: {bean-id}
+captured: {ISO timestamp}
+---
+
+# Session: {Session Title}
+
+- {Insight bullet 1}
 ```
 
-**Why two steps?** The sb call is a short, easy-to-approve Bash command. The Write tool has a clean approval UI for file content. Together they're much easier to review than a single Bash command with embedded multi-paragraph prose.
+Use Write tool with the file content.
 
-## Step 4: Confirm and Analyze for Routing
+**If session file already exists** (was created in an earlier `/insight` call in this same conversation):
+1. Append the new insight as a bullet using Edit tool
+2. Insert under the bulleted list in the session notes file
+3. Write the insight as clean prose (1-3 words to a sentence, not raw conversation)
 
-After creation, sb returns the created note's path as JSON. Parse and confirm:
-```
-✓ Captured to inbox: {filename}
-
-Analyzing for routing...
-```
-
-Get routing context from sb:
-```bash
-npx @techpickles/sb note context --note "{note-path}"
+Example:
+```markdown
+- Redis TTL per-key is better than Memcached for sessions
+- Auth timeout varies by environment: 30s prod, 2m staging, 10m dev
 ```
 
-This returns JSON with:
-- Keywords extracted from title and body
-- Content category (architecture, debugging, tool config, etc.)
-- Related notes in the vault
-- Source context from provenance
+## Confirm Capture
 
-Also discover vault structure:
-```bash
-npx @techpickles/sb vault structure
+After creating or appending, confirm with one line:
+```
+Captured to inbox: {filename}
 ```
 
-This returns PARA folders (Areas, Resources, Projects) as structured JSON.
-
-Load disambiguation rules from vault CLAUDE.md (read via Claude's Read tool):
-- Find `### Disambiguation:` sections
-- Extract key questions, category tables, edge case mappings
-- These override generic matching for semantically similar areas
-
-## Step 5: Score Destinations
-
-For each discovered destination from vault structure:
-
-**If disambiguation rules apply:**
-- Check edge case mappings first (explicit rules)
-- Apply key question matches (+25% boost)
-- Apply category table matches (+15% boost)
-- Apply disambiguation mismatch penalty (-20%)
-
-**Then apply generic signals:**
-- Keyword match in folder name (40%)
-- Related notes exist in folder (30%)
-- PARA category fit (20%)
-- Recency of folder activity (10%)
-
-**Calculate confidence levels:**
-- High (80-100%): Strong match, often with disambiguation support
-- Medium (50-79%): Partial match
-- Low (20-49%): Weak signals
-- None (<20%): Leave in inbox
-
-## Step 6: Suggest Routing
-
-Present findings with explanations:
-```
-Routing suggestions for "{filename}":
-
-1. **{Areas/path/}** (85% - High)
-   → Matches keywords: "keyword1", "keyword2"
-   → Related note exists: "{related-note.md}"
-   → [If disambiguation applied] Vault rule: "{edge case or key question}"
-
-2. **{Resources/path/}** (48% - Low)
-   → Generic category fit
-
-3. **Leave in Inbox** (Safe default)
-   → Route later when destination is clearer
-```
-
-When disambiguation rules influenced the result, explain which rule applied.
-
-Use AskUserQuestion with discovered options:
-- Only include destinations that actually exist (from vault structure)
-- Show confidence and explanation for each
-- Always include "Leave in inbox for now" option
-
-If user selects a destination, move the file using sb:
-```bash
-npx @techpickles/sb note move \
-  --from "{inbox-note-path}" \
-  --to "{selected-destination}/"
-```
-
-If all destinations score <20%, recommend inbox without asking.
-
-## Step 8: Discover Connections
-
-Follow `references/connecting.md` algorithm to find related notes in the vault.
-
-**1. Check prerequisites:**
-```bash
-which qmd
-```
-
-If qmd is not available, skip to Step 9 (don't fail the capture).
-
-**2. Extract query terms** from the captured note's title and body.
-
-**3. Run semantic search:**
-```bash
-qmd query "{terms}" -c {collection} -n 15 --json
-```
-
-**4. Filter and rank** per the connecting reference (remove self, already-linked, low-relevance, daily notes; enrich with TK/See Also signals; rank).
-
-**5. If connections found (any candidates above 30%):**
-
-Present candidates and let user multi-select which to connect.
-
-**6. For selected connections:**
-- Add `## Related` section to the captured note with wiki-links
-- Offer backlink weaving for notes with See Also/Related/TK sections
-
-**7. If no connections above threshold,** skip silently and continue.
-
-Note: The captured note won't be in qmd's index yet. That's fine. We're searching FROM the note's content, not for it.
-
-## Step 9: Link to Daily Note
-
-Link the captured note to today's daily note using sb:
-
-```bash
-npx @techpickles/sb daily append \
-  --section "Links" \
-  --content "- [[{filename without .md}]] - {brief description of the insight}"
-```
-
-The sb CLI handles:
-- Finding today's daily note path from .obsidian config
-- Creating the daily note if it doesn't exist
-- Finding or creating the `## Links` section
-- Appending the link
-
-Confirm linking:
-```
-✓ Linked to daily note: {date}.md
-```
-
-If daily note linking fails (sb returns error), skip silently. The note is already captured.
+That's it. No routing, no connecting, no daily linking. Those happen later via `/second-brain:process-inbox`.
 
 ## Constraints
 
-- **Always write to inbox first** - Never skip this step
-- **Use skill references** - Get paths from skill, not hardcoded
-- **Use sb CLI for data operations** - Note creation, moving, structure discovery
-- **Use Claude's Read/Write/Edit for prose** - Reading CLAUDE.md, editing note content
-- **Zettelkasten naming** - sb handles `YYYYMMDDHHMM title.md` format automatically
-- **Show analysis before asking** - Don't just ask, show reasoning
-- **Clean prose** - Well-written insight, not raw conversation paste
+- **Always write to inbox** - Inbox capture only, no routing
+- **Use sb CLI for note creation** - sb handles timestamps, frontmatter, vault structure
+- **Capture cheap metadata** - repo, branch, bean ID from git/provenance context
+- **Clean prose for bullets** - Each insight is a polished sentence or short phrase
+- **No routing, connecting, or linking** - Processing moves to the separate `process-inbox` skill

@@ -1,0 +1,15 @@
+# Buildkite tool preferences
+# User config: ~/.config/pickled-claude-plugins/buildkite.yml
+# Copy this file there to customize.
+
+tool_preference:
+  - bktide
+  - mcp
+  - bk
+
+strict: true  # true = block non-preferred tools, false = warn
+
+intercept:
+  - pattern: "^bk build\\b"
+  - pattern: "^bk job log\\b"
+  - pattern: "^bk api.*/builds"

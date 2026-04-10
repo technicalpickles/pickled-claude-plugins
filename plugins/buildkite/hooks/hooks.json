@@ -1,0 +1,16 @@
+{
+  "description": "Enforce buildkite tool preferences (bktide over bk CLI)",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run --quiet --directory \"${CLAUDE_PLUGIN_ROOT}\" buildkite-check"
+          }
+        ]
+      }
+    ]
+  }
+}

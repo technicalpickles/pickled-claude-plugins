@@ -7,11 +7,6 @@ allowed-tools:
   - Write(~/.claude/vaults/**/*.md)
   - Edit(~/.claude/vaults/**/*.md)
   - Bash(npx @techpickles/sb:*)
-  - Bash(which:qmd)
-  - Bash(qmd:query *)
-  - Bash(qmd:collection list)
-  - Bash(qmd:get *)
-  - Bash(qmd:status)
 ---
 
 # Distill Conversation
@@ -48,10 +43,7 @@ Load skill references:
 - `second-brain:obsidian` for tool mechanics
 - `references/sb-cli.md` for sb command patterns
 - `references/zettelkasten.md` for naming
-- `references/note-patterns.md` for Insight Note template
-- `references/routing.md` for destination matching
-- `references/connecting.md` for connection discovery
-- `references/daily-linking.md` for linking to daily note
+- `references/note-patterns.md` for note template patterns
 
 ## Step 2: Review the Conversation
 
@@ -100,186 +92,55 @@ Include "None - skip capture" option.
 
 ## Step 5: Capture Selected
 
-For each selected insight, create note scaffold with sb, then write body with Write tool:
+For each selected insight, append as a bullet to the session notes file.
 
-**5a. Create scaffold:**
+**5a. Get or create session notes file:**
+
+Check if a session file exists in the vault by querying sb:
+```bash
+npx @techpickles/sb note list --type session-notes
+```
+
+If none exists, create one with session context:
 ```bash
 npx @techpickles/sb note create \
   --source auto \
-  --title "{insight title}"
+  --title "{session context}" \
+  --type session-notes
 ```
 
 Parse the returned JSON to get the file path.
 
-**5b. Write note body:**
+**5b. Build metadata:**
 
-Read the created file to get the exact frontmatter, then use the Write tool to write the full note (frontmatter + body) using **Insight Note** pattern.
+Collect session context:
+- Current repo (if in a worktree)
+- Current branch (if in a worktree)
+- Current bean ID (if available from context)
+- Session topic (topic of conversation)
+- Timestamp (ISO 8601)
 
-**5c. Repeat** for each selected insight.
+**5c. Append insights as bullets:**
 
-This handles:
-- Zettelkasten timestamp filename generation (sb)
-- Provenance tracking via git context (sb)
-- Writing to inbox with proper frontmatter (sb)
-- Clean prose content (Write tool)
+For each selected insight, append a clean bullet point:
+- Keep prose concise and standalone
+- Include minimal metadata as needed (source, why this matters)
+- Format: `- {insight description}` or `- {insight description} ({context})`
 
-Show confirmation:
-```
-Capturing {N} insights...
+Use the Write tool to update the session file, preserving frontmatter and adding bullets to the content.
 
-✓ {filename1}
-✓ {filename2}
-✓ {filename3}
-
-All captured to inbox.
-```
-
-## Step 6: Batch Routing
-
-Load `references/routing.md` and analyze all captured notes together.
-
-**1. Discover vault structure once:**
-```bash
-npx @techpickles/sb vault structure
-```
-
-Parse JSON output to get available PARA destinations (Areas, Resources, Projects).
-
-**2. Load disambiguation rules from vault CLAUDE.md:**
-
-Read `~/.claude/vaults/{name}/CLAUDE.md`:
-- Find `### Disambiguation:` sections
-- Extract key questions, category tables, edge case mappings
-- These override generic matching for semantically similar areas
-
-**3. Score each captured note:**
-
-For each note, get routing context:
-```bash
-npx @techpickles/sb note context --note "{note-path}"
-```
-
-Parse JSON output for keywords, category, related notes.
-
-*Apply disambiguation rules first (if loaded):*
-- Check edge case mappings (explicit rules)
-- Apply key question matches (+25% boost)
-- Apply category table matches (+15% boost)
-- Apply disambiguation mismatch penalty (-20%)
-
-*Then apply generic signals:*
-- Keyword match, related notes, PARA fit, recency
-
-**4. Present batch summary table:**
-```
-Analyzing captured notes for routing...
-
-| Note | Suggested Destination | Confidence | Rule Applied |
-|------|----------------------|------------|--------------|
-| "insight about caching" | Areas/AI/agentic development/ | High (82%) | - |
-| "tmux-comma-parsing" | Areas/tool sharpening/ | High (95%) | edge case |
-| "debugging approach" | (leave in inbox) | None | - |
-
-Routing explanations:
-- "insight about caching" → keyword "claude" matches, related notes exist
-- "tmux-comma-parsing" → vault rule: tmux config → tool sharpening
-- "debugging approach" → no strong destination match
-```
-
-**5. Use AskUserQuestion:**
-
-**Question:** "How should I route these?"
-
-**Options:**
-1. Route all as suggested (Recommended)
-2. Route individually (I'll ask about each)
-3. Leave all in inbox for now
-
-**6. Execute based on selection:**
-
-For "Route all" or per-note confirmation:
-```bash
-npx @techpickles/sb note move \
-  --from "inbox/{filename}" \
-  --to "{destination-path}/"
-```
-
-**Important:** Only suggest destinations that exist (from `vault structure` output). Never suggest paths that weren't discovered.
-
-## Step 7: Batch Connection Discovery
-
-Follow `references/connecting.md` to find connections for captured notes.
-
-**1. Check prerequisites:**
-```bash
-which qmd
-```
-
-If qmd is not available, skip to Step 8 (don't fail the capture).
-
-**2. Run discovery for each captured note:**
-
-For each note, extract query terms and run `qmd query`. Filter and rank candidates per the connecting reference.
-
-**3. Collect results and present as batch:**
+**5d. Confirm:**
 
 ```
-Found connections for {M} of {N} captured notes:
-
-- {Note A title}: {count} related notes
-- {Note C title}: {count} related notes
-- {Note E title}: no connections found
-
-(A) Review and connect all
-(B) Skip connections for now
+✓ Captured {N} insights to {session-file}
 ```
 
-**4. If user picks (A):** Walk through each note's connections using the standard presentation and multi-select flow from the connecting reference. For each note:
-- Show candidates with scores and snippets
-- Let user multi-select which to connect
-- Add forward links (## Related section)
-- Offer backlink weaving
-
-**5. If user picks (B):** Skip connections, continue to daily linking.
-
-Note: Newly captured notes won't be in qmd's index yet. That's fine. We search FROM each note's content, not for it.
-
-## Step 8: Batch Link to Daily Note
-
-Follow `references/daily-linking.md` to connect all captured notes to today's daily note.
-
-**1. Get today's daily note path:**
-```bash
-npx @techpickles/sb daily path
-```
-
-**2. If daily note exists, batch-add links to `## Links` section:**
-
-Build combined content:
-```markdown
-- [[{filename1 without .md}]] - {description1}
-- [[{filename2 without .md}]] - {description2}
-- [[{filename3 without .md}]] - {description3}
-```
-
-Append all at once:
-```bash
-npx @techpickles/sb daily append \
-  --section "Links" \
-  --content "{combined-links}"
-```
-
-**3. Confirm:**
-```
-✓ Linked {N} notes to daily note: Fleeting/{date}.md
-```
-
-If daily note doesn't exist, skip silently (notes are already captured).
+Show the file path so user can find the notes later.
 
 ## Constraints
 
 - **Be selective** - Only genuinely valuable insights
 - **Categorize clearly** - Help user understand knowledge type
-- **Batch efficiently** - Don't make user go through many dialogs
 - **Clean prose** - Each insight standalone, useful months later
-- **Zettelkasten naming** - Handled by sb (YYYYMMDDHHMM title.md)
+- **Metadata included** - Capture repo, branch, bean, session topic for context
+- **Processing deferred** - Routing, connecting, and daily linking happen later via `/second-brain:process-inbox`
