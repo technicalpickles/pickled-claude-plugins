@@ -6,7 +6,7 @@ routes:
   # cat heredoc - use Write tool instead
   bash-cat-heredoc:
     tool: Bash
-    pattern: "cat\\s+.*<<[-]?\\s*['\"]?\\w+['\"]?(?!.*\\|)"
+    pattern: "(?:^|[;&|]\\s*)cat\\s+.*<<[-]?\\s*['\"]?\\w+['\"]?(?!.*\\|)"
     message: |
       Don't use cat with heredocs for file creation or display.
 
@@ -33,6 +33,18 @@ routes:
           tool_name: Bash
           tool_input:
             command: "cat <<EOF | jq .\n{\"key\": \"value\"}\nEOF"
+        expect: allow
+      - desc: "cat heredoc inside command substitution should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "jj commit -m \"$(cat <<'EOF'\nCommit message\nEOF\n)\""
+        expect: allow
+      - desc: "git commit with cat heredoc should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit -m \"$(cat <<'EOF'\nFix the bug\n\nCo-Authored-By: Claude\nEOF\n)\""
         expect: allow
 
   # chained echo - output directly instead
