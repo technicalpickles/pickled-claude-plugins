@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run --quiet --directory \"${CLAUDE_PLUGIN_ROOT}\" sandbox-plugin pre-tool-use"
+            "command": "uv run --quiet --directory \"${CLAUDE_PLUGIN_ROOT}\" sandbox-first pre-tool-use"
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run --quiet --directory \"${CLAUDE_PLUGIN_ROOT}\" sandbox-plugin post-tool-use-failure"
+            "command": "uv run --quiet --directory \"${CLAUDE_PLUGIN_ROOT}\" sandbox-first post-tool-use-failure"
           }
         ]
       }

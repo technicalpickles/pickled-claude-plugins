@@ -1,6 +1,6 @@
 """Hook decision logic for sandbox enforcement."""
 
-from sandbox_plugin.transcript import find_recent_sandboxed_failure
+from sandbox_first.transcript import find_recent_sandboxed_failure
 
 LOOKBACK = 10
 

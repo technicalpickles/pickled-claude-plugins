@@ -1,4 +1,4 @@
-# Sandbox Plugin
+# Sandbox-First Plugin
 
 Promotes sandbox-first execution in Claude Code by intercepting unnecessary unsandboxed Bash calls and surfacing sandbox failure guidance.
 
@@ -17,7 +17,7 @@ The lookback window (how many transcript entries to scan for prior failures) def
 ## Testing
 
 ```bash
-uv run --directory plugins/sandbox pytest -v
+uv run --directory plugins/sandbox-first pytest -v
 ```
 
 ## How It Works

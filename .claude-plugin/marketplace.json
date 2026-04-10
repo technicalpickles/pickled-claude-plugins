@@ -52,8 +52,8 @@
       "version": "1.2.0"
     },
     {
-      "name": "sandbox",
-      "source": "./plugins/sandbox",
+      "name": "sandbox-first",
+      "source": "./plugins/sandbox-first",
       "version": "0.1.0"
     }
   ]

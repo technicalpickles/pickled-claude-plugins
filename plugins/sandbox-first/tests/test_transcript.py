@@ -1,7 +1,7 @@
 import json
 import tempfile
 
-from sandbox_plugin.transcript import find_recent_sandboxed_failure
+from sandbox_first.transcript import find_recent_sandboxed_failure
 
 
 def write_transcript(entries):

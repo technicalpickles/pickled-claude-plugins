@@ -7,7 +7,7 @@ import sys
 def run_cli(subcommand: str, stdin_data: dict) -> subprocess.CompletedProcess:
     env = {**os.environ, "PYTHONPATH": "src"}
     return subprocess.run(
-        [sys.executable, "-m", "sandbox_plugin.cli", subcommand],
+        [sys.executable, "-m", "sandbox_first.cli", subcommand],
         input=json.dumps(stdin_data),
         capture_output=True,
         text=True,
@@ -43,7 +43,7 @@ class TestPreToolUseCLI:
         """Fail open on bad input."""
         env = {**os.environ, "PYTHONPATH": "src"}
         result = subprocess.run(
-            [sys.executable, "-m", "sandbox_plugin.cli", "pre-tool-use"],
+            [sys.executable, "-m", "sandbox_first.cli", "pre-tool-use"],
             input="not json",
             capture_output=True,
             text=True,

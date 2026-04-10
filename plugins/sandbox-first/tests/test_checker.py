@@ -1,6 +1,6 @@
 import json
 
-from sandbox_plugin.checker import check_pre_tool_use, check_post_tool_use_failure
+from sandbox_first.checker import check_pre_tool_use, check_post_tool_use_failure
 
 
 class TestCheckPreToolUse:
