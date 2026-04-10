@@ -52,6 +52,11 @@
       "version": "1.3.0"
     },
     {
+      "name": "sandbox-first",
+      "source": "./plugins/sandbox-first",
+      "version": "0.1.0"
+    },
+    {
       "name": "buildkite",
       "source": "./plugins/buildkite",
       "version": "1.0.0"
