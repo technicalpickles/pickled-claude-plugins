@@ -417,4 +417,163 @@ Task 67's plugin README can document this.
 - **Task 60** (this empirical test session): complete. All designed probes executed,
   all results documented, no hypotheses left unexamined within scope.
 
-End of results.
+End of Phase 3 results.
+
+## Phase 4 — Found data from session `0e6308b0`
+
+**Date:** 2026-04-11
+**Session JSONL:** `~/.claude/projects/-private-tmp-sandbox-clone-test/0e6308b0-aede-4048-882a-8ef6e894d93a.jsonl`
+**Cwd for entire session:** `/private/tmp/sandbox-clone-test`
+**Setup (run by user before starting Claude):**
+```
+mkdir -p /tmp/sandbox-clone-test
+cd /tmp/sandbox-clone-test
+git init
+touch readme.md && git add readme.md && git commit -m "init"
+claude
+```
+
+This is **found data** — the user ran a session for an unrelated practical task (cloning a repo inside `/tmp/sandbox-clone-test`) and the resulting tool calls happened to land on probe conditions that Phase 1/2/3 hadn't covered. Phase 4 reads the session JSONL and treats those events as additional probes. Found-data probes are weaker than designed probes because we don't control the conditions, but they're stronger than nothing and they cover gaps the designed probes left open.
+
+### The four events
+
+**Event 1 — `git clone` of `town-charter` (SSH):**
+```
+$ git clone git@github.com:technicalpickles/town-charter.git /private/tmp/sandbox-clone-test/town-charter
+Cloning into '/private/tmp/sandbox-clone-test/town-charter'...
+fatal: cannot copy '/usr/local/opt/git/share/git-core/templates/hooks/commit-msg.sample' to '/private/tmp/sandbox-clone-test/town-charter/.git/hooks/commit-msg.sample': Operation not permitted
+exit=128
+```
+**Verdict:** BLOCKED. Identical mechanism and error wording to Phase 2 P8 — `tbq()`'s `**/.git/hooks/**` glob deny. Third independent reproduction (P8, original 2026-04-09 sessions, this session).
+
+**Event 2 — `git worktree add ./.worktrees/test`:**
+```
+$ git worktree add -b test ./.worktrees/test
+Preparing worktree (new branch 'test')
+error: could not read IPC response
+HEAD is now at fbed6c8 init
+exit=0
+```
+Verified by `git worktree list`:
+```
+/private/tmp/sandbox-clone-test                  fbed6c8 [main]
+/private/tmp/sandbox-clone-test/.worktrees/test  fbed6c8 [test]
+```
+**Verdict:** SUCCEEDED. Same shape as P6 — non-fatal `IPC response` noise from blocked `fsmonitor--daemon.ipc` unix socket, then the worktree is created normally. Third independent reproduction of "worktree add works in sandbox" (P6 in `/tmp/sandbox-probe-repo`, P12 in real repo, this session in a fresh `/tmp` repo). The task 34 / task 50 multi-week claim is now disproven from three independent contexts.
+
+**Event 3 — `git clone --template=` (empty value):**
+
+First the user tried vanilla clone:
+```
+$ git clone git@github.com:technicalpickles/dotfiles.git /private/tmp/sandbox-clone-test/dotfiles
+Cloning into '/private/tmp/sandbox-clone-test/dotfiles'...
+fatal: cannot copy '/usr/local/opt/git/share/git-core/templates/hooks/commit-msg.sample' to '/private/tmp/sandbox-clone-test/dotfiles/.git/hooks/commit-msg.sample': Operation not permitted
+exit=128
+```
+(Yet another reproduction of P8.) Then the user retried with empty `--template=`:
+```
+$ git clone --template= git@github.com:technicalpickles/dotfiles.git /private/tmp/sandbox-clone-test/dotfiles
+Cloning into '/private/tmp/sandbox-clone-test/dotfiles'...
+error: could not write config file /private/tmp/sandbox-clone-test/dotfiles/.git/config: Operation not permitted
+fatal: could not set 'core.repositoryformatversion' to '0'
+exit=128
+```
+**Verdict:** Different blocker. `--template=` (empty) bypassed the hooks-template copy step (no hooks error), but then died on `.git/config` instead. **This proves `--template=` and `--template=/dev/null` are NOT equivalent for our purposes.** P13 used `--template=/dev/null` and succeeded with `.git/config` writing OK (in a non-/tmp cwd). This session's `--template=` (empty) failed on `.git/config` (in a `/tmp` cwd). The README workaround (#67) needs to specifically say `/dev/null`, not "any empty template."
+
+**Event 4 — Direct shell write to `.git/config`:**
+```
+$ pwd && mkdir -p /private/tmp/sandbox-clone-test/dotfiles-probe && echo "hello" > /private/tmp/sandbox-clone-test/dotfiles-probe/plain.txt && mkdir -p /private/tmp/sandbox-clone-test/dotfiles-probe/.git && echo "test" > /private/tmp/sandbox-clone-test/dotfiles-probe/.git/config
+/tmp/sandbox-clone-test
+(eval):1: operation not permitted: /private/tmp/sandbox-clone-test/dotfiles-probe/.git/config
+exit=1
+```
+**Verdict:** BLOCKED on the `.git/config` write specifically — note that the chained `mkdir`, `echo > plain.txt`, and `mkdir .git` all succeeded (cwd is on the user's allow-list, those are inside cwd, none of them match `tbq()`). The shell-eval EPERM shape (catalog item #2) is now confirmed in a real session, not just synthesized in our designed probes.
+
+### Phase 4 implications: the #68 puzzle is sharpened
+
+Combine events 3 and 4 with the existing `.git/config` datapoints:
+
+| Source | Cwd | Target path | Inside cwd? | Result |
+|---|---|---|---|---|
+| P4c | `/private/tmp/sandbox-probe-repo` | `./.git/config` → `<cwd>/.git/config` | Y, root | **BLOCKED** |
+| P13 | `<repo>/pickled-claude-plugins` | `/tmp/p13-clone-target/destination/.git/config` | N | **ALLOWED** |
+| Phase 4 event 3 | `/private/tmp/sandbox-clone-test` | `<cwd>/dotfiles/.git/config` | Y, subdir | **BLOCKED** |
+| Phase 4 event 4 | `/private/tmp/sandbox-clone-test` | `<cwd>/dotfiles-probe/.git/config` | Y, subdir | **BLOCKED** |
+
+**The pattern that fits all four:** `.git/config` writes are denied when the target is **inside cwd** (root or any subdirectory), allowed when **outside cwd**. The `/tmp` framing of #68's original write-up is a red herring — phase 4 has cwd inside `/tmp` AND target inside `/tmp`, and the deny still fires. What matters is the inside-vs-outside-cwd relationship, not the `/tmp` prefix.
+
+This reshapes the candidate explanations for #68:
+
+- **Mostly REFUTED:** "There's a `/tmp` blanket allow that overrides `tbq()`." Phase 4 events 3 and 4 fail on `/tmp` paths from a `/tmp` cwd. If a blanket `/tmp` allow existed, P4c, event 3, and event 4 should all have succeeded. They didn't.
+- **Still possible (sharpened):** The `tbq()` deny is recursively enforced under cwd but unbounded outside cwd. Mechanism candidates:
+  - sandbox-exec rule generation may emit `(deny file-write* (regex #"\.git/config$"))` scoped inside `(allow file-write* (subpath cwd))`. The deny only takes effect inside the allow region. Outside cwd, the path is allowed by some OTHER allow rule (e.g., user `allowWrite` or `$TMPDIR`) and the deny isn't paired with that allow.
+  - The `**/.git/config` glob in `tbq()` may be translated to a regex that only fires after a cwd-rooted match.
+  - The `tbq()` reconstruction may be missing a `(subpath cwd)` filter that scopes the deny.
+- **Still possible:** A second enforcement layer in the Claude Code runtime (separate from sandbox-exec) that checks "is this write target under cwd? If so, apply tbq() denies." This would explain the inside-vs-outside split independently of how sandbox-exec handles the rules. The 2026-04-09 "For security, Claude Code may only create or modify files in the allowed working directories" error string fits this layer's signature.
+
+The two candidates are not mutually exclusive — both could be true at once. Phase 5 below designs probes to disambiguate.
+
+### Phase 4 also gives us the third error shape in the wild
+
+The error-shape catalog originally listed three EPERM forms (tool-prefixed, shell-eval, git-wrapped). Until Phase 4, the catalog had:
+- Tool-prefixed: many examples (P1, P3, P3b, P3c, P3e, P3f, P4b, P4c, P11)
+- Shell-eval: synthesized only — no real session reproduction in Phase 1/2/3
+- Git-wrapped: P7 (`fatal: could not create leading directories`), P8 (`fatal: cannot copy ... templates`)
+
+Phase 4 fills the gaps:
+- **Shell-eval (event 4):** `(eval):1: operation not permitted: /private/tmp/sandbox-clone-test/dotfiles-probe/.git/config` — first real-session reproduction of the shell-eval form, against `.git/config`.
+- **Git-wrapped variant (event 3):** `error: could not write config file <path>: Operation not permitted` followed by `fatal: could not set 'core.repositoryformatversion' to '0'`. This is a NEW git-wrapped variant we hadn't seen before — git's error-then-fatal pair instead of a single `fatal:` line. The classifier work for #64 needs to handle both git error patterns.
+
+## Phase 5 — Designed probes for #68 (NOT YET EXECUTED)
+
+**Goal:** disambiguate "inside-cwd-recursive deny" from "second enforcement layer," and confirm that the inside-vs-outside-cwd pattern generalizes beyond `.git/config` to other `tbq()` rules.
+
+**Execution requirement:** Phase 5 must be run in a **fresh Claude session**, not in this synthesis session, for the same reason Phase 1/2/3 were each fresh — the sandbox profile is generated per-command at session start and we want a clean slate.
+
+**Setup (run before starting Claude, NOT in-session):**
+```
+rm -rf /tmp/p5-cwd-inside /tmp/p5-cwd-outside
+mkdir -p /tmp/p5-cwd-inside /tmp/p5-cwd-outside
+cd /tmp/p5-cwd-inside
+# do NOT git init - keep this as a plain dir to avoid contaminating the .git/ semantics
+claude
+```
+
+(The session will run with `cwd = /tmp/p5-cwd-inside`, equivalent to `/private/tmp/p5-cwd-inside` after `realpathSync`.)
+
+### Probe table
+
+All probes use absolute paths (not relative) to make the inside/outside-cwd analysis unambiguous. Cwd for the whole phase is `/tmp/p5-cwd-inside` ≡ `/private/tmp/p5-cwd-inside`.
+
+| # | Command | Hypothesis tested | Expected if "recursive deny under cwd" | Expected if "second runtime layer also matters" |
+|---|---|---|---|---|
+| P14 | `mkdir -p /private/tmp/p5-cwd-inside/.git && touch /private/tmp/p5-cwd-inside/.git/config` | Control: cwd-root `.git/config` (matches P4c) | BLOCK | BLOCK |
+| P15a | `mkdir -p /private/tmp/p5-cwd-inside/sub/.git && touch /private/tmp/p5-cwd-inside/sub/.git/config` | Subdir `.git/config` inside cwd (matches Phase 4 event 4) | BLOCK | BLOCK |
+| P15b | `mkdir -p /private/tmp/p5-cwd-inside/a/b/c/.git && touch /private/tmp/p5-cwd-inside/a/b/c/.git/config` | Deep subdir `.git/config` inside cwd | BLOCK | BLOCK |
+| P16 | `mkdir -p /private/tmp/p5-cwd-outside/.git && touch /private/tmp/p5-cwd-outside/.git/config` | `.git/config` OUTSIDE cwd, on a sibling `/tmp` path | ALLOW (deny is cwd-scoped) | ALLOW (path is outside cwd, runtime layer doesn't fire) |
+| P17 | `mkdir -p /private/tmp/p5-cwd-inside/sub/.git && touch /private/tmp/p5-cwd-inside/sub/.git/HEAD` | Control: subdir `.git/HEAD` (NOT in `tbq()`) inside cwd | ALLOW (HEAD is not in any deny) | ALLOW |
+| P18 | `mkdir -p /private/tmp/p5-cwd-inside/sub/.git/hooks && touch /private/tmp/p5-cwd-inside/sub/.git/hooks/test` | Subdir `.git/hooks/X` inside cwd (matches P8's destination semantics) | BLOCK | BLOCK |
+| P19 | `mkdir -p /private/tmp/p5-cwd-outside/.git/hooks && touch /private/tmp/p5-cwd-outside/.git/hooks/test` | `.git/hooks/X` OUTSIDE cwd | ALLOW (deny is cwd-scoped) | ALLOW |
+| P20 | `mkdir -p /private/tmp/p5-cwd-outside/.vscode && touch /private/tmp/p5-cwd-outside/.vscode/settings.json` | `.vscode/` OUTSIDE cwd | ALLOW (deny is cwd-scoped) | depends on layer scope |
+
+### What each result tells us
+
+- **P14 + P15a + P15b all BLOCK, P16 ALLOWS:** confirms the inside-vs-outside-cwd pattern for `.git/config`. Combined with P17 (subdir `.git/HEAD` allowed) this rules out "all `.git/` writes in subdirs are blocked" — only the `tbq()` paths are.
+- **P18 BLOCKS, P19 ALLOWS:** generalizes the inside-vs-outside pattern to `**/.git/hooks/**`. If P18 BLOCKS but P19 also BLOCKS, the deny is unbounded (not cwd-scoped) for hooks specifically — different rule generation than `.git/config`.
+- **P20 ALLOWS:** confirms `.vscode` is also cwd-scoped. If P20 BLOCKS, then the second enforcement layer probably exists and enforces dirname matches independent of cwd.
+- **Any P15* or P18 ALLOWS unexpectedly:** the inside-vs-outside hypothesis is wrong and we're back to the drawing board.
+
+### After Phase 5
+
+If Phase 5 results match the "deny is cwd-scoped" prediction across the board (all six expected outcomes), the explanation is in the sandbox-exec rule generation: `tbq()` denies are emitted as regex/subpath rules nested under or interleaved with the cwd allow, and the path is allowed by an unrelated allow rule (e.g., user `allowWrite`) outside cwd. This would mean the Phase 1 `tbq()` reverse-engineering captured the deny strings correctly but missed how `$uq()` composes them with the allow rules. Action items would be:
+
+1. Reverse-engineer `$uq()`'s emit step for `tbq()` rules — find where it actually formats them into `(deny ...)` sexprs.
+2. Update the `claude-code-sandbox-internals` memory with the corrected mechanism.
+3. Update the `tbq()` reconstruction in this doc with the missing scope info.
+4. Close task #68 with the correct explanation.
+
+If Phase 5 results show the inside/outside split holds for `.git/config` but NOT for `**/.git/hooks/**` or `.vscode/` (i.e., hooks/vscode are blocked everywhere, only config is cwd-scoped), the rule families are emitted differently and we need to account for that — possibly because the cwd-rooted absolute path version of tbq()'s rules (`path.resolve(cwd, ".git/config")`) is being treated differently from the glob version (`**/.git/config`).
+
+If Phase 5 contradicts the prediction (e.g., P16 BLOCKS too), the second enforcement layer is real and we need to grep the binary for the "allowed working directories" string and trace it back to the check that fires. That's a much bigger investigation but the results doc would update with whatever we find.
+
+End of Phase 5 design. Execute in a fresh session and append a Phase 5 results section after.
