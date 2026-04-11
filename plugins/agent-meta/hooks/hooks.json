@@ -1,0 +1,16 @@
+{
+  "description": "Inject session ID and transcript path into context when agent-meta skills are invoked",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/inject-session-context.py"
+          }
+        ]
+      }
+    ]
+  }
+}
