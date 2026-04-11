@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from sandbox_first.checker import check_pre_tool_use, check_post_tool_use_failure
 
 
@@ -99,3 +101,101 @@ class TestCheckPostToolUseFailure:
             "error": "some error",
         }
         assert check_post_tool_use_failure(hook_input) is None
+
+    # Regression tests for task 34 (false positive findings): the hook
+    # was flagging non-sandbox failures as sandbox-related, pushing the
+    # model toward dangerouslyDisableSandbox unnecessarily. These cases
+    # were witnessed in real sessions and must NOT be flagged.
+    @pytest.mark.parametrize(
+        "case,command,error",
+        [
+            (
+                "ls-enoent",
+                "ls plugins/nonexistent/",
+                "Exit code 2\nls: cannot access 'plugins/nonexistent/': No such file or directory",
+            ),
+            (
+                "git-config-write-warning",
+                "git branch -D feature",
+                "warning: unable to access '.git/config': some write warning",
+            ),
+            (
+                "git-not-a-repo",
+                "git worktree list",
+                "fatal: not a git repository: .git/refs/remotes/",
+            ),
+            (
+                "1password-ipc",
+                "op-ssh-sign",
+                "1Password IPC error: agent not running",
+            ),
+            (
+                "command-not-found",
+                "nonexistent-tool --help",
+                "bash: nonexistent-tool: command not found",
+            ),
+            (
+                "ruby-exception",
+                "ruby script.rb",
+                "script.rb:5:in `<main>': undefined method `foo' for nil:NilClass (NoMethodError)",
+            ),
+            (
+                "test-assertion-failure",
+                "pytest tests/",
+                "AssertionError: expected 3 but got 4",
+            ),
+        ],
+    )
+    def test_non_sandbox_errors_return_none(self, case, command, error):
+        """Sandboxed Bash failures with non-sandbox-shaped errors stay silent."""
+        hook_input = {
+            "tool_name": "Bash",
+            "tool_input": {"command": command},
+            "error": error,
+        }
+        assert check_post_tool_use_failure(hook_input) is None, (
+            f"case {case!r} should not be flagged as sandbox-related"
+        )
+
+    # Positive cases: errors that ARE sandbox-shaped should still get flagged.
+    @pytest.mark.parametrize(
+        "case,command,error",
+        [
+            (
+                "fs-operation-not-permitted",
+                "touch /outside",
+                "touch: cannot touch '/outside': Operation not permitted",
+            ),
+            (
+                "network-connection-refused",
+                "curl http://blocked.example.com",
+                "curl: (7) Failed to connect to blocked.example.com port 80: Connection refused",
+            ),
+            (
+                "network-could-not-resolve",
+                "curl https://blocked.example.com",
+                "curl: (6) Could not resolve host: blocked.example.com",
+            ),
+            (
+                "sandbox-exec-deny",
+                "touch /etc/foo",
+                "sandbox-exec: file-write-create /etc/foo deny",
+            ),
+            (
+                "read-only-fs",
+                "touch /usr/foo",
+                "touch: /usr/foo: Read-only file system",
+            ),
+        ],
+    )
+    def test_sandbox_shaped_errors_return_context(self, case, command, error):
+        """Sandbox-shaped errors on sandboxed calls still get the warning."""
+        hook_input = {
+            "tool_name": "Bash",
+            "tool_input": {"command": command},
+            "error": error,
+        }
+        result = check_post_tool_use_failure(hook_input)
+        assert result is not None, f"case {case!r} should be flagged"
+        ctx = result["hookSpecificOutput"]["additionalContext"]
+        assert "sandbox" in ctx.lower()
