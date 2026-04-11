@@ -127,6 +127,97 @@ tell us the layer:
 **Success criterion:** every hypothesis above is marked CONFIRMED or REFUTED
 with a direct quote of the error output.
 
+### Phase 3: real-repo and workaround probes (added 2026-04-11 after Phase 1/2 results)
+
+Phase 1 and Phase 2 ran against a fresh `/tmp/sandbox-probe-repo` and fully
+refuted H1, H1', H2, H3, H5, H6. See
+`docs/plans/2026-04-11-sandbox-empirical-test-results.md` for the primary record.
+
+But two questions remain that a fresh probe repo can't answer:
+
+1. **Task 34 originated in the `pickled-claude-plugins` repo, not a `/tmp` repo.**
+   Before closing task #63 as "not reproducible," run one more worktree-add in
+   the real repo to rule out the "something specific to this repo" hypothesis.
+2. **P8 (clone-into-subdir) failed due to `**/.git/hooks/**` deny on the
+   destination's seeded hook templates.** Test whether `git clone --template=/dev/null`
+   bypasses it, so task #67's README can document a workaround.
+
+Both probes require a fresh Claude Code session with sandbox enabled. Do not
+run these in a session that's already been brainstorming or synthesizing — the
+cognitive modes are different and results should live in their own JSONL.
+
+#### P12: real-repo `git worktree add`
+
+- **cwd:** `/Users/technicalpickles/github.com/technicalpickles/pickled-claude-plugins`
+- **Hypothesis under test:** H6/H7 (whether task 34's claim reproduces in its
+  original context)
+- **Prior art:** `.worktrees/sandbox-first-false-positives` already exists in this
+  repo — it was successfully created during the PR #54 work in a sandboxed
+  session. So there's already one unverified-but-live success. P12 is a
+  deliberate, captured reproduction of that.
+
+```bash
+# Probe
+git worktree add .worktrees/empirical-test-worktree -b empirical-test-worktree
+echo "exit=$?"
+git worktree list
+
+# Cleanup (MANDATORY — do not leave this worktree around)
+git worktree remove .worktrees/empirical-test-worktree
+git branch -D empirical-test-worktree
+```
+
+**If P12 succeeds:** close task #63 with "not reproducible in real repo; task 34
+observation was a misread." Annotate task 34 with the correction (see #62).
+
+**If P12 fails:** capture full stderr, exit code, and the specific error path.
+This would be a genuinely new finding and overrides the phase 1/2 conclusion for
+this repo specifically.
+
+#### P13: clone with `--template=/dev/null`
+
+- **cwd:** any writable dir (recommend `/tmp/sandbox-probe-repo` if still
+  present, or create a new one)
+- **Hypothesis under test:** whether `--template=/dev/null` is a valid
+  workaround for the `tbq()` `**/.git/hooks/**` deny that blocks normal `git clone`
+- **Source repo:** `/tmp/sandbox-probe-repo` from Phase 2 (has at least one
+  commit from earlier probes). Using a local source rather than GitHub
+  eliminates network and GitHub-specific variables.
+
+```bash
+# Setup
+mkdir -p /tmp/p13-clone-target
+cd /tmp/p13-clone-target
+
+# Probe
+git clone --template=/dev/null /tmp/sandbox-probe-repo destination 2>&1
+echo "exit=$?"
+
+# Sanity check (no hooks dir content, no errors)
+ls -la destination/.git/hooks/ 2>&1
+
+# Cleanup
+rm -rf /tmp/p13-clone-target
+```
+
+**If P13 succeeds:** document `--template=/dev/null` in the sandbox-first
+plugin README as the workaround for clone-into-subdir under sandbox. Feeds task
+#67 directly.
+
+**If P13 fails with the same `commit-msg.sample` error:** the deny happens even
+with no templates — probably because git populates a minimal hooks dir
+regardless. Next workaround to try: clone outside the repo first then move.
+
+**If P13 fails with a different error:** new finding, capture and re-plan.
+
+#### Phase 3 deliverables
+
+- Append results to `docs/plans/2026-04-11-sandbox-empirical-test-results.md`
+  under a new "Phase 3" section. Do not create a separate results doc — keep
+  the record together.
+- Annotate taskwarrior #63 with the P12 outcome.
+- If P13 succeeds, annotate #67 with the confirmed workaround.
+
 ## Out of scope for this session
 
 - Fixing the gaps we find (separate task)
