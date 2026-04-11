@@ -46,7 +46,9 @@ Ensure the directory exists. If using `.parkinglot/`, check it's gitignored.
 
 ## Before Writing
 
-1. Run [scripts/get-session-id.sh](scripts/get-session-id.sh) via Bash to get the current session ID. If empty, use "unknown".
+1. Get the current session ID:
+   - **Preferred:** Look for a `Session ID:` line in the PostToolUse hook context that this plugin injects when the `agent-meta:park` skill is invoked. If present, use that value. A `Transcript:` line may also be present with the path to the current conversation transcript.
+   - **Fallback:** If no injected context is visible (hook disabled, older install, etc.), run [scripts/get-session-id.sh](scripts/get-session-id.sh) via Bash. If that returns empty, use "unknown".
 2. Gather git branch, worktree path, and other context.
 
 ## Output Format
