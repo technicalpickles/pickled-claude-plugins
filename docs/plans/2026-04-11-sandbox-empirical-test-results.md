@@ -577,3 +577,198 @@ If Phase 5 results show the inside/outside split holds for `.git/config` but NOT
 If Phase 5 contradicts the prediction (e.g., P16 BLOCKS too), the second enforcement layer is real and we need to grep the binary for the "allowed working directories" string and trace it back to the check that fires. That's a much bigger investigation but the results doc would update with whatever we find.
 
 End of Phase 5 design. Execute in a fresh session and append a Phase 5 results section after.
+
+## Phase 5 — Results
+
+**Executed:** 2026-04-11 (same day, separate fresh session)
+**Claude Code version:** 2.1.87
+**Session cwd:** `/tmp/p5-cwd-inside` (resolves to `/private/tmp/p5-cwd-inside` via `realpathSync`)
+**Setup:** `/tmp/p5-cwd-inside` and `/tmp/p5-cwd-outside` were pre-created as empty directories before starting Claude, per the Phase 5 design. Neither was `git init`ed.
+
+**Note on interactive permission prompts:** the probe commands were approved one-by-one through Claude Code's permission prompt system during execution. Approvals at the permission-prompt layer affect only whether Claude is allowed to **invoke** a command — they do not grant the resulting process any additional write capability in the sandbox-exec profile. Evidence: every blocked probe still returned `Operation not permitted` after being approved through the prompt. If the approval path had relaxed the sandbox, the touches would have succeeded. The results below reflect the real sandbox-exec enforcement, not an artifact of the approval flow.
+
+### Unexpected finding before running the probes
+
+The Phase 5 design assumed `/private/tmp/p5-cwd-outside` would be writeable (as a sibling `/tmp` path), so that P16/P19/P20 could reach the `tbq()` deny layer. **This assumption was wrong.** The user's effective `write.allowOnly` list (visible in the system prompt's sandbox config) contains `"."`, `"$TMPDIR"`, `/tmp/claude`, `/private/tmp/claude`, and various user-cache paths — but **not** arbitrary `/tmp/*` siblings. `$TMPDIR` on macOS resolves to `/var/folders/...`, not `/tmp`. Therefore `/private/tmp/p5-cwd-outside` is unwriteable at a more fundamental layer than `tbq()`: the "path not on write allow-list" check fires first.
+
+Consequence: P16, P19, and P20 are blocked at the `mkdir` step by the allow-list layer, never reaching `tbq()`. Phase 5 therefore **cannot directly disambiguate** "cwd-scoped `tbq()` deny" from "unbounded `tbq()` deny" using this setup. To test that cleanly, a future Phase 5b would need to use an allow-listed path outside cwd — for example `$TMPDIR`, `/Users/technicalpickles/.cache/bktide`, or any of the cache paths in `write.allowOnly`. The results below still produce sharp signal for the *inside-cwd recursion* question (which P14/P15a/P15b/P17/P18 answer directly) and for error-shape cataloging.
+
+### Probe execution — each probe as two Bash calls (mkdir, then touch), stderr captured verbatim
+
+#### P14 — cwd-root `.git/config` (control, matches P4c)
+
+```
+$ mkdir -p /private/tmp/p5-cwd-inside/.git
+EXIT=0
+$ touch /private/tmp/p5-cwd-inside/.git/config
+touch: cannot touch '/private/tmp/p5-cwd-inside/.git/config': Operation not permitted
+EXIT=1
+```
+
+**Verdict:** BLOCKED. Matches the expected outcome. Reproduces P4c in a fresh cwd/session, confirming `tbq()`'s `.git/config` deny applies at cwd root.
+
+#### P15a — subdir `.git/config` (one level deep, inside cwd)
+
+```
+$ mkdir -p /private/tmp/p5-cwd-inside/sub/.git
+EXIT=0
+$ touch /private/tmp/p5-cwd-inside/sub/.git/config
+touch: cannot touch '/private/tmp/p5-cwd-inside/sub/.git/config': Operation not permitted
+EXIT=1
+```
+
+**Verdict:** BLOCKED. This is the key result for the #68 puzzle: `tbq()`'s `**/.git/config` glob is **recursive within cwd**, not just cwd-root. Matches Phase 4 event 4 (the shell-eval write at `/private/tmp/sandbox-clone-test/dotfiles-probe/.git/config`).
+
+#### P15b — deep subdir `.git/config` (three levels deep, inside cwd)
+
+```
+$ mkdir -p /private/tmp/p5-cwd-inside/a/b/c/.git
+EXIT=0
+$ touch /private/tmp/p5-cwd-inside/a/b/c/.git/config
+touch: cannot touch '/private/tmp/p5-cwd-inside/a/b/c/.git/config': Operation not permitted
+EXIT=1
+```
+
+**Verdict:** BLOCKED. Confirms `**/.git/config` applies at arbitrary depth inside cwd. No depth-limit in the glob.
+
+#### P16 — `.git/config` outside cwd (sibling `/tmp` path)
+
+```
+$ mkdir -p /private/tmp/p5-cwd-outside/.git
+mkdir: cannot create directory ‘/private/tmp/p5-cwd-outside/.git’: Operation not permitted
+EXIT=1
+$ touch /private/tmp/p5-cwd-outside/.git/config
+touch: cannot touch '/private/tmp/p5-cwd-outside/.git/config': No such file or directory
+EXIT=1
+```
+
+**Verdict:** BLOCKED, but **not by `tbq()`**. The `mkdir` fails because `/private/tmp/p5-cwd-outside` is not on the user's write allow-list (no `/tmp/*` blanket, no match against `.` or `$TMPDIR`). The subsequent `touch` reports `No such file or directory` because the `.git` parent dir was never created — this is the filesystem complaining about the missing parent, not a sandbox-exec deny. **Does not answer the #68 question** (inside-vs-outside for `tbq()`), because the path is blocked at a more restrictive layer.
+
+#### P17 — subdir `.git/HEAD` (control: HEAD is not in `tbq()`)
+
+```
+$ mkdir -p /private/tmp/p5-cwd-inside/sub/.git
+EXIT=0    # same dir as P15a, idempotent
+$ touch /private/tmp/p5-cwd-inside/sub/.git/HEAD
+EXIT=0
+```
+
+**Verdict:** **ALLOWED.** Crucial negative control: it rules out "all `.git/` writes in cwd subdirs are blocked." Only the specific `tbq()` paths (`.git/config`, `.git/hooks/**`) are denied; everything else under `.git/` — HEAD, index, refs, objects, worktrees, packed-refs, etc. — is writeable via the cwd allow-subpath. This matches the Phase 1 `tbq()` source reconstruction and Phase 2 P5/P5b/P5c at cwd root, now confirmed at depth 1.
+
+#### P18 — subdir `.git/hooks/test` (inside cwd)
+
+```
+$ mkdir -p /private/tmp/p5-cwd-inside/sub/.git/hooks
+EXIT=0    # mkdir of the hooks DIRECTORY succeeded
+$ touch /private/tmp/p5-cwd-inside/sub/.git/hooks/test
+touch: cannot touch '/private/tmp/p5-cwd-inside/sub/.git/hooks/test': Operation not permitted
+EXIT=1
+```
+
+**Verdict:** BLOCKED on the file write. But note the **asymmetry**: the `mkdir -p sub/.git/hooks` step **succeeded**. This is a new finding not previously documented. The reason:
+
+- `tbq()`'s absolute-path entry is `path.resolve(cwd, ".git/hooks")` — matches only `<cwd>/.git/hooks`, not `<cwd>/sub/.git/hooks`. So the absolute rule doesn't fire at depth > 0.
+- `tbq()`'s glob entry is `**/.git/hooks/**` — with a trailing `/**` that matches **contents** of a `.git/hooks` directory, not the directory entry itself.
+- Together: at any depth > 0 inside cwd, you can `mkdir` the `.git/hooks` directory, but you cannot put a file into it.
+
+At cwd root the absolute rule still prevents even `mkdir .git/hooks` (confirmed indirectly by Phase 2 P4b using a pre-existing `.git/hooks/` from `git init`). But subdirectory `.git/hooks/` can be *created*, just not *populated*. This refines `tbq()` understanding and has implications for tools that check "can I make a hooks dir" as a proxy for "am I allowed to install hooks."
+
+#### P19 — `.git/hooks/test` outside cwd
+
+```
+$ mkdir -p /private/tmp/p5-cwd-outside/.git/hooks
+mkdir: cannot create directory ‘/private/tmp/p5-cwd-outside/.git’: Operation not permitted
+EXIT=1
+$ touch /private/tmp/p5-cwd-outside/.git/hooks/test
+touch: cannot touch '/private/tmp/p5-cwd-outside/.git/hooks/test': No such file or directory
+EXIT=1
+```
+
+**Verdict:** BLOCKED by the allow-list layer, same mechanism as P16. **Does not answer** whether `tbq()`'s `**/.git/hooks/**` glob is cwd-scoped — the allow-list deny fires before `tbq()` is consulted.
+
+#### P20 — `.vscode/settings.json` outside cwd
+
+```
+$ mkdir -p /private/tmp/p5-cwd-outside/.vscode
+mkdir: cannot create directory ‘/private/tmp/p5-cwd-outside/.vscode’: Operation not permitted
+EXIT=1
+$ touch /private/tmp/p5-cwd-outside/.vscode/settings.json
+touch: cannot touch '/private/tmp/p5-cwd-outside/.vscode/settings.json': No such file or directory
+EXIT=1
+```
+
+**Verdict:** BLOCKED by the allow-list layer. Same story. **Does not answer** whether `.vscode` `tbq()` deny is cwd-scoped.
+
+### Summary table
+
+| # | Operation | Expected (recursive-deny hypothesis) | Actual | Layer that blocked |
+|---|---|---|---|---|
+| P14 | cwd-root `.git/config` | BLOCK | **BLOCK** | `tbq()` (`.git/config`) |
+| P15a | cwd subdir `.git/config` depth 1 | BLOCK | **BLOCK** | `tbq()` (`**/.git/config` glob recursive) |
+| P15b | cwd subdir `.git/config` depth 3 | BLOCK | **BLOCK** | `tbq()` (same glob, deeper) |
+| P16 | outside-cwd sibling `/tmp` `.git/config` | ALLOW | BLOCK (mkdir) | **write allow-list** (not `tbq()`) |
+| P17 | cwd subdir `.git/HEAD` (control) | ALLOW | **ALLOW** | n/a — HEAD not in `tbq()` |
+| P18 | cwd subdir `.git/hooks/test` | BLOCK | **BLOCK** (file); mkdir allowed | `tbq()` (`**/.git/hooks/**` glob) |
+| P19 | outside-cwd sibling `/tmp` `.git/hooks/test` | ALLOW | BLOCK (mkdir) | **write allow-list** (not `tbq()`) |
+| P20 | outside-cwd sibling `/tmp` `.vscode/settings.json` | ALLOW | BLOCK (mkdir) | **write allow-list** (not `tbq()`) |
+
+### Error-shape observations
+
+Three distinct stderr shapes appeared in Phase 5:
+
+1. **Tool-prefixed EPERM (GNU coreutils, ASCII quotes)** — from `touch`:
+   `touch: cannot touch '/private/tmp/p5-cwd-inside/.git/config': Operation not permitted`
+2. **Tool-prefixed EPERM (GNU coreutils, SMART quotes)** — from `mkdir`:
+   `mkdir: cannot create directory ‘/private/tmp/p5-cwd-outside/.git’: Operation not permitted`
+   The smart-quote characters (`‘ ’`, U+2018/U+2019) are how this `mkdir` build reports paths in errors. **The sandbox-first error classifier should match on a regex that accepts either `'...'` or `‘...’` around the path.** Any signature that only anchors on ASCII `'` will miss `mkdir` errors.
+3. **Filesystem ENOENT cascading from an earlier sandbox block** — when `mkdir` was denied, the follow-up `touch` reports `No such file or directory` for a *parent* that does not exist. This is NOT a sandbox error directly, but in a real workflow it looks like one because the root cause is still a sandbox deny further up the chain. The classifier will need to handle "chain errors" where a sandbox deny manifests later as ENOENT. This is a new category not represented in Phase 2's three-shape catalog.
+
+### What Phase 5 proves (and what it doesn't)
+
+**Proves:**
+
+- `tbq()`'s `**/.git/config` glob applies recursively within cwd at any depth (P14, P15a, P15b).
+- `tbq()`'s `**/.git/hooks/**` glob applies recursively within cwd at depth > 0, but with an asymmetry: the `.git/hooks` directory entry itself can be created at depth > 0, only its children are denied (P18).
+- Non-`tbq()` files under `.git/` (HEAD, and by extension anything not in the `tbq()` list) remain writeable even in cwd subdirs at arbitrary depth (P17).
+- Error shapes vary by reporting tool: `touch` uses ASCII quotes, `mkdir` uses smart quotes, and cascading ENOENT is a new error category the classifier must handle.
+- Interactive permission-prompt approvals do NOT grant sandbox-exec write capabilities — the prompt and the sandbox are independent layers.
+
+**Does NOT prove (scope gap):**
+
+- Whether `tbq()` denies are cwd-scoped vs unbounded across the filesystem. The Phase 5 design assumed `/private/tmp/p5-cwd-outside` would reach the `tbq()` layer; it doesn't, because the path is outside the user's `write.allowOnly` list. A second-layer "allowed working directories" check (if it exists) can also not be ruled in or out from this data.
+
+### Updated recommendation for #68
+
+The #68 puzzle (is the `tbq()` deny inside-vs-outside-cwd, or is something else going on?) is **still open** after Phase 5, but Phase 5 narrows the candidate mechanisms:
+
+- **Newly RULED OUT: "Only cwd-root `tbq()` paths are denied."** P15a and P15b conclusively show the glob fires at arbitrary depth inside cwd. So the deny is *not* just cwd-root.
+- **Newly RULED OUT: "The absolute-path rule covers cwd-root and the glob covers everything."** P18 shows the glob applies inside cwd subdirs, but the mkdir-asymmetry shows the glob does NOT cover the directory entry itself — only its children. The rule semantics are more fine-grained than previously modeled.
+- **Still open: is the glob bounded by a `(subpath cwd)` allow-region?** The Phase 3 P13 datapoint (`.git/config` write OUTSIDE the session's cwd that succeeded) is now the only evidence for this. P13's target was `/tmp/p13-clone-target/destination/.git/config` and that succeeded — but that session may have had different `allowOnly` entries, OR git's clone may use a syscall pattern that bypasses the deny. Phase 5 could not re-test this directly because our outside-cwd path was unreachable.
+
+### Phase 5b design (not executed, filed as follow-up)
+
+To cleanly test the inside-vs-outside `tbq()` hypothesis, a future session should use an **allow-listed path** outside cwd. Candidate: run with cwd `/tmp/p5-cwd-inside` and probe `$TMPDIR/p5-tbq-probe/.git/config`. The `$TMPDIR` path is on `write.allowOnly`, so the allow-list layer won't fire, and we can observe whether `tbq()` still denies. If `tbq()` denies there, the rule is unbounded; if it allows, the rule is cwd-scoped. This is the follow-up that resolves #68.
+
+### Follow-ups added (to file as taskwarrior entries)
+
+1. **#68 refinement:** Phase 5 narrowed the hypothesis space but didn't resolve it. Design a Phase 5b probe using an allow-listed outside-cwd path (e.g., `$TMPDIR/...`) to directly test `tbq()` scope.
+2. **sandbox-first classifier update:** add the `mkdir` smart-quote error shape (`‘path’`) alongside the `touch` ASCII-quote shape (`'path'`) in `SANDBOX_ERROR_SIGNATURES`. Also add a "cascading ENOENT" category for the case where a failed sandbox-exec `mkdir` causes a subsequent command to emit `No such file or directory`.
+3. **sandbox-internals memory update:** document the `.git/hooks/` mkdir-vs-write asymmetry at depth > 0 (mkdir allowed, child writes denied). Document that `tbq()`'s `**/.git/config` and `**/.git/hooks/**` globs are recursive within cwd at arbitrary depth.
+4. **Phase 5 design note:** the "sibling `/tmp` path as outside-cwd" framing is unreliable because `/tmp/*` is not blanket-allowed. Future probe designs that need "outside cwd but still writeable" must use paths from the user's explicit `write.allowOnly` list.
+
+### Final state
+
+Files and dirs created in `/private/tmp/p5-cwd-inside`:
+```
+/private/tmp/p5-cwd-inside/.git/                  (empty, mkdir from P14)
+/private/tmp/p5-cwd-inside/sub/.git/              (mkdir from P15a/P17)
+/private/tmp/p5-cwd-inside/sub/.git/HEAD          (touch from P17, the only file created)
+/private/tmp/p5-cwd-inside/sub/.git/hooks/        (empty dir, mkdir from P18)
+/private/tmp/p5-cwd-inside/a/b/c/.git/            (empty, mkdir from P15b)
+```
+
+`/private/tmp/p5-cwd-outside` is still empty — all mkdirs against it were blocked by the allow-list layer.
+
+No cleanup performed; the Phase 5 design doesn't mandate it, and both directories are throwaway `/tmp` scratch space. If a Phase 5b runs in the same session these can be reused or re-created fresh depending on probe needs.
+
+End of Phase 5 results.
