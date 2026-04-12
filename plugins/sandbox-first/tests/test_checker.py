@@ -186,6 +186,36 @@ class TestCheckPostToolUseFailure:
                 "touch /usr/foo",
                 "touch: /usr/foo: Read-only file system",
             ),
+            (
+                "mkdir-operation-not-permitted",
+                "mkdir .vscode",
+                "mkdir: cannot create directory '.vscode': Operation not permitted",
+            ),
+            (
+                "mkdir-smart-quote-variant",
+                "mkdir -p /tmp/outside/.git",
+                "mkdir: \u2018/tmp/outside/.git\u2019: Operation not permitted",
+            ),
+            (
+                "shell-eval-operation-not-permitted",
+                "sh -c 'touch /path/.git/config'",
+                "(eval):1: operation not permitted: /private/tmp/sandbox-clone-test/dotfiles-probe/.git/config",
+            ),
+            (
+                "git-single-fatal-leading-dirs",
+                "git worktree add ../outside-wt -b probe",
+                "Preparing worktree (new branch 'probe')\nfatal: could not create leading directories of '../outside-wt/.git': Operation not permitted",
+            ),
+            (
+                "git-single-fatal-copy-templates",
+                "git clone /src /tmp/outside/dest",
+                "fatal: cannot copy '/usr/share/git-core/templates/hooks/pre-commit.sample' to '/tmp/outside/dest/.git/hooks/pre-commit.sample': Operation not permitted",
+            ),
+            (
+                "git-error-then-fatal-pair",
+                "git clone /src /tmp/outside/dest",
+                "error: could not write config file /tmp/outside/dest/.git/config: Operation not permitted\nfatal: could not set 'core.repositoryformatversion' to '0'",
+            ),
         ],
     )
     def test_sandbox_shaped_errors_return_context(self, case, command, error):

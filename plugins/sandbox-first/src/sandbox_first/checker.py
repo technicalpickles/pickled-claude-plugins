@@ -27,6 +27,23 @@ FAILURE_CONTEXT = (
 # sandbox-warning context when the error clearly matches one of these
 # signatures. Everything else (command-not-found, ENOENT, git warnings, test
 # assertion failures, application exceptions, etc.) stays silent.
+#
+# Covered EPERM shapes (empirical — from sandbox test sessions):
+#   - tool-prefixed:   touch: cannot touch 'path': Operation not permitted
+#                      mkdir: cannot create directory 'path': Operation not permitted
+#                      mkdir: \u2018path\u2019: Operation not permitted  (smart-quote variant)
+#   - shell-eval:      (eval):1: operation not permitted: /path
+#   - git single-fatal: fatal: could not create leading directories of '.git': Operation not permitted
+#                       fatal: cannot copy 'src' to 'dst': Operation not permitted
+#   - git error+fatal: error: could not write config file <path>: Operation not permitted
+#                      fatal: could not set 'core.repositoryformatversion' to '0'
+#                      (second fatal line is paired with the first; matched together)
+#
+# NOT covered by design:
+#   - cascading ENOENT: a blocked sandbox mkdir causes a *subsequent* command to emit
+#     "No such file or directory" without any EPERM. Matching "no such file or directory"
+#     would catch real ENOENT errors (missing files, bad paths) as false positives, so
+#     this case requires transcript-level context to detect safely.
 SANDBOX_ERROR_SIGNATURES = (
     "operation not permitted",
     "sandbox-exec",
