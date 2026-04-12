@@ -23,6 +23,7 @@ Code binary**, not sourced from user config:
 - **`.git/config` — denied** (unless `allowGitConfig=true`, which defaults to `false`)
 - **`.git/` — NOT denied.** Everything else under `.git/` (HEAD, index, refs, worktrees, objects, packed-refs, etc.) is writable if `.` is on the write allow-list.
 - Dotfiles denied anywhere: `.gitconfig, .gitmodules, .bashrc, .bash_profile, .zshrc, .zprofile, .profile, .ripgreprc, .mcp.json`
+- **All `tbq()` denies are cwd-scoped.** Writes to paths outside the current working directory (e.g., `$TMPDIR`) are completely unaffected by `tbq()` rules — even if those paths match a deny glob. The denies are nested inside the cwd allow-subpath block in the sandbox profile, so they only fire within that allow region. (Confirmed by Phase 5b: P22-P25 all ALLOW.)
 
 **And the headline empirical result:** `git worktree add .worktrees/probe-inside`
 **SUCCEEDED** inside the sandbox. The long-standing claim in task 34 / task 50 / PR #54
@@ -745,13 +746,13 @@ The #68 puzzle (is the `tbq()` deny inside-vs-outside-cwd, or is something else 
 - **Newly RULED OUT: "The absolute-path rule covers cwd-root and the glob covers everything."** P18 shows the glob applies inside cwd subdirs, but the mkdir-asymmetry shows the glob does NOT cover the directory entry itself — only its children. The rule semantics are more fine-grained than previously modeled.
 - **Still open: is the glob bounded by a `(subpath cwd)` allow-region?** The Phase 3 P13 datapoint (`.git/config` write OUTSIDE the session's cwd that succeeded) is now the only evidence for this. P13's target was `/tmp/p13-clone-target/destination/.git/config` and that succeeded — but that session may have had different `allowOnly` entries, OR git's clone may use a syscall pattern that bypasses the deny. Phase 5 could not re-test this directly because our outside-cwd path was unreachable.
 
-### Phase 5b design (not executed, filed as follow-up)
+### Phase 5b design (executed — see Phase 5b results below)
 
-To cleanly test the inside-vs-outside `tbq()` hypothesis, a future session should use an **allow-listed path** outside cwd. Candidate: run with cwd `/tmp/p5-cwd-inside` and probe `$TMPDIR/p5-tbq-probe/.git/config`. The `$TMPDIR` path is on `write.allowOnly`, so the allow-list layer won't fire, and we can observe whether `tbq()` still denies. If `tbq()` denies there, the rule is unbounded; if it allows, the rule is cwd-scoped. This is the follow-up that resolves #68.
+To cleanly test the inside-vs-outside `tbq()` hypothesis, the probe used an **allow-listed path** outside cwd: cwd set to a `$TMPDIR`-resolved path, with outside-cwd targets also under `$TMPDIR`. The `$TMPDIR` path is on `write.allowOnly`, so the allow-list layer won't fire, and we can observe whether `tbq()` still denies. Phase 5b ran these probes and confirmed the cwd-scoped hypothesis (P22-P25 all ALLOW; P21 inside-cwd BLOCK).
 
 ### Follow-ups added (to file as taskwarrior entries)
 
-1. **#68 refinement:** Phase 5 narrowed the hypothesis space but didn't resolve it. Design a Phase 5b probe using an allow-listed outside-cwd path (e.g., `$TMPDIR/...`) to directly test `tbq()` scope.
+1. ~~**#68 refinement:** Phase 5 narrowed the hypothesis space but didn't resolve it. Design a Phase 5b probe using an allow-listed outside-cwd path (e.g., `$TMPDIR/...`) to directly test `tbq()` scope.~~ **Done — Phase 5b executed and confirmed cwd-scoped theory.**
 2. **sandbox-first classifier update:** add the `mkdir` smart-quote error shape (`‘path’`) alongside the `touch` ASCII-quote shape (`'path'`) in `SANDBOX_ERROR_SIGNATURES`. Also add a "cascading ENOENT" category for the case where a failed sandbox-exec `mkdir` causes a subsequent command to emit `No such file or directory`.
 3. **sandbox-internals memory update:** document the `.git/hooks/` mkdir-vs-write asymmetry at depth > 0 (mkdir allowed, child writes denied). Document that `tbq()`'s `**/.git/config` and `**/.git/hooks/**` globs are recursive within cwd at arbitrary depth.
 4. **Phase 5 design note:** the "sibling `/tmp` path as outside-cwd" framing is unreliable because `/tmp/*` is not blanket-allowed. Future probe designs that need "outside cwd but still writeable" must use paths from the user's explicit `write.allowOnly` list.
@@ -871,5 +872,7 @@ P22 **ALLOWED**. All four outside-cwd probes (P22, P23, P24, P25) succeeded with
 Phase 5b conclusively rules out the "unbounded deny" hypothesis. The `tbq()` deny globs fire only when the write target is under cwd. Writes to `$TMPDIR` (or any other path on the write allow-list that isn't under cwd) are completely unaffected by the `tbq()` rules.
 
 The mechanism is almost certainly that sandbox-exec rule generation scopes the `tbq()` deny sexprs inside the cwd allow block. A deny nested under a subpath allow only applies within that allow region. Outside cwd, the `$TMPDIR` write-allow has no paired deny, so all writes through it pass cleanly.
+
+**Note on Phase 2 P1:** P1 (`touch /tmp/sandbox-test-3049` blocked from cwd `/private/tmp/sandbox-probe-repo`) is now fully attributed: the block was the allow-list layer (`/tmp` is not on the session's `write.allowOnly`), not a `tbq()` deny. `tbq()` was never consulted. P1 is consistent with the cwd-scoped theory and adds no contradiction.
 
 End of Phase 5b results.
