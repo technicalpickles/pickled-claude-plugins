@@ -772,3 +772,104 @@ Files and dirs created in `/private/tmp/p5-cwd-inside`:
 No cleanup performed; the Phase 5 design doesn't mandate it, and both directories are throwaway `/tmp` scratch space. If a Phase 5b runs in the same session these can be reused or re-created fresh depending on probe needs.
 
 End of Phase 5 results.
+
+## Phase 5b — Results
+
+**Session ID:** `062c3ecc-fa5a-42ca-bed3-8d372e3e724b`
+**Cwd for this session:** `/private/var/folders/1l/vbwdywv12rbglq1pg_c98dfc0000gn/T/p5b-cwd`
+
+### Pre-probe notes
+
+The probe design specified `/private/tmp/p5b-cwd` as the inside-cwd path for P21, assuming the session would be started from `/tmp/p5b-cwd`. The actual session cwd resolved via `realpathSync` to `/private/var/folders/1l/vbwdywv12rbglq1pg_c98dfc0000gn/T/p5b-cwd` (macOS places new temp dirs in `$TMPDIR/../..` rather than `/private/tmp`). P21 was adapted to use the actual cwd path — the inside-vs-outside semantics are preserved.
+
+`$TMPDIR` confirmed as `/tmp/claude-501` (shell) → `/private/tmp/claude-501` (realpathSync). All P22-P25 probe paths use the expanded realpath form.
+
+---
+
+### P21 — control, inside cwd, `.git/config` (expect BLOCK)
+
+```
+$ mkdir -p /private/var/folders/1l/vbwdywv12rbglq1pg_c98dfc0000gn/T/p5b-cwd/.git
+exit=0
+
+$ touch /private/var/folders/1l/vbwdywv12rbglq1pg_c98dfc0000gn/T/p5b-cwd/.git/config
+touch: cannot touch '/private/var/folders/1l/vbwdywv12rbglq1pg_c98dfc0000gn/T/p5b-cwd/.git/config': Operation not permitted
+exit=1
+```
+
+**Result: BLOCKED** (tool-prefixed EPERM, exit=1)
+
+---
+
+### P22 — key probe, `.git/config` outside cwd in `$TMPDIR`
+
+```
+$ mkdir -p /private/tmp/claude-501/p5b-probe/.git
+exit=0
+
+$ touch /private/tmp/claude-501/p5b-probe/.git/config
+exit=0
+```
+
+**Result: ALLOWED** (exit=0, no error)
+
+---
+
+### P23 — control, plain file in `$TMPDIR` (expect ALLOW)
+
+```
+$ touch /private/tmp/claude-501/p5b-probe/plain.txt
+exit=0
+```
+
+**Result: ALLOWED** (exit=0, no error)
+
+---
+
+### P24 — `.vscode/settings.json` outside cwd in `$TMPDIR`
+
+```
+$ mkdir -p /private/tmp/claude-501/p5b-probe/.vscode
+exit=0
+
+$ touch /private/tmp/claude-501/p5b-probe/.vscode/settings.json
+exit=0
+```
+
+**Result: ALLOWED** (exit=0, no error)
+
+---
+
+### P25 — `.git/hooks/test` outside cwd in `$TMPDIR`
+
+```
+$ mkdir -p /private/tmp/claude-501/p5b-probe/.git/hooks
+exit=0
+
+$ touch /private/tmp/claude-501/p5b-probe/.git/hooks/test
+exit=0
+```
+
+**Result: ALLOWED** (exit=0, no error)
+
+---
+
+### Summary table
+
+| Probe | Target | Inside cwd? | Expected | Actual |
+|---|---|---|---|---|
+| P21 | `<cwd>/.git/config` | Y | BLOCK | **BLOCK** |
+| P22 | `$TMPDIR/p5b-probe/.git/config` | N | ALLOW (if cwd-scoped) | **ALLOW** |
+| P23 | `$TMPDIR/p5b-probe/plain.txt` | N | ALLOW (control) | **ALLOW** |
+| P24 | `$TMPDIR/p5b-probe/.vscode/settings.json` | N | ALLOW (if cwd-scoped) | **ALLOW** |
+| P25 | `$TMPDIR/p5b-probe/.git/hooks/test` | N | ALLOW (if cwd-scoped) | **ALLOW** |
+
+### Verdict
+
+P22 **ALLOWED**. All four outside-cwd probes (P22, P23, P24, P25) succeeded with exit=0 and no stderr. The deny is definitively **cwd-scoped** for all three `tbq()` rule families tested: `**/.git/config`, `.vscode/`, and `**/.git/hooks/**`.
+
+Phase 5b conclusively rules out the "unbounded deny" hypothesis. The `tbq()` deny globs fire only when the write target is under cwd. Writes to `$TMPDIR` (or any other path on the write allow-list that isn't under cwd) are completely unaffected by the `tbq()` rules.
+
+The mechanism is almost certainly that sandbox-exec rule generation scopes the `tbq()` deny sexprs inside the cwd allow block. A deny nested under a subpath allow only applies within that allow region. Outside cwd, the `$TMPDIR` write-allow has no paired deny, so all writes through it pass cleanly.
+
+End of Phase 5b results.
