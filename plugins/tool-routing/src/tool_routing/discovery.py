@@ -1,5 +1,7 @@
 """Manifest-driven route discovery using Claude CLI."""
 
+from __future__ import annotations
+
 import json
 import subprocess
 from pathlib import Path
