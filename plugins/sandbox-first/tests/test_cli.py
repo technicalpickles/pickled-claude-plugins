@@ -76,6 +76,16 @@ class TestPostToolUseFailureCLI:
         assert result.returncode == 0
         assert result.stdout.strip() == ""
 
+    def test_non_sandbox_error_on_sandboxed_call_exits_0_no_output(self):
+        """Regression: sandboxed Bash failure with non-sandbox error stays silent."""
+        result = run_cli("post-tool-use-failure", {
+            "tool_name": "Bash",
+            "tool_input": {"command": "ls plugins/nonexistent/"},
+            "error": "ls: cannot access 'plugins/nonexistent/': No such file or directory",
+        })
+        assert result.returncode == 0
+        assert result.stdout.strip() == ""
+
     def test_unknown_subcommand_exits_0(self):
         result = run_cli("unknown-thing", {
             "tool_name": "Bash",
