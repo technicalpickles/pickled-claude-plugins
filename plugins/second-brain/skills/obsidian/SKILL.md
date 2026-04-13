@@ -104,3 +104,5 @@ For methodology (tool-agnostic):
 - `references/note-patterns.md` - Note templates
 - `references/routing.md` - Routing algorithm with disambiguation support
 - `references/daily-linking.md` - Linking captured notes to daily note
+- `references/pipeline.md` - Processing pipeline stages and status flow
+- `references/routing-memory.md` - Routing correction and learning loop

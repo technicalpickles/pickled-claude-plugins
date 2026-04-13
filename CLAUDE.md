@@ -137,6 +137,23 @@ fix(ci-cd-tools): handle timeout # → patch bump
 chore: update deps               # → no bump
 ```
 
+### Commit Scope Rules
+
+Scope must match `[a-z0-9-]+` (lowercase letters, numbers, hyphens only).
+
+**Valid scopes:**
+- `feat(git): ...` - single plugin name
+- `fix(ci-cd-tools): ...` - plugin with hyphens
+- `fix: ...` - no scope (for cross-cutting changes)
+
+**Invalid scopes:**
+- `fix(ci-cd-tools,dev-tools): ...` - commas not allowed
+- `fix(CI-CD): ...` - uppercase not allowed
+
+For changes touching multiple plugins, either:
+1. Use no scope: `fix: use markdown links in skills`
+2. Make separate commits per plugin
+
 Version bumps happen automatically when PRs are approved.
 
 → Full details: [`docs/versioning.md`](docs/versioning.md)
@@ -147,6 +164,22 @@ Version bumps happen automatically when PRs are approved.
 - `plugins/tool-routing/docs/route-discovery.md` - How routes are found and merged
 - `plugins/tool-routing/docs/tests/` - Test scenarios and baseline results
 - `plugins/tool-routing/docs/retrospectives/` - Investigation notes
+
+## Skill Authoring
+
+### Referencing Files in Skills
+
+In SKILL.md files, use standard markdown links to reference other files:
+
+```markdown
+# Correct - standard markdown link
+See [references/index.md](references/index.md) for complete list.
+
+# Wrong - @ imports only work in CLAUDE.md, not SKILL.md
+See `@references/index.md` for complete list.
+```
+
+The `@path/to/file` import syntax is a CLAUDE.md-specific feature. In SKILL.md files, Claude reads linked files on demand using progressive disclosure.
 
 ## Contributing
 

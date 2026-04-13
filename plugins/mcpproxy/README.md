@@ -23,6 +23,8 @@ Use when working with MCPProxy and MCP tools - detecting connection status, disc
 
 ## Installation
 
+Requires the [pickled-claude-plugins marketplace](../../README.md#installation). Then:
+
 ```bash
 /plugin install mcpproxy@pickled-claude-plugins
 ```

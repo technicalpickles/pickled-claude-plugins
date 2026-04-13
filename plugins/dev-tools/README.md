@@ -2,6 +2,14 @@
 
 Developer productivity tools and utilities.
 
+## Installation
+
+Requires the [pickled-claude-plugins marketplace](../../README.md#installation). Then:
+
+```bash
+/plugin install dev-tools@pickled-claude-plugins
+```
+
 ## Skills
 
 ### working-in-scratch-areas

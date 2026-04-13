@@ -1,0 +1,29 @@
+# Tool routes for the buildkite plugin
+# Prevents WebFetch on Buildkite URLs, redirects to the skill
+
+routes:
+  # Buildkite build URLs - use the investigating-builds skill
+  buildkite:
+    tool: WebFetch
+    pattern: "https?://buildkite\\.com/[^/]+/[^/]+/builds/\\d+"
+    message: |
+      Do not use WebFetch for Buildkite build URLs.
+
+      Instead, invoke the buildkite:investigating-builds skill,
+      which will guide you to use `npx bktide@latest snapshot <url>`.
+
+      bktide snapshot parses Buildkite URLs automatically and downloads
+      build metadata, annotations, and logs for failed steps to local files.
+    tests:
+      - desc: "build URL should block"
+        input:
+          tool_name: WebFetch
+          tool_input:
+            url: "https://buildkite.com/myorg/mypipeline/builds/123"
+        expect: block
+      - desc: "pipeline URL should allow"
+        input:
+          tool_name: WebFetch
+          tool_input:
+            url: "https://buildkite.com/myorg/mypipeline"
+        expect: allow

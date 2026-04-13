@@ -4,21 +4,20 @@ description: Start an iterative CI fix session - investigate failures, apply fix
 
 # Fix CI Failures
 
-Start an iterative CI debugging session. This command helps you systematically investigate and fix CI failures through a structured workflow.
+Start an iterative CI debugging session. Systematically investigate and fix CI failures through a structured loop: investigate → fix → verify locally → push → check → iterate.
+
+This command orchestrates the debugging loop. For all Buildkite interaction (fetching builds, reading logs, monitoring), use the `investigating-builds` skill workflows and tool hierarchy.
 
 ## Arguments
 
 - **URL** (optional): Buildkite build URL to start investigating
 - If no URL provided, infer from current branch
 
-## Step 1: Determine the Build to Investigate
+## Step 1: Determine the Build
 
 ### If URL provided:
 
-Parse the Buildkite URL to extract:
-- Organization slug
-- Pipeline slug
-- Build number
+Use the `investigating-builds` skill's "Investigating a Build from URL" workflow — `bktide snapshot` parses any Buildkite URL automatically.
 
 ### If no URL provided:
 
@@ -27,32 +26,24 @@ Parse the Buildkite URL to extract:
    git branch --show-current
    ```
 
-2. Identify the pipeline (check for common patterns):
+2. Identify the pipeline:
    - Repository name often matches pipeline slug
    - Check `.buildkite/pipeline.yml` for pipeline hints
 
-3. Find the latest build for this branch using MCP tools:
-   ```javascript
-   mcp__MCPProxy__call_tool('buildkite:list_builds', {
-     org_slug: '<org>',
-     pipeline_slug: '<pipeline>',
-     branch: '<current-branch>',
-     per_page: 5
-   })
-   ```
+3. Use the skill's "Checking Current Branch/PR Status" workflow to find the latest build for this branch.
 
 4. If no pipeline can be determined, ask the user for the Buildkite URL.
 
 ## Step 2: Capture Initial State
 
-Record the starting point for this fix session:
+Record the starting point:
 
 - **Branch name**: Current git branch
-- **PR number**: If applicable (check `gh pr view --json number`)
-- **Build number**: The failing build we're investigating
+- **PR number**: If applicable (`gh pr view --json number`)
+- **Build number**: The failing build
 - **Failure count**: Number of failed jobs
 
-Announce this to the user:
+Announce to the user:
 
 > "Starting CI fix session for branch `<branch>` (Build #<number>). I see <N> failed jobs. Let me investigate."
 
@@ -62,7 +53,7 @@ For complex or multi-day debugging sessions, offer to create a tracking document
 
 > "Would you like me to create a tracking document for this CI fix session? Useful for multi-day debugging or handoff."
 
-If yes, create `docs/plans/ci-fix-<branch-slug>.md` with this template:
+If yes, create `docs/plans/ci-fix-<branch-slug>.md`:
 
 ```markdown
 # CI Fix Workflow: <branch-name>
@@ -76,7 +67,7 @@ If yes, create `docs/plans/ci-fix-<branch-slug>.md` with this template:
 
 ---
 
-## Step 1: <Title>
+## Iteration 1: <Title>
 
 **Build:** <number> (<status>)
 **Failures:** <count> (<pattern description>)
@@ -103,26 +94,14 @@ If yes, create `docs/plans/ci-fix-<branch-slug>.md` with this template:
 |-------|-------|------------|-----|
 | <num> | <issue> | <cause> | <fix> |
 
----
-
-## Tools Used
-
-1. **MCP tools** - `buildkite:get_build`, `buildkite:list_annotations`
-2. **git diff** - Compare branch changes with main
-3. **Local commands** - <test runner, type checker, etc.>
-
----
-
 ## Next Steps
 
 - [ ] <remaining items if session ends before green>
 ```
 
-Update this document as you progress through the fix session.
-
 ## Step 3: Check Branch Freshness
 
-**IMPORTANT**: Before diving into failures, ensure the branch is up to date with main.
+**IMPORTANT**: Before diving into failures, check if the branch is up to date with main.
 
 1. Check if branch is behind main:
    ```bash
@@ -130,7 +109,7 @@ Update this document as you progress through the fix session.
    git rev-list --count HEAD..origin/main
    ```
 
-2. If behind by more than 0 commits, recommend:
+2. If behind by more than 0 commits:
    > "Your branch is <N> commits behind main. Recommend merging main first to rule out stale code issues."
 
    Ask user if they want to:
@@ -140,41 +119,17 @@ Update this document as you progress through the fix session.
 
 ## Step 4: Investigate Failures
 
-Use the `working-with-buildkite-builds` skill workflows:
+Use the `investigating-builds` skill to investigate. The skill's tool hierarchy applies: `bktide snapshot` first, then other bktide commands, then MCP tools as fallback.
 
-1. **Get build overview** with failed jobs only:
-   ```javascript
-   mcp__MCPProxy__call_tool('buildkite:get_build', {
-     org_slug: '<org>',
-     pipeline_slug: '<pipeline>',
-     build_number: '<build>',
-     detail_level: 'detailed',
-     job_state: 'failed'
-   })
-   ```
-
-2. **Check annotations** for summarized failures:
-   ```javascript
-   mcp__MCPProxy__call_tool('buildkite:list_annotations', {
-     org_slug: '<org>',
-     pipeline_slug: '<pipeline>',
-     build_number: '<build>'
-   })
-   ```
-
-3. **Get logs** for failed jobs to see actual errors
-
-4. **Identify failure patterns**:
-   - Test failures (RSpec, Jest, pytest, etc.)
-   - Build/compilation errors
-   - Linting/type checking errors
-   - Infrastructure issues (Docker, dependencies)
+After gathering build data, identify failure patterns:
+- Test failures (RSpec, Jest, pytest, etc.)
+- Build/compilation errors
+- Linting/type checking errors
+- Infrastructure issues (Docker, dependencies)
 
 ## Step 5: Categorize and Plan Fixes
 
 Group failures by type and plan the fix approach:
-
-### Common Failure Categories
 
 | Category | Signs | Typical Fix |
 |----------|-------|-------------|
@@ -196,27 +151,15 @@ For each failure category, outline:
 
 ### For Ruby/Rails projects:
 ```bash
-# Run affected tests
 bin/rspec <spec_files>
-
-# Type check modified files (if using Sorbet)
-bin/srb tc <modified_files>
-
-# Run pre-commit hooks
-lefthook run pre-commit
-# or: pre-commit run --files <modified_files>
+bin/srb tc <modified_files>      # if using Sorbet
+lefthook run pre-commit          # or: pre-commit run --files <modified_files>
 ```
 
 ### For JavaScript/TypeScript projects:
 ```bash
-# Run affected tests
-npm test -- <test_files>
-# or: yarn test <test_files>
-
-# Type check (if using TypeScript)
-npx tsc --noEmit
-
-# Lint
+npm test -- <test_files>         # or: yarn test <test_files>
+npx tsc --noEmit                 # if using TypeScript
 npm run lint
 ```
 
@@ -242,19 +185,10 @@ After local verification passes:
    git push
    ```
 
-3. **Monitor the new build** using MCP tools:
-   ```javascript
-   mcp__MCPProxy__call_tool('buildkite:wait_for_build', {
-     org_slug: '<org>',
-     pipeline_slug: '<pipeline>',
-     build_number: '<new-build>',
-     timeout: 1800,
-     poll_interval: 30
-   })
-   ```
+3. **Monitor the new build** using the `investigating-builds` skill's "Post-Push Monitoring" workflow.
 
 4. **Report status** when build completes:
-   - If passed: Celebrate and summarize what was fixed
+   - If passed: Summarize what was fixed
    - If failed: Go to Step 8
 
 ## Step 8: Iterate if Still Failing
@@ -271,7 +205,7 @@ If the new build still has failures:
 
 3. **Return to Step 4** with the new build number
 
-4. **Track iterations** - after 3+ iterations, consider:
+4. **Track iterations** — after 3+ iterations, consider:
    - Is there a deeper architectural issue?
    - Should we get another pair of eyes?
    - Is the branch too diverged from main?
@@ -299,7 +233,7 @@ When CI finally passes (or session ends), summarize:
 - <Any insights for future debugging>
 ```
 
-## Common Fix Patterns Reference
+## Common Fix Patterns
 
 ### Gemfile.lock Checksum Issues
 
@@ -345,37 +279,10 @@ git diff origin/main -- test/helpers/
 
 **Fix:** Look for hardcoded years or date assumptions in tests.
 
-## Tool Reference
-
-### Primary: MCP Tools
-- `buildkite:get_build` - Build details and job list
-- `buildkite:list_annotations` - Failure summaries
-- `buildkite:get_logs` - Job output (requires job UUID, not step ID)
-- `buildkite:wait_for_build` - Monitor until completion
-
-### Secondary: CLI Tools
-```bash
-# bktide for quick checks
-npx bktide build <org>/<pipeline>#<build>
-npx bktide annotations <org>/<pipeline>#<build>
-
-# git for branch comparison
-git diff origin/main -- <path>
-git log origin/main..HEAD --oneline
-```
-
-### Troubleshooting
-
-**MCP tool returns "job not found":**
-- You're using step ID from URL instead of job UUID
-- Get job UUID from `get_build` with `detail_level: "detailed"`
-
-**Build numbers must be strings** in MCP tools, not integers.
-
 ## Guidelines
 
-- **Always verify locally** before pushing - saves CI cycles
-- **One fix at a time** when possible - easier to identify what worked
-- **Document as you go** - helps if session spans multiple days
-- **Know when to stop** - sometimes fresh eyes or a different approach is needed
-- **Check main first** - the issue might already be fixed there
+- **Always verify locally** before pushing — saves CI cycles
+- **One fix at a time** when possible — easier to identify what worked
+- **Document as you go** — helps if session spans multiple days
+- **Know when to stop** — sometimes fresh eyes or a different approach is needed
+- **Check main first** — the issue might already be fixed there

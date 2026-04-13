@@ -2,79 +2,83 @@
 description: Set up second-brain vault configuration
 allowed-tools:
   - Read(~/.claude/second-brain.md)
-  - Write(~/.claude/second-brain.md)
   - Read(~/.claude/vaults/**/CLAUDE.md)
-  - Read(~/.claude/vaults/**/.obsidian/*.json)
   - Write(~/.claude/vaults/**/CLAUDE.md)
+  - Bash(npx @techpickles/sb:*)
   - Bash(ls:*)
   - Bash(mkdir:*)
   - Bash(ln:*)
-  - Bash(readlink:*)
 ---
 
 # Second Brain Setup
 
 Configure vault paths and scaffold vault CLAUDE.md.
 
-## Step 1: Check Existing Config
+For sb CLI details, see [references/sb-cli.md](../skills/obsidian/references/sb-cli.md).
 
-Read `~/.claude/second-brain.md` if it exists.
+## Step 1: Check Prerequisites
 
-If exists, show current vaults and ask:
+Verify sb CLI is available:
+
+```bash
+npx @techpickles/sb --version
+```
+
+If this fails:
+```
+sb CLI is required but not available. Install Node.js and npm, then try again.
+Or install globally for faster execution: npm i -g @techpickles/sb
+```
+
+## Step 2: Check Existing Config
+
+Check if vaults are already configured:
+
+```bash
+npx @techpickles/sb config vaults
+```
+
+This returns JSON with configured vaults.
+
+If vaults exist, show current and ask:
 - Add another vault?
 - Reconfigure existing vault?
 - Cancel
 
-## Step 2: Get Vault Path
+## Step 3: Get Vault Path
 
-Ask user for vault path. No assumed locations - just ask directly:
+Ask user for vault path. No assumed locations, just ask directly:
 
 "Where is your Obsidian vault located? (full path)"
 
-## Step 3: Validate Vault
+## Step 4: Validate Vault
 
-Check the path:
+Check the path exists:
 
 ```bash
-# Path exists?
 ls -d "{path}" 2>/dev/null
-
-# Is it an Obsidian vault?
-ls -d "{path}/.obsidian" 2>/dev/null
 ```
 
-If `.obsidian/` missing:
-- Might not be an Obsidian vault
-- Offer to continue anyway (for plain markdown repos)
-- Or user can open folder in Obsidian first to initialize
-
-## Step 4: Parse .obsidian/ Config
-
-If `.obsidian/` exists, read settings:
+Parse .obsidian config (if present):
 
 ```bash
-# Daily notes
-cat "{path}/.obsidian/daily-notes.json" 2>/dev/null
-
-# Templates
-cat "{path}/.obsidian/templates.json" 2>/dev/null
-
-# Zettelkasten/inbox
-cat "{path}/.obsidian/zk-prefixer.json" 2>/dev/null
-
-# General settings
-cat "{path}/.obsidian/app.json" 2>/dev/null
+npx @techpickles/sb vault obsidian --path "{path}"
 ```
 
-Extract:
+This outputs JSON with:
 - Daily notes folder and template
 - Templates folder
 - Inbox/new notes folder
 - Attachments folder
 
+If `.obsidian/` missing, sb will indicate this in the output:
+- Might not be an Obsidian vault
+- Offer to continue anyway (for plain markdown repos)
+- Or user can open folder in Obsidian first to initialize
+
 ## Step 5: Confirm Settings
 
-Show detected settings:
+Show detected settings from the sb output:
 
 ```
 Detected from .obsidian/:
@@ -94,21 +98,23 @@ Ask for short identifier:
 
 Suggest "primary" if this is the first vault.
 
-## Step 7: Write Global Config
+## Step 7: Initialize Configuration
 
 Create or update `~/.claude/second-brain.md`:
 
-```markdown
-# Second Brain Configuration
-
-## Vaults
-
-- {name}: {path}
-
-Default: {name}
+```bash
+npx @techpickles/sb init --name "{name}" --path "{path}"
 ```
 
-If file exists, append new vault to list.
+Add `--scaffold` flag if user wants to create vault CLAUDE.md:
+
+```bash
+npx @techpickles/sb init --name "{name}" --path "{path}" --scaffold
+```
+
+This command:
+- Writes the vault configuration to `~/.claude/second-brain.md`
+- Optionally creates `{vault}/CLAUDE.md` with detected settings
 
 ## Step 8: Create Vault Symlink
 
@@ -127,15 +133,18 @@ ls -la ~/.claude/vaults/{name}
 
 This symlink provides a well-known path for permissions and access.
 
-## Step 9: Scaffold Vault CLAUDE.md
+## Step 9: Show Permissions
 
-Check if `{vault}/CLAUDE.md` exists.
+Generate permission entries for Claude Code settings:
 
-If missing, offer to create from template:
+```bash
+npx @techpickles/sb permissions --vault "{name}"
+```
 
-"Your vault doesn't have a CLAUDE.md. Create one with detected settings? [Yes] [No]"
-
-If yes, use `templates/vault-claude-md.md` as base, filling in detected values.
+This outputs the exact permission strings needed for:
+- Read/Write on the vault path
+- Read/Write on CLAUDE.md
+- Read on .obsidian config
 
 ## Step 10: Confirm Complete
 
@@ -146,6 +155,9 @@ Vault: {name} → {path}
 Symlink: ~/.claude/vaults/{name}
 Config: ~/.claude/second-brain.md
 
+Add these permissions to your Claude Code settings:
+{output from sb permissions}
+
 Next steps:
 - Use /second-brain:insight to capture from any repo
 - Use /second-brain:link-project to connect a repo to your vault
@@ -154,10 +166,12 @@ Next steps:
 
 ## Adding Additional Vaults
 
-If `~/.claude/second-brain.md` already exists:
+If vaults already exist (shown in Step 2):
 
-1. Show current vaults
+1. Show current vaults from `npx @techpickles/sb config vaults`
 2. Ask for new vault path
-3. Follow same validation/detection flow
-4. Append to existing config
-5. Ask if this should be the new default
+3. Follow same validation/detection flow (Steps 3-5)
+4. Run `npx @techpickles/sb init --name "{name}" --path "{path}"` (appends to config)
+5. Create symlink for new vault (Step 8)
+6. Generate and show permissions (Step 9)
+7. Ask if this should be the new default

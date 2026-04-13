@@ -21,17 +21,26 @@ pickled-claude-plugins/
 
 ## Installation
 
-### Automatic (via technicalpickles/dotfiles)
-
-If you use [technicalpickles/dotfiles](https://github.com/technicalpickles/dotfiles), the marketplace is installed automatically via `install.sh`.
-
-### Manual Installation
+### Add the Marketplace
 
 ```bash
-git clone https://github.com/technicalpickles/claude-skills ~/.claude/plugins/technicalpickles
+/plugin marketplace add technicalpickles/pickled-claude-plugins
 ```
 
-The marketplace structure allows Claude Code to discover all plugins within the repository.
+### Install a Plugin
+
+```bash
+/plugin install <plugin-name>@pickled-claude-plugins
+```
+
+For example:
+
+```bash
+/plugin install git@pickled-claude-plugins
+/plugin install dev-tools@pickled-claude-plugins
+```
+
+See individual plugin READMEs for details on what each plugin provides.
 
 ## Plugins
 
@@ -118,11 +127,16 @@ Hooks run automatically on configured events (like SessionStart for monorepo det
 
 ## Development
 
-To modify plugins and skills:
+To modify plugins:
 
-1. Edit files in `~/workspace/claude-skills/plugins/`
-2. Changes are immediately available to Claude (if installed via symlink)
-3. Commit and push to share across machines
+1. Edit files in `plugins/` within this repository
+2. Reinstall the plugin to pick up changes:
+   ```bash
+   /plugin uninstall <plugin>@pickled-claude-plugins
+   /plugin install <plugin>@pickled-claude-plugins
+   ```
+3. Restart Claude Code
+4. Commit and push to share across machines
 
 ### Plugin Structure
 

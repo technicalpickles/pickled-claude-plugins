@@ -2,15 +2,14 @@
 description: Process voice transcriptions in today's daily note
 argument-hint: [date, e.g. 2026-01-21]
 allowed-tools:
-  - Read(~/.claude/second-brain.md)
   - Read(~/.claude/vaults/**/CLAUDE.md)
   - Read(~/.claude/vaults/**/.obsidian/*.json)
   - Read(~/.claude/vaults/**/Glossary.md)
   - Read(~/.claude/vaults/**/*.md)
   - Edit(~/.claude/vaults/**/*.md)
   - Write(~/.claude/vaults/**/*.md)
+  - Bash(npx @techpickles/sb:*)
   - Bash(ls:*)
-  - Bash(date:*)
 ---
 
 # Process Daily Note
@@ -61,14 +60,18 @@ Read `CLAUDE.md` at vault root for:
 
 ### Step 1.2: Find the Daily Note
 
-**If argument provided:** Use as date (parse YYYY-MM-DD format)
-**If no argument:** Use today's date
+Get the daily note path using sb:
 
 ```bash
-date +"%Y-%m-%d"
+npx @techpickles/sb daily path
 ```
 
-Construct path from vault's daily note location (e.g., `Fleeting/{date}.md`).
+**If argument provided:** Pass the date to sb:
+```bash
+npx @techpickles/sb daily path --date "{YYYY-MM-DD}"
+```
+
+sb returns the full path to the daily note based on .obsidian config.
 
 If file doesn't exist, inform user and stop.
 

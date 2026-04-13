@@ -1,17 +1,12 @@
 ---
 description: Extract and capture multiple insights from this conversation
 allowed-tools:
-  - Read(~/.claude/second-brain.md)
   - Read(~/.claude/vaults/**/CLAUDE.md)
   - Read(~/.claude/vaults/**/.obsidian/*.json)
   - Read(~/.claude/vaults/**/*.md)
   - Write(~/.claude/vaults/**/*.md)
   - Edit(~/.claude/vaults/**/*.md)
-  - Bash(ls:*)
-  - Bash(date:*)
-  - Bash(git rev-parse:*)
-  - Bash(git branch:*)
-  - Bash(mv:*)
+  - Bash(npx @techpickles/sb:*)
 ---
 
 # Distill Conversation
@@ -20,21 +15,35 @@ Review the current conversation and extract insights worth capturing.
 
 ## Step 1: Load Configuration
 
-Read `~/.claude/second-brain.md` for vault name and path.
+Verify sb CLI is available:
+```bash
+npx @techpickles/sb --version
+```
 
-If missing:
+If unavailable:
+```
+sb CLI is required but not available. Install Node.js and npm, then try again.
+Or install globally for faster execution: npm i -g @techpickles/sb
+```
+
+Load configuration via sb:
+```bash
+npx @techpickles/sb config default
+npx @techpickles/sb config vaults
+```
+
+If no default vault configured:
 ```
 Second brain not configured. Run /second-brain:setup first.
 ```
 
-Use the symlink path `~/.claude/vaults/{name}` to access the vault (e.g., `~/.claude/vaults/primary`).
+Use the symlink path `~/.claude/vaults/{name}` to Read vault files (e.g., `~/.claude/vaults/primary/CLAUDE.md`).
 
 Load skill references:
 - `second-brain:obsidian` for tool mechanics
+- `references/sb-cli.md` for sb command patterns
 - `references/zettelkasten.md` for naming
-- `references/note-patterns.md` for Insight Note template
-- `references/routing.md` for destination matching
-- `references/daily-linking.md` for linking to daily note
+- `references/note-patterns.md` for note template patterns
 
 ## Step 2: Review the Conversation
 
@@ -83,114 +92,55 @@ Include "None - skip capture" option.
 
 ## Step 5: Capture Selected
 
-For each selected insight, follow `/second-brain:insight` flow:
-1. Gather provenance
-2. Generate Zettelkasten filename
-3. Write to inbox with Insight Note pattern
-4. Show confirmation
+For each selected insight, append as a bullet to the session notes file.
 
-```
-Capturing {N} insights...
+**5a. Get or create session notes file:**
 
-✓ {filename1}
-✓ {filename2}
-✓ {filename3}
-
-All captured to inbox.
-```
-
-## Step 6: Batch Routing
-
-Load `references/routing.md` and analyze all captured notes together.
-
-**1. Discover vault structure once:**
+Check if a session file exists in the vault by querying sb:
 ```bash
-ls -d "{vault}"/*Areas*/*/     2>/dev/null
-ls -d "{vault}"/*Resources*/*/ 2>/dev/null
-ls -d "{vault}"/*Projects*/*/  2>/dev/null
+npx @techpickles/sb note list --type session-notes
 ```
 
-**2. Load disambiguation rules from vault CLAUDE.md:**
-- Find `### Disambiguation:` sections
-- Extract key questions, category tables, edge case mappings
-- These override generic matching for semantically similar areas
-
-**3. Score each captured note:**
-
-*Apply disambiguation rules first (if loaded):*
-- Check edge case mappings (explicit rules)
-- Apply key question matches (+25% boost)
-- Apply category table matches (+15% boost)
-- Apply disambiguation mismatch penalty (-20%)
-
-*Then apply generic signals:*
-- Keyword match, related notes, PARA fit, recency
-
-**4. Present batch summary table:**
-```
-Analyzing captured notes for routing...
-
-| Note | Suggested Destination | Confidence | Rule Applied |
-|------|----------------------|------------|--------------|
-| "insight about caching" | Areas/AI/agentic development/ | High (82%) | - |
-| "tmux-comma-parsing" | Areas/tool sharpening/ | High (95%) | edge case |
-| "debugging approach" | (leave in inbox) | None | - |
-
-Routing explanations:
-- "insight about caching" → keyword "claude" matches, related notes exist
-- "tmux-comma-parsing" → vault rule: tmux config → tool sharpening
-- "debugging approach" → no strong destination match
-```
-
-**5. Use AskUserQuestion:**
-
-**Question:** "How should I route these?"
-
-**Options:**
-1. Route all as suggested (Recommended)
-2. Route individually (I'll ask about each)
-3. Leave all in inbox for now
-
-**6. Execute based on selection:**
-- "Route all": Move files with confidence > 20% to suggested destinations
-- "Route individually": Use AskUserQuestion for each note separately
-- "Leave all": Skip routing, notes stay in inbox
-
+If none exists, create one with session context:
 ```bash
-# For each routed note:
-mv "{inbox}/{filename}" "{vault}/{destination}/"
+npx @techpickles/sb note create \
+  --source auto \
+  --title "{session context}" \
+  --type session-notes
 ```
 
-**Important:** Only suggest destinations that exist (from `ls` output). Never suggest paths that weren't discovered.
+Parse the returned JSON to get the file path.
 
-## Step 7: Batch Link to Daily Note
+**5b. Build metadata:**
 
-Follow `references/daily-linking.md` to connect all captured notes to today's daily note.
+Collect session context:
+- Current repo (if in a worktree)
+- Current branch (if in a worktree)
+- Current bean ID (if available from context)
+- Session topic (topic of conversation)
+- Timestamp (ISO 8601)
 
-**1. Find today's daily note:**
-```bash
-cat "{vault}/.obsidian/daily-notes.json" 2>/dev/null
-date +"%Y-%m-%d"
+**5c. Append insights as bullets:**
+
+For each selected insight, append a clean bullet point:
+- Keep prose concise and standalone
+- Include minimal metadata as needed (source, why this matters)
+- Format: `- {insight description}` or `- {insight description} ({context})`
+
+Use the Write tool to update the session file, preserving frontmatter and adding bullets to the content.
+
+**5d. Confirm:**
+
+```
+✓ Captured {N} insights to {session-file}
 ```
 
-**2. If daily note exists, batch-add links to `## Links` section:**
-```markdown
-- [[{filename1 without .md}]] - {description1}
-- [[{filename2 without .md}]] - {description2}
-- [[{filename3 without .md}]] - {description3}
-```
-
-**3. Confirm:**
-```
-✓ Linked {N} notes to daily note: Fleeting/{date}.md
-```
-
-If daily note doesn't exist, skip silently - notes are already captured.
+Show the file path so user can find the notes later.
 
 ## Constraints
 
 - **Be selective** - Only genuinely valuable insights
 - **Categorize clearly** - Help user understand knowledge type
-- **Batch efficiently** - Don't make user go through many dialogs
 - **Clean prose** - Each insight standalone, useful months later
-- **Zettelkasten naming** - Must use `YYYYMMDDHHMM title.md`
+- **Metadata included** - Capture repo, branch, bean, session topic for context
+- **Processing deferred** - Routing, connecting, and daily linking happen later via `/second-brain:process-inbox`

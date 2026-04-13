@@ -53,6 +53,8 @@ uv run pytest tests/ -v
 
 ## Installation
 
+Requires the [pickled-claude-plugins marketplace](../../README.md#installation). Then:
+
 ```bash
 /plugin install working-in-monorepos@pickled-claude-plugins
 ```

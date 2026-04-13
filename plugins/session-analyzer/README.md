@@ -38,6 +38,8 @@ Find failed tool calls in Claude session logs.
 
 ## Installation
 
+Requires the [pickled-claude-plugins marketplace](../../README.md#installation). Then:
+
 ```bash
 /plugin install session-analyzer@pickled-claude-plugins
 ```

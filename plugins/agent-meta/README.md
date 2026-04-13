@@ -50,6 +50,8 @@ Default location: `.parkinglot/` in project root (gitignored).
 
 ## Installation
 
+Requires the [pickled-claude-plugins marketplace](../../README.md#installation). Then:
+
 ```bash
 /plugin install agent-meta@pickled-claude-plugins
 ```

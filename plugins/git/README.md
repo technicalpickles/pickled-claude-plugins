@@ -78,6 +78,8 @@ Update your branch with upstream changes, intelligently resolving conflicts.
 
 ## Installation
 
+Requires the [pickled-claude-plugins marketplace](../../README.md#installation). Then:
+
 ```bash
 /plugin install git@pickled-claude-plugins
 ```
