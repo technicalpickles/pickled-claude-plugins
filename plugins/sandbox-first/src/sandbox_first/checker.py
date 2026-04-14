@@ -44,6 +44,16 @@ FAILURE_CONTEXT = (
 #     "No such file or directory" without any EPERM. Matching "no such file or directory"
 #     would catch real ENOENT errors (missing files, bad paths) as false positives, so
 #     this case requires transcript-level context to detect safely.
+#
+# macOS Mach port / XPC denials:
+#   bootstrap_check_in is the launchd API multi-process macOS apps call to register
+#   a service with the bootstrap server. When seatbelt denies this, the process
+#   crashes with a message like:
+#     Check failed: kr == KERN_SUCCESS. bootstrap_check_in
+#     org.chromium.Chromium.MachPortRendezvousServer.<pid>: Permission denied (1100)
+#   Observed when Playwright launches headless Chromium inside Claude Code's bash
+#   sandbox. The same signature covers other multi-process macOS tools (Electron,
+#   Puppeteer, etc.). bootstrap_check_in is distinctive enough to match on alone.
 SANDBOX_ERROR_SIGNATURES = (
     "operation not permitted",
     "sandbox-exec",
@@ -53,6 +63,7 @@ SANDBOX_ERROR_SIGNATURES = (
     "couldn't resolve host",
     "network is unreachable",
     "failed to connect",
+    "bootstrap_check_in",
 )
 
 

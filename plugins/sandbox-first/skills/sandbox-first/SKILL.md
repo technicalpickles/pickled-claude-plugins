@@ -19,6 +19,14 @@ Before retrying with `dangerouslyDisableSandbox`:
    - "Operation not permitted" (filesystem write outside allowed paths)
    - "Connection refused" or network timeouts (host not in allowedHosts)
    - "Permission denied" on paths outside the project
+   - **macOS Mach port / XPC denial** — crash containing `bootstrap_check_in`
+     and "Permission denied (1100)". The surface error looks like an
+     application crash (e.g. Chromium `Check failed: kr == KERN_SUCCESS`),
+     but the root cause is seatbelt denying `mach-register`/`mach-lookup`
+     for a service. Seen with Playwright launching headless Chromium, and
+     applies to other multi-process macOS tools (Electron, Puppeteer, etc.).
+     Sandbox config cannot grant Mach port access, so this genuinely
+     requires `dangerouslyDisableSandbox`.
 3. **Suggest a config fix.** Tell the user what to add to `~/.claude/settings.json`:
    - Network: add host to `sandbox.network.allowedHosts`
    - Filesystem: add path to `sandbox.filesystem.allowWrite`
