@@ -20,3 +20,13 @@ def load_skip_list_from_file(path: str) -> list[str]:
         return []
 
     return [e for e in entries if isinstance(e, str)]
+
+
+def load_merged_skip_list(user_config_path: str, project_config_path: str) -> list[str]:
+    """Load and merge skip lists from user and project config files.
+
+    Returns the union of both lists (deduplicated, order not guaranteed).
+    """
+    user_entries = load_skip_list_from_file(user_config_path)
+    project_entries = load_skip_list_from_file(project_config_path)
+    return list(set(user_entries + project_entries))
