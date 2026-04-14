@@ -285,3 +285,69 @@ class TestCommandMatchesSkipList:
     def test_tab_after_prefix(self):
         """Tab counts as whitespace boundary."""
         assert command_matches_skip_list("docker\tbuild", ["docker"]) is True
+
+
+class TestCheckPreToolUseWithConfig:
+    def test_configured_command_allowed_without_prior_failure(self):
+        """Unsandboxed call for a configured command is allowed without transcript failure."""
+        hook_input = {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": "docker build .",
+                "dangerouslyDisableSandbox": True,
+            },
+            "transcript_path": "/nonexistent",
+        }
+        result = check_pre_tool_use(hook_input, skip_list=["docker"])
+        assert result is None
+
+    def test_non_configured_command_still_denied(self):
+        """Unsandboxed call for a non-configured command still requires transcript failure."""
+        hook_input = {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": "echo hello",
+                "dangerouslyDisableSandbox": True,
+            },
+            "transcript_path": "/nonexistent",
+        }
+        result = check_pre_tool_use(hook_input, skip_list=["docker"])
+        assert result is not None
+        assert result["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+    def test_empty_skip_list_preserves_existing_behavior(self):
+        """Empty skip list means all unsandboxed calls need prior failure."""
+        hook_input = {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": "docker build .",
+                "dangerouslyDisableSandbox": True,
+            },
+            "transcript_path": "/nonexistent",
+        }
+        result = check_pre_tool_use(hook_input, skip_list=[])
+        assert result is not None
+        assert result["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+    def test_default_skip_list_is_empty(self):
+        """When skip_list is not passed, defaults to empty (backward compat)."""
+        hook_input = {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": "docker build .",
+                "dangerouslyDisableSandbox": True,
+            },
+            "transcript_path": "/nonexistent",
+        }
+        result = check_pre_tool_use(hook_input)
+        assert result is not None
+        assert result["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+    def test_sandboxed_call_unaffected_by_config(self):
+        """Sandboxed calls pass through regardless of config."""
+        hook_input = {
+            "tool_name": "Bash",
+            "tool_input": {"command": "docker build ."},
+            "transcript_path": "/nonexistent",
+        }
+        assert check_pre_tool_use(hook_input, skip_list=["docker"]) is None

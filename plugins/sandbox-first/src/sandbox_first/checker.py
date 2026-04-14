@@ -88,7 +88,7 @@ def command_matches_skip_list(command: str, skip_list: list[str]) -> bool:
     return False
 
 
-def check_pre_tool_use(hook_input: dict) -> dict | None:
+def check_pre_tool_use(hook_input: dict, skip_list: list[str] | None = None) -> dict | None:
     """Check a PreToolUse Bash call. Returns JSON output dict or None to allow."""
     if hook_input.get("tool_name") != "Bash":
         return None
@@ -97,7 +97,12 @@ def check_pre_tool_use(hook_input: dict) -> dict | None:
     if not tool_input.get("dangerouslyDisableSandbox"):
         return None
 
-    # dangerouslyDisableSandbox is set. Check transcript for recent sandboxed failure.
+    # dangerouslyDisableSandbox is set. Check skip list first.
+    command = tool_input.get("command", "")
+    if skip_list and command_matches_skip_list(command, skip_list):
+        return None  # Allow: command is configured to skip failure requirement
+
+    # Fall back to transcript check for recent sandboxed failure.
     transcript_path = hook_input.get("transcript_path", "")
     if find_recent_sandboxed_failure(transcript_path, lookback=LOOKBACK):
         return None  # Allow: there was a recent sandboxed failure
