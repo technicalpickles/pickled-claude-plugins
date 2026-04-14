@@ -12,7 +12,31 @@ Promotes sandbox-first execution in Claude Code by intercepting unnecessary unsa
 
 ## Configuration
 
-The lookback window (how many transcript entries to scan for prior failures) defaults to 10. This covers roughly 5 tool call round-trips.
+### Skip Failure Requirement
+
+Some commands are known to always fail in the sandbox. You can configure these so the plugin
+allows `dangerouslyDisableSandbox: true` without requiring a prior sandboxed failure.
+
+Create `~/.claude/sandbox-first.json` (user-level) or `.claude/sandbox-first.json` (project-level):
+
+```json
+{
+  "skip_failure_requirement": [
+    "docker",
+    "colima ssh",
+    "bk"
+  ]
+}
+```
+
+Entries use word-boundary prefix matching: `"docker"` matches `docker build` but not `dockerize`.
+Both files are merged (union). If `CLAUDE_CONFIG_DIR` is set, user config is read from there
+instead of `~/.claude/`.
+
+### Lookback Window
+
+The lookback window (how many transcript entries to scan for prior failures) defaults to 10.
+This covers roughly 5 tool call round-trips.
 
 ## Testing
 
