@@ -75,6 +75,19 @@ def _looks_like_sandbox_error(error: str) -> bool:
     return any(sig in lowered for sig in SANDBOX_ERROR_SIGNATURES)
 
 
+def command_matches_skip_list(command: str, skip_list: list[str]) -> bool:
+    """True if command matches any entry in the skip list (word-boundary prefix match).
+
+    An entry matches if the command (after stripping leading whitespace) equals
+    the entry exactly, or starts with the entry followed by whitespace.
+    """
+    cmd = command.lstrip()
+    for entry in skip_list:
+        if cmd == entry or (cmd.startswith(entry) and cmd[len(entry):len(entry) + 1].isspace()):
+            return True
+    return False
+
+
 def check_pre_tool_use(hook_input: dict) -> dict | None:
     """Check a PreToolUse Bash call. Returns JSON output dict or None to allow."""
     if hook_input.get("tool_name") != "Bash":
