@@ -8,7 +8,8 @@ description: Use when a Bash command fails in the sandbox, or when considering w
 ## Core Rule
 
 Always run Bash commands sandboxed first. Never set `dangerouslyDisableSandbox: true` unless
-a sandboxed attempt has already failed in this session.
+a sandboxed attempt has already failed in this session, or the command is listed in
+`skip_failure_requirement` (see Configured Exceptions below).
 
 ## When a Sandboxed Command Fails
 
@@ -32,6 +33,14 @@ Before retrying with `dangerouslyDisableSandbox`:
    - Filesystem: add path to `sandbox.filesystem.allowWrite`
 4. **If retrying unsandboxed**, explain what restriction was hit and why the sandbox
    config change would be the better long-term fix.
+
+## Configured Exceptions
+
+Some commands are known to always fail in the sandbox (e.g. `docker`, `colima ssh`).
+These can be configured in `~/.claude/sandbox-first.json` or `.claude/sandbox-first.json`
+under the `skip_failure_requirement` key. The enforcement hook will allow
+`dangerouslyDisableSandbox: true` for these commands without requiring a prior
+sandboxed failure.
 
 ## What NOT to Do
 
