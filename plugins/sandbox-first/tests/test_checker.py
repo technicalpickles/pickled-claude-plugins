@@ -216,6 +216,11 @@ class TestCheckPostToolUseFailure:
                 "git clone /src /tmp/outside/dest",
                 "error: could not write config file /tmp/outside/dest/.git/config: Operation not permitted\nfatal: could not set 'core.repositoryformatversion' to '0'",
             ),
+            (
+                "macos-mach-port-chromium",
+                "python -c 'from playwright.sync_api import sync_playwright; ...'",
+                "[0413/203015.123456:FATAL:mach_port_rendezvous.cc(159)] Check failed: kr == KERN_SUCCESS. bootstrap_check_in org.chromium.Chromium.MachPortRendezvousServer.12345: Permission denied (1100)",
+            ),
         ],
     )
     def test_sandbox_shaped_errors_return_context(self, case, command, error):
