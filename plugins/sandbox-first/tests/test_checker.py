@@ -2,7 +2,11 @@ import json
 
 import pytest
 
-from sandbox_first.checker import check_pre_tool_use, check_post_tool_use_failure
+from sandbox_first.checker import (
+    check_post_tool_use,
+    check_post_tool_use_failure,
+    check_pre_tool_use,
+)
 
 
 class TestCheckPreToolUse:
@@ -234,3 +238,117 @@ class TestCheckPostToolUseFailure:
         assert result is not None, f"case {case!r} should be flagged"
         ctx = result["hookSpecificOutput"]["additionalContext"]
         assert "sandbox" in ctx.lower()
+
+
+class TestCheckPostToolUse:
+    """Success-path stderr scan: exit=0 but stderr is sandbox-shaped.
+
+    Catches silent partial failures such as `git worktree remove` deleting
+    the worktree but failing the parent `.git/config` update.
+    """
+
+    def test_non_bash_returns_none(self):
+        hook_input = {
+            "tool_name": "Write",
+            "tool_input": {},
+            "tool_response": {"stderr": "Operation not permitted"},
+        }
+        assert check_post_tool_use(hook_input) is None
+
+    def test_empty_stderr_returns_none(self):
+        hook_input = {
+            "tool_name": "Bash",
+            "tool_input": {"command": "echo hello"},
+            "tool_response": {"stdout": "hello\n", "stderr": ""},
+        }
+        assert check_post_tool_use(hook_input) is None
+
+    def test_missing_tool_response_returns_none(self):
+        hook_input = {"tool_name": "Bash", "tool_input": {"command": "echo hello"}}
+        assert check_post_tool_use(hook_input) is None
+
+    def test_dangerously_disabled_returns_none(self):
+        """Already-unsandboxed calls never produce sandbox-shaped stderr we should flag."""
+        hook_input = {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": "git worktree remove .worktrees/x",
+                "dangerouslyDisableSandbox": True,
+            },
+            "tool_response": {
+                "stdout": "",
+                "stderr": "error: could not write config file .git/config: Operation not permitted",
+            },
+        }
+        assert check_post_tool_use(hook_input) is None
+
+    # Known silent-partial cases we WANT to flag.
+    @pytest.mark.parametrize(
+        "case,command,stderr",
+        [
+            (
+                "worktree-remove-git-config",
+                "git worktree remove .worktrees/feature-x",
+                "error: could not write config file .git/config: Operation not permitted\nwarning: update of config-file failed",
+            ),
+            (
+                "worktree-add-ipc-response",
+                "git worktree add .worktrees/probe -b probe",
+                "Preparing worktree (new branch 'probe')\nerror: could not read IPC response",
+            ),
+            (
+                "generic-eperm-on-stderr",
+                "some-tool",
+                "warning: touch: cannot touch '/outside': Operation not permitted",
+            ),
+            (
+                "stderr-in-top-level-field",
+                "git worktree remove .worktrees/x",
+                None,  # placeholder; see custom input below
+            ),
+        ],
+    )
+    def test_sandbox_shaped_stderr_flags(self, case, command, stderr):
+        if case == "stderr-in-top-level-field":
+            # Defensive path: some harness variants surface stderr at top level
+            # rather than inside tool_response.
+            hook_input = {
+                "tool_name": "Bash",
+                "tool_input": {"command": command},
+                "stderr": "error: could not write config file .git/config: Operation not permitted",
+            }
+        else:
+            hook_input = {
+                "tool_name": "Bash",
+                "tool_input": {"command": command},
+                "tool_response": {"stdout": "", "stderr": stderr},
+            }
+        result = check_post_tool_use(hook_input)
+        assert result is not None, f"case {case!r} should be flagged"
+        ctx = result["hookSpecificOutput"]["additionalContext"]
+        assert "partial" in ctx.lower() or "stderr" in ctx.lower()
+
+    # False-positive discipline: mirror the failure-path regression suite so
+    # success-path scanning doesn't re-introduce problems task 34 already fixed.
+    @pytest.mark.parametrize(
+        "case,stderr",
+        [
+            ("ls-enoent", "ls: cannot access 'plugins/nonexistent/': No such file or directory"),
+            ("git-config-write-warning", "warning: unable to access '.git/config': some write warning"),
+            ("git-not-a-repo", "fatal: not a git repository: .git/refs/remotes/"),
+            ("1password-ipc", "1Password IPC error: agent not running"),
+            ("command-not-found", "bash: nonexistent-tool: command not found"),
+            ("ruby-exception", "script.rb:5:in `<main>': undefined method `foo' for nil:NilClass (NoMethodError)"),
+            ("test-assertion-failure", "AssertionError: expected 3 but got 4"),
+            ("git-progress-noise", "Updating files: 100% (42/42), done.\nSwitched to a new branch 'feature'"),
+        ],
+    )
+    def test_non_sandbox_stderr_returns_none(self, case, stderr):
+        hook_input = {
+            "tool_name": "Bash",
+            "tool_input": {"command": "some-cmd"},
+            "tool_response": {"stdout": "", "stderr": stderr},
+        }
+        assert check_post_tool_use(hook_input) is None, (
+            f"case {case!r} should NOT be flagged as sandbox-related"
+        )

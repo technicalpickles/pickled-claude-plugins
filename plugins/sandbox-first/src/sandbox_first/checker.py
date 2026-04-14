@@ -22,6 +22,20 @@ FAILURE_CONTEXT = (
     "and explain what restriction was hit."
 )
 
+PARTIAL_SUCCESS_CONTEXT = (
+    "This command exited successfully but its stderr contains a sandbox-shaped "
+    "denial, which often indicates a silent partial failure (e.g. `git worktree "
+    "remove` deleting the worktree but failing to update `.git/config`; a clone "
+    "completing but skipping template files). Before continuing:\n"
+    "- Verify the intended side effects actually happened (inspect the filesystem, "
+    "re-read config, re-list state).\n"
+    "- If state is inconsistent, either fix the sandbox config so the denied write "
+    "succeeds next time (e.g. sandbox.filesystem.allowWrite in ~/.claude/settings.json) "
+    "or retry the whole operation with dangerouslyDisableSandbox.\n"
+    "- If the stderr is genuinely harmless (a warning that does not affect outcome), "
+    "note that explicitly so the user knows it was considered."
+)
+
 # Error substrings (case-insensitive) that strongly suggest a sandbox-caused
 # failure. This is intentionally a conservative allow-list: we only add the
 # sandbox-warning context when the error clearly matches one of these
@@ -45,6 +59,16 @@ FAILURE_CONTEXT = (
 #     would catch real ENOENT errors (missing files, bad paths) as false positives, so
 #     this case requires transcript-level context to detect safely.
 #
+# Silent partial failures (exit=0 with sandbox-shaped stderr) — empirical:
+#   - git worktree remove:  "error: could not write config file .git/config:
+#                           Operation not permitted" (exit 0, worktree deleted
+#                           but config not updated — stale metadata).
+#   - git worktree add:     "error: could not read IPC response" (exit 0, git
+#                           fsmonitor's unix-socket probe denied; worktree is
+#                           created fine but the noise is sandbox-shaped).
+#   The "could not read ipc response" substring is distinct from 1Password's
+#   "1Password IPC error" false positive — git's phrasing is more specific.
+#
 # macOS Mach port / XPC denials:
 #   bootstrap_check_in is the launchd API multi-process macOS apps call to register
 #   a service with the bootstrap server. When seatbelt denies this, the process
@@ -64,6 +88,7 @@ SANDBOX_ERROR_SIGNATURES = (
     "network is unreachable",
     "failed to connect",
     "bootstrap_check_in",
+    "could not read ipc response",
 )
 
 
@@ -94,6 +119,56 @@ def check_pre_tool_use(hook_input: dict) -> dict | None:
             "hookEventName": "PreToolUse",
             "permissionDecision": "deny",
             "permissionDecisionReason": DENY_MESSAGE,
+        }
+    }
+
+
+def _extract_stderr(hook_input: dict) -> str:
+    """Best-effort stderr extraction from a PostToolUse Bash payload.
+
+    The canonical shape for Bash is `tool_response.stderr`. A couple of
+    historical variants appear in the wild (top-level `stderr`, or a
+    string-valued `tool_response` carrying a full transcript), so we probe
+    a few locations and concatenate anything textual we find. Keeps us
+    resilient to harness changes without needing schema updates.
+    """
+    chunks: list[str] = []
+    response = hook_input.get("tool_response")
+    if isinstance(response, dict):
+        for key in ("stderr", "stdout"):
+            value = response.get(key)
+            if isinstance(value, str) and value:
+                chunks.append(value)
+    elif isinstance(response, str) and response:
+        chunks.append(response)
+    top_stderr = hook_input.get("stderr")
+    if isinstance(top_stderr, str) and top_stderr:
+        chunks.append(top_stderr)
+    return "\n".join(chunks)
+
+
+def check_post_tool_use(hook_input: dict) -> dict | None:
+    """Check a PostToolUse Bash call (success path). Returns JSON output dict or None.
+
+    Fires when a Bash command exited successfully but its stderr contains a
+    sandbox-shaped signature, which typically means a silent partial failure
+    (command reported success, sandbox quietly blocked a side effect).
+    """
+    if hook_input.get("tool_name") != "Bash":
+        return None
+
+    tool_input = hook_input.get("tool_input", {})
+    if tool_input.get("dangerouslyDisableSandbox"):
+        return None  # Already unsandboxed, not a sandbox issue
+
+    stderr = _extract_stderr(hook_input)
+    if not _looks_like_sandbox_error(stderr):
+        return None
+
+    return {
+        "hookSpecificOutput": {
+            "hookEventName": "PostToolUse",
+            "additionalContext": PARTIAL_SUCCESS_CONTEXT,
         }
     }
 
