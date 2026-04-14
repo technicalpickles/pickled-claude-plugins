@@ -1,8 +1,6 @@
 import json
 
-import pytest
-
-from sandbox_first.config import load_skip_list_from_file
+from sandbox_first.config import load_merged_skip_list, load_skip_list_from_file
 
 
 class TestLoadSkipListFromFile:
@@ -49,8 +47,6 @@ class TestLoadSkipListFromFile:
         }))
         assert load_skip_list_from_file(str(config)) == ["docker"]
 
-
-from sandbox_first.config import load_merged_skip_list
 
 
 class TestLoadMergedSkipList:
