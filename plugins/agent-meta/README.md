@@ -6,13 +6,15 @@ Meta-development tools for agentic workflows.
 
 Working with AI coding agents generates valuable artifacts beyond code: session patterns, failure modes, decision trails. This plugin helps capture and learn from that meta-layer.
 
-## Commands
+## Skills
 
-| Command | Description |
-|---------|-------------|
-| `/park` | Save current work context for later resumption |
-| `/unpark` | Resume work from a parked handoff |
-| `/snapshot` | Capture current session state (inline or `--save`) |
+| Skill | Description |
+|-------|-------------|
+| `agent-meta:park` | Save current work context for later resumption |
+| `agent-meta:unpark` | Resume work from a parked handoff |
+| `agent-meta:snapshot` | Capture current session state (inline or with save) |
+
+Invoke by asking naturally ("park this session", "unpark docs/handoffs/foo.md") or with the fully qualified slash form (`/agent-meta:park`).
 
 ## Scripts
 
