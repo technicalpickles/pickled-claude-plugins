@@ -94,8 +94,8 @@ Report:
 ```
 Parked to `[path]`.
 
-To resume in a new session:
-/unpark [path]
+To resume in a new session, ask Claude:
+> unpark [path]
 ```
 
-The `/unpark [path]` command should be copy-pasteable so the user can easily resume.
+The resume prompt should be copy-pasteable so the user can easily paste it into a new session.

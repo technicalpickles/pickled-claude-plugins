@@ -72,10 +72,10 @@ Format when saved:
 
 Report: "Snapshot saved to `[path]`"
 
-## Difference from /park
+## Difference from park
 
-| Aspect | /snapshot | /park |
-|--------|-----------|-------|
+| Aspect | snapshot | park |
+|--------|----------|------|
 | Intent | Review progress | Stop work for later |
 | Output | Inline (default) | Always file |
 | Resume prompt | No | Yes |
