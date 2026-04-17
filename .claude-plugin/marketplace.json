@@ -60,6 +60,16 @@
       "name": "buildkite",
       "source": "./plugins/buildkite",
       "version": "1.0.0"
+    },
+    {
+      "name": "cq",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/technicalpickles/cq.git",
+        "path": "claude-plugin",
+        "ref": "main"
+      },
+      "version": "0.1.0"
     }
   ]
 }
