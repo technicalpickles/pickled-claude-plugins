@@ -14,7 +14,7 @@
     {
       "name": "git",
       "source": "./plugins/git",
-      "version": "2.2.0"
+      "version": "2.2.1"
     },
     {
       "name": "ci-cd-tools",

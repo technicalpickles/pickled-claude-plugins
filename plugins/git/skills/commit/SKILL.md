@@ -15,7 +15,18 @@ IF adding files that look like they are agent configuration, or adding planning 
 
 ## git commit
 
-PREFER writing out a commit message to the `scratch/` directory, and save it to a name reflecting what is being commited. Then use use `git commit -t scratch/path-to-message.txt`
+Use a heredoc for the message, matching Claude Code's built-in pattern:
+
+```
+git commit -m "$(cat <<'EOF'
+Commit subject
+
+Body paragraph.
+EOF
+)"
+```
+
+For very long commit bodies, write to the `scratch/` directory with the Write tool first and use `git commit -F scratch/path-to-message.txt`. (Note: `-F` reads the file as the message. `-t` loads it as a template to edit, which doesn't work with non-interactive commits.)
 
 ### signing
 
