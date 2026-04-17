@@ -14,7 +14,7 @@ This plugin is part of the `pickled-claude-plugins` monorepo. Routes are contrib
 |--------|----------------|--------|
 | tool-routing | `hooks/tool-routes.yaml` | bash-cat-heredoc, bash-echo-*, tool-routing-manual-test |
 | dev-tools | `hooks/tool-routes.yaml` | atlassian |
-| git | `skills/pull-request/tool-routes.yaml` | github-pr, git-commit-multiline, gh-pr-create-multiline |
+| git | `skills/pull-request/tool-routes.yaml` | github-pr |
 | buildkite | `tool-routes.yaml` | buildkite |
 
 ## Quick Validation (Isolated Environment)

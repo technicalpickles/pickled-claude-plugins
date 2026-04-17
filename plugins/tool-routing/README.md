@@ -78,8 +78,6 @@ The plugin ships with routes for common patterns:
 | `buildkite` | WebFetch | Build URLs → use MCP tools |
 | `bash-mcp-cli` | Bash | `mcp` CLI commands → use tool calls |
 | `bash-mcp-tool` | Bash | MCP tool names as commands |
-| `git-commit-multiline` | Bash | Heredocs in commits → use Write + `-F` |
-| `gh-pr-create-multiline` | Bash | Heredocs in PRs → use Write + `--body-file` |
 | `bash-cat-heredoc` | Bash | Cat heredocs → use Write tool |
 | `bash-echo-chained` | Bash | Chained echo → output directly |
 | `bash-echo-redirect` | Bash | Echo redirects → use Write tool |
