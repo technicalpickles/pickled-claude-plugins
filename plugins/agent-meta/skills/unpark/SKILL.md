@@ -75,7 +75,7 @@ Options:
 (C) Continue anyway - I understand the context has changed
 ```
 
-If option A: Update the handoff file with current findings, then recommend running `/unpark` again.
+If option A: Update the handoff file with current findings, then recommend unparking again.
 
 ## Session Chains
 
