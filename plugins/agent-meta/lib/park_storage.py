@@ -25,7 +25,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-PARKS_ROOT = Path.home() / ".claude" / "parks"
+_DEFAULT_PARKS_ROOT = Path.home() / ".claude" / "parks"
+PARKS_ROOT: Path = Path(os.environ["CLAUDE_PARKS_ROOT"]) if "CLAUDE_PARKS_ROOT" in os.environ else _DEFAULT_PARKS_ROOT
 
 # Frontmatter fields that are fundamentally string-or-None. Anything here
 # gets written as `null` when the attribute is None, otherwise as a bare
@@ -185,6 +186,15 @@ def list_active(key: str, root: Path = PARKS_ROOT) -> list[Park]:
             continue
         parks.append(Park.load(entry))
     return parks
+
+
+def age_days(timestamp: str) -> int:
+    """Days elapsed since an ISO timestamp string."""
+    try:
+        parked = datetime.fromisoformat(timestamp)
+        return (datetime.now() - parked).days
+    except (ValueError, TypeError):
+        return 0
 
 
 # --- Per-session state (parent-chain breadcrumb) ----------------------------
