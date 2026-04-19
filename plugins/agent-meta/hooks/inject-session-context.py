@@ -21,10 +21,20 @@ import json
 import sys
 
 # Skills in the agent-meta plugin that benefit from knowing the session ID.
-# Keep this narrow: unparking a session doesn't need the current one, and
-# snapshot has its own flow.
+#
+# - ``park`` needs the session ID so it can stamp ``origin_session_id:`` on
+#   the park file and (indirectly) look up the parent chain via the state
+#   file keyed on that session.
+# - ``unpark`` needs the session ID so it can call
+#   ``park_storage.record_unpark(key, session_id, slug)``. That seeds the
+#   parent-chain breadcrumb: the next ``park`` in THIS session will read
+#   the same state file and auto-fill ``parent:`` with the slug we just
+#   unparked. Without the session ID, the breadcrumb is never written and
+#   the chain stays broken across park→unpark→park cycles.
+# - ``snapshot`` has its own flow and doesn't use the state file.
 TARGET_SKILLS = {
     "agent-meta:park",
+    "agent-meta:unpark",
 }
 
 try:
