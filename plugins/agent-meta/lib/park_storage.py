@@ -43,6 +43,7 @@ _FRONTMATTER_FIELDS = (
     "plan",
     "task",
     "origin_session_id",
+    "last_kept_at",
     "name",
     "type",
 )
@@ -135,6 +136,7 @@ class Park:
     plan: Optional[str] = None          # optional plan doc path
     task: Optional[str] = None          # optional taskwarrior UUID
     origin_session_id: Optional[str] = None
+    last_kept_at: Optional[str] = None  # set by keep action; overrides parked_at for age
     name: Optional[str] = None          # frontmatter name, e.g. "park-<slug>"
     type: str = "park"
     body: str = ""                      # everything after the frontmatter

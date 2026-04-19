@@ -345,6 +345,7 @@ class ParkLoadSaveTests(unittest.TestCase):
                 "plan",
                 "task",
                 "origin_session_id",
+                "last_kept_at",
                 "name",
                 "type",
             ]
@@ -376,6 +377,7 @@ class ParkLoadSaveTests(unittest.TestCase):
                 "plan: null\n"
                 "task: null\n"
                 "origin_session_id: null\n"
+                "last_kept_at: null\n"
                 "name: park-exact\n"
                 "type: park\n"
                 "---\n"
