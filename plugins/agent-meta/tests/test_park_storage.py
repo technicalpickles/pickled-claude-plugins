@@ -5,6 +5,7 @@ Run from plugins/agent-meta/:
 """
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -381,6 +382,114 @@ class ParkLoadSaveTests(unittest.TestCase):
                 "hello\n"
             )
             self.assertEqual(path.read_text(), expected)
+
+
+class ParentChainStateTests(unittest.TestCase):
+    """Per-session breadcrumb: unpark records the slug it resumed, park reads
+    it back on the next park to auto-fill ``parent:``. State, not log —
+    re-recording for the same session overwrites.
+    """
+
+    def setUp(self):
+        self._tmp = TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.root = Path(self._tmp.name)
+
+    def test_write_last_unpark_then_read(self):
+        key = "test-repo"
+        ps.ensure_park_dirs(key, root=self.root)
+        ps.record_unpark(key, session_id="sess-1", slug="jwt-auth", root=self.root)
+        self.assertEqual(
+            ps.read_last_unpark(key, "sess-1", root=self.root),
+            "jwt-auth",
+        )
+
+    def test_read_last_unpark_returns_none_if_missing(self):
+        key = "test-repo"
+        ps.ensure_park_dirs(key, root=self.root)
+        self.assertIsNone(
+            ps.read_last_unpark(key, "no-such-session", root=self.root)
+        )
+
+    def test_most_recent_unpark_wins(self):
+        """State cell, not log: a second record overwrites the first."""
+        key = "test-repo"
+        ps.ensure_park_dirs(key, root=self.root)
+        ps.record_unpark(key, session_id="sess-1", slug="first-slug", root=self.root)
+        ps.record_unpark(key, session_id="sess-1", slug="second-slug", root=self.root)
+        self.assertEqual(
+            ps.read_last_unpark(key, "sess-1", root=self.root),
+            "second-slug",
+        )
+
+    def test_different_sessions_do_not_collide(self):
+        key = "test-repo"
+        ps.ensure_park_dirs(key, root=self.root)
+        ps.record_unpark(key, session_id="sess-A", slug="slug-A", root=self.root)
+        ps.record_unpark(key, session_id="sess-B", slug="slug-B", root=self.root)
+        self.assertEqual(
+            ps.read_last_unpark(key, "sess-A", root=self.root), "slug-A"
+        )
+        self.assertEqual(
+            ps.read_last_unpark(key, "sess-B", root=self.root), "slug-B"
+        )
+
+    def test_state_file_lives_at_expected_path(self):
+        """Pin the on-disk location so other tools (and future migrations)
+        can find state files without asking park_storage."""
+        key = "test-repo"
+        ps.ensure_park_dirs(key, root=self.root)
+        ps.record_unpark(key, session_id="sess-path", slug="s", root=self.root)
+        expected = self.root / key / ".state" / "sess-path.json"
+        self.assertTrue(expected.is_file(), f"expected state file at {expected}")
+
+    def test_state_file_json_shape(self):
+        """Format: {"last_unpark": "<slug>", "at": "<iso-ts>"}"""
+        key = "test-repo"
+        ps.ensure_park_dirs(key, root=self.root)
+        ps.record_unpark(key, session_id="sess-shape", slug="the-slug", root=self.root)
+        state_path = self.root / key / ".state" / "sess-shape.json"
+        payload = json.loads(state_path.read_text())
+        self.assertEqual(set(payload.keys()), {"last_unpark", "at"})
+        self.assertEqual(payload["last_unpark"], "the-slug")
+        # ISO 8601 with seconds precision, no microseconds, no timezone suffix
+        # required (datetime.now().isoformat(timespec="seconds") emits naive).
+        self.assertRegex(
+            payload["at"],
+            r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}",
+        )
+
+    def test_record_unpark_creates_state_dir_if_missing(self):
+        """Robustness: don't require the caller to have run ensure_park_dirs
+        first. Park/unpark commands shouldn't fail on a fresh repo just
+        because the breadcrumb directory isn't materialized yet.
+        """
+        key = "fresh-repo"
+        # Deliberately skip ensure_park_dirs — start from bare root.
+        ps.record_unpark(key, session_id="sess-new", slug="bootstrap", root=self.root)
+        self.assertEqual(
+            ps.read_last_unpark(key, "sess-new", root=self.root), "bootstrap"
+        )
+
+    def test_read_last_unpark_no_side_effects_when_missing(self):
+        """read_* is pure: missing file returns None, doesn't create anything."""
+        key = "quiet-repo"
+        self.assertIsNone(
+            ps.read_last_unpark(key, "never-recorded", root=self.root)
+        )
+        # Nothing should have been created on disk.
+        self.assertFalse((self.root / key).exists())
+
+    def test_read_last_unpark_raises_on_corrupt_json(self):
+        """Malformed state is a real bug — surface it, don't pretend it's
+        absent. Silent recovery here would hide a disk-level problem.
+        """
+        key = "test-repo"
+        ps.ensure_park_dirs(key, root=self.root)
+        state_path = self.root / key / ".state" / "sess-bad.json"
+        state_path.write_text("this is not json {{{")
+        with self.assertRaises(json.JSONDecodeError):
+            ps.read_last_unpark(key, "sess-bad", root=self.root)
 
 
 def _minimal_park_text(*, slug: str, branch: str) -> str:

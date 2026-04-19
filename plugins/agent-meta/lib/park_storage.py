@@ -9,15 +9,19 @@ This module is intentionally minimal:
   * ``park_dir(key)`` / ``ensure_park_dirs(key)`` — path helpers
   * ``list_active(key)`` — active parks in a repo
   * ``Park.load(path)`` / ``Park.save(path)`` — read/write park files
+  * ``record_unpark(key, session, slug)`` / ``read_last_unpark(key, session)``
+    — per-session parent-chain breadcrumb
 
 See ``docs/plans/2026-04-19-repo-keyed-park-store.md`` for the larger design.
 """
 from __future__ import annotations
 
+import json
 import os
 import re
 import subprocess
 from dataclasses import dataclass, fields
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -181,6 +185,54 @@ def list_active(key: str, root: Path = PARKS_ROOT) -> list[Park]:
             continue
         parks.append(Park.load(entry))
     return parks
+
+
+# --- Per-session state (parent-chain breadcrumb) ----------------------------
+
+
+def _state_path(key: str, session_id: str, root: Path = PARKS_ROOT) -> Path:
+    return park_dir(key, root=root) / ".state" / f"{session_id}.json"
+
+
+def record_unpark(
+    key: str,
+    session_id: str,
+    slug: str,
+    root: Path = PARKS_ROOT,
+) -> None:
+    """Write breadcrumb that this session just unparked ``slug``.
+
+    Overwrites any prior record for the same session — only the most
+    recent unpark is tracked (state cell, not log). The ``.state/``
+    directory is created if missing so callers don't need to have
+    pre-run ``ensure_park_dirs``.
+    """
+    path = _state_path(key, session_id, root=root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "last_unpark": slug,
+        "at": datetime.now().isoformat(timespec="seconds"),
+    }
+    path.write_text(json.dumps(payload))
+
+
+def read_last_unpark(
+    key: str,
+    session_id: str,
+    root: Path = PARKS_ROOT,
+) -> Optional[str]:
+    """Return the slug the given session most recently unparked, or ``None``.
+
+    Missing file → ``None`` (checked race-free via FileNotFoundError).
+    Malformed JSON → raises ``json.JSONDecodeError``: a corrupt state
+    file is a real bug worth surfacing, not something to paper over.
+    """
+    path = _state_path(key, session_id, root=root)
+    try:
+        raw = path.read_text()
+    except FileNotFoundError:
+        return None
+    return json.loads(raw).get("last_unpark")
 
 
 # --- Frontmatter helpers ----------------------------------------------------
