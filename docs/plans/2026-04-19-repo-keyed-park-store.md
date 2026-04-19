@@ -20,7 +20,7 @@
   stale/<date>-<slug>.md            # abandoned, no follow-up
 ```
 
-Repo slug derivation matches Claude Code's convention: slashified path of `git rev-parse --show-toplevel`. Non-git-repo fallback: slugified cwd. All worktrees of a repo resolve to the same slug.
+Repo slug derivation: parent of `git rev-parse --git-common-dir`, resolved to absolute path and slashified. `--git-common-dir` returns the shared `.git` dir's path regardless of which worktree is cwd — its parent is the main repo root, so all worktrees of a repo resolve to the same slug. **Do not use `--show-toplevel`**: that returns the worktree path and would give each worktree a distinct slug, defeating the sharing goal. Non-git-repo fallback: slugified cwd.
 
 ### Park file frontmatter
 ```yaml
@@ -145,22 +145,27 @@ PARKS_ROOT = Path.home() / ".claude" / "parks"
 
 def _slugify(path: str) -> str:
     """Mirror Claude Code's project-slug convention: replace / with -, strip leading."""
-    return re.sub(r"[^A-Za-z0-9]", "-", path).strip("-")
+    # Claude Code keeps the leading dash (see `ls ~/.claude/projects/`);
+    # only trailing non-alphanumerics get stripped.
+    return re.sub(r"[^A-Za-z0-9]", "-", path).rstrip("-")
 
 
 def repo_key() -> str:
     """Return the repo slug for the current working directory.
-    In a git repo: slug of `git rev-parse --show-toplevel`.
+    In a git repo: slug of the parent of `git rev-parse --git-common-dir`.
+    Using --git-common-dir instead of --show-toplevel means all worktrees
+    of the same repo resolve to the same key.
     Otherwise: slug of cwd.
     """
     try:
         result = subprocess.run(
-            ["git", "rev-parse", "--show-toplevel"],
+            ["git", "rev-parse", "--git-common-dir"],
             capture_output=True, text=True, check=True
         )
-        toplevel = result.stdout.strip()
-        if toplevel:
-            return _slugify(toplevel)
+        common_dir = result.stdout.strip()
+        if common_dir:
+            repo_root = Path(common_dir).resolve().parent
+            return _slugify(str(repo_root))
     except (subprocess.CalledProcessError, FileNotFoundError):
         pass
     return _slugify(str(Path(os.getcwd()).resolve()))
