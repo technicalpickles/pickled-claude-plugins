@@ -69,12 +69,14 @@ EOF
 
   echo "$pr" | jq -r '
     [.reviewThreads.nodes[] | select(.isResolved == false)]
-    | sort_by(.path, .line)
+    | sort_by(.path, (.line // .originalLine))
     | to_entries[]
-    | "\(.key + 1)\t\(.value.id)\t\(.value.path)\t\(.value.line)\t\(.value.comments.nodes[0].author.login)"
-  ' | while IFS=$'\t' read -r idx thread_id path line first_author; do
+    | "\(.key + 1)\t\(.value.id)\t\(.value.path)\t\(.value.line // .value.originalLine)\t\(.value.comments.nodes[0].author.login)\t\(.value.isOutdated)"
+  ' | while IFS=$'\t' read -r idx thread_id path line first_author outdated; do
     echo
-    echo "### \`$path:$line\` — @$first_author"
+    local suffix=""
+    [[ "$outdated" == "true" ]] && suffix=" ⚠️ outdated"
+    echo "### \`$path:$line\` — @$first_author$suffix"
     echo "<!-- thread: $idx, id: $thread_id -->"
     echo "**Verdict (tentative):** _pending triage_"
     echo
