@@ -59,12 +59,46 @@ render() {
 **Reviewers:** $reviewers
 
 ## Threads ($thread_count unresolved)
-
 EOF
 
   if [[ "$thread_count" -eq 0 ]]; then
+    echo
     echo "_No unresolved threads._"
+    return
   fi
+
+  echo "$pr" | jq -r '
+    [.reviewThreads.nodes[] | select(.isResolved == false)]
+    | sort_by(.path, .line)
+    | to_entries[]
+    | "\(.key + 1)\t\(.value.id)\t\(.value.path)\t\(.value.line)\t\(.value.comments.nodes[0].author.login)"
+  ' | while IFS=$'\t' read -r idx thread_id path line first_author; do
+    echo
+    echo "### \`$path:$line\` — @$first_author"
+    echo "<!-- thread: $idx, id: $thread_id -->"
+    echo "**Verdict (tentative):** _pending triage_"
+    echo
+
+    # Render the comment chain as a single blockquote
+    echo "$pr" | jq -r \
+      --arg tid "$thread_id" \
+      '
+        .reviewThreads.nodes[]
+        | select(.id == $tid)
+        | .comments.nodes
+        | map("> @\(.author.login): \(.body)")
+        | join("\n>\n")
+      '
+
+    echo
+    echo "**Reasoning:** _pending triage_"
+    echo "**Plan:** _pending triage_"
+
+    if [[ "$idx" -lt "$thread_count" ]]; then
+      echo
+      echo "---"
+    fi
+  done
 }
 
 if [[ "$RENDER_ONLY" -eq 1 ]]; then
