@@ -8,6 +8,14 @@ set -euo pipefail
 #   fetch.sh --render-only \              # render only from local JSON
 #     --graphql <file> --comments <file>
 
+require_gh_auth() {
+  if ! gh auth status >/dev/null 2>&1; then
+    echo "error: gh is not authenticated" >&2
+    echo "run: gh auth login" >&2
+    exit 1
+  fi
+}
+
 RENDER_ONLY=0
 GRAPHQL_FILE=""
 COMMENTS_FILE=""
@@ -148,6 +156,7 @@ resolve_pr() {
 }
 
 live_fetch() {
+  require_gh_auth
   local ref="${1:-}"
 
   local pr_json
