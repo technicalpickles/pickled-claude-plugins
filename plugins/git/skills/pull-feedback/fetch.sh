@@ -171,7 +171,9 @@ live_fetch() {
   local graphql_file comments_file
   graphql_file="$(mktemp)"
   comments_file="$(mktemp)"
-  trap 'rm -f "$graphql_file" "$comments_file"' EXIT
+  # Expand paths into the trap string now, so the EXIT handler doesn't
+  # depend on these locals still being in scope when the trap fires.
+  trap "rm -f '$graphql_file' '$comments_file'" EXIT
 
   local query_path
   query_path="$(dirname "${BASH_SOURCE[0]}")/lib/query.graphql"
