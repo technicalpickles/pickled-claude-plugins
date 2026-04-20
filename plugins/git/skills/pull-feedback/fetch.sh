@@ -101,6 +101,15 @@ EOF
       echo "---"
     fi
   done
+
+  local comment_count
+  comment_count="$(jq 'length' "$comments")"
+  if [[ "$comment_count" -gt 0 ]]; then
+    echo
+    echo "## General comments"
+    echo
+    jq -r '.[] | "- @\(.user.login): \"\(.body)\""' "$comments"
+  fi
 }
 
 if [[ "$RENDER_ONLY" -eq 1 ]]; then
