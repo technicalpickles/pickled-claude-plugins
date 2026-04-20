@@ -11,13 +11,16 @@ set -euo pipefail
 RENDER_ONLY=0
 GRAPHQL_FILE=""
 COMMENTS_FILE=""
+REF=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --render-only) RENDER_ONLY=1; shift ;;
     --graphql) GRAPHQL_FILE="$2"; shift 2 ;;
     --comments) COMMENTS_FILE="$2"; shift 2 ;;
-    *) echo "unknown arg: $1" >&2; exit 1 ;;
+    --) shift; REF="${1:-}"; break ;;
+    -*) echo "unknown flag: $1" >&2; exit 1 ;;
+    *) REF="$1"; shift ;;
   esac
 done
 
@@ -112,6 +115,92 @@ EOF
   fi
 }
 
+resolve_pr() {
+  local ref="${1:-}"
+
+  if [[ -z "$ref" ]]; then
+    # Auto-detect from current branch
+    if ! gh pr view --json number,url,headRepositoryOwner,headRepository 2>/dev/null; then
+      echo "error: no PR found for current branch" >&2
+      echo "pass a PR ref explicitly (e.g., 123, #123, owner/repo#123, or a PR URL)" >&2
+      exit 1
+    fi
+    return
+  fi
+
+  # Strip URL prefix, handle org/repo#N, #N, bare number
+  case "$ref" in
+    https://github.com/*/pull/*)
+      gh pr view "$ref" --json number,url,headRepositoryOwner,headRepository
+      ;;
+    *#*)
+      local repo="${ref%#*}"
+      local number="${ref#*#}"
+      gh pr view "$number" --repo "$repo" --json number,url,headRepositoryOwner,headRepository
+      ;;
+    '#'*)
+      gh pr view "${ref#\#}" --json number,url,headRepositoryOwner,headRepository
+      ;;
+    *)
+      gh pr view "$ref" --json number,url,headRepositoryOwner,headRepository
+      ;;
+  esac
+}
+
+live_fetch() {
+  local ref="${1:-}"
+
+  local pr_json
+  pr_json="$(resolve_pr "$ref")"
+
+  local owner repo number url
+  owner="$(echo "$pr_json" | jq -r '.headRepositoryOwner.login')"
+  repo="$(echo "$pr_json" | jq -r '.headRepository.name')"
+  number="$(echo "$pr_json" | jq -r '.number')"
+  url="$(echo "$pr_json" | jq -r '.url')"
+
+  local graphql_file comments_file
+  graphql_file="$(mktemp)"
+  comments_file="$(mktemp)"
+  trap 'rm -f "$graphql_file" "$comments_file"' EXIT
+
+  local query_path
+  query_path="$(dirname "${BASH_SOURCE[0]}")/lib/query.graphql"
+
+  gh api graphql \
+    -F owner="$owner" \
+    -F repo="$repo" \
+    -F number="$number" \
+    -f query="$(cat "$query_path")" \
+    > "$graphql_file"
+
+  gh api "repos/$owner/$repo/issues/$number/comments" > "$comments_file"
+
+  local out_dir=".scratch/pr-reviews/$number"
+  mkdir -p "$out_dir"
+  local out_file="$out_dir/threads.md"
+
+  render "$graphql_file" "$comments_file" > "$out_file"
+
+  local thread_count
+  thread_count="$(jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false)] | length' "$graphql_file")"
+
+  local outdated_count
+  outdated_count="$(jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false and .isOutdated == true)] | length' "$graphql_file")"
+
+  local reviewers
+  reviewers="$(jq -r '
+    .data.repository.pullRequest.latestReviews.nodes
+    | if length == 0 then "(none)"
+      else map("@\(.author.login) (\(.state))") | join(", ")
+      end
+  ' "$graphql_file")"
+
+  echo "wrote: $out_file"
+  echo "threads: $thread_count unresolved ($outdated_count outdated)"
+  echo "reviewers: $reviewers"
+}
+
 if [[ "$RENDER_ONLY" -eq 1 ]]; then
   [[ -n "$GRAPHQL_FILE" && -n "$COMMENTS_FILE" ]] || {
     echo "--render-only requires --graphql and --comments" >&2
@@ -121,5 +210,4 @@ if [[ "$RENDER_ONLY" -eq 1 ]]; then
   exit 0
 fi
 
-echo "live mode not yet implemented" >&2
-exit 1
+live_fetch "${REF:-}"
