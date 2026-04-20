@@ -1,0 +1,6 @@
+{
+  "eval_id": 2,
+  "eval_name": "ambient-pr-context",
+  "prompt": "what did rubberduck203 say on my PR at https://github.com/Gusto/gdev-wish/pull/603 ? I want to address their feedback specifically",
+  "assertions": []
+}
