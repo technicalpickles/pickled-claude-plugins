@@ -1,0 +1,82 @@
+[
+  {
+    "query": "i want to take a look at bktide... i ran snapshot on a build that didn't exist on a pipeline, and got an esoteric error rather than an indicator it was missing. use https://buildkite.com/myorg/my-pipeline/builds/1234 as the example",
+    "should_trigger": true
+  },
+  {
+    "query": "look at the last 20 builds on https://buildkite.com/myorg/my-app on main and tell me which specs are flaking most",
+    "should_trigger": true
+  },
+  {
+    "query": "try running `bk auth status` sandboxed -- i want to debug why it's failing in the sandbox and figure out what env vars the auth flow needs",
+    "should_trigger": true
+  },
+  {
+    "query": "my pipeline in buildkite is stuck at the deploy step for 20 minutes. pull the build logs and check the agent state",
+    "should_trigger": true
+  },
+  {
+    "query": "i queued a CI job via our internal tool that created https://buildkite.com/myorg/my-pipeline/builds/1234/steps/canvas. it failed CI as expected, but I'm not seeing the follow-up build starting from it. there's a service that listens for buildkite events to queue up new jobs",
+    "should_trigger": true
+  },
+  {
+    "query": "we launched a new tool yesterday. look at its buildkite builds and summarize success/failure rates for users over the last week",
+    "should_trigger": true
+  },
+  {
+    "query": "the rails app build b123 failed on main again. figure out if it's the same flaky spec from last week or something new. pull the build page on buildkite",
+    "should_trigger": true
+  },
+  {
+    "query": "one team's pipeline yaml has a deprecation i want to remove. check what pipelines touch that file and whether removing it keeps CI green on the PR",
+    "should_trigger": true
+  },
+  {
+    "query": "bktide is giving weird errors when i query a pipeline by name instead of slug. figure out if that's a bktide bug or a buildkite api thing",
+    "should_trigger": true
+  },
+  {
+    "query": "help me reproduce a failing buildkite test locally. the job runs `bundle exec rspec` but with some flags i can't figure out from the build logs",
+    "should_trigger": true
+  },
+  {
+    "query": "i want to add a new pipeline step to .buildkite/pipeline.yml for running rubocop on changed files only. where do i put the plugin config?",
+    "should_trigger": false
+  },
+  {
+    "query": "my github actions workflow is failing because the node version isn't being set correctly. help me fix the workflow yaml",
+    "should_trigger": false
+  },
+  {
+    "query": "in my Rust CLI tool i want to refactor the inspect command to use a trait instead of an enum. look at src/commands/inspect.rs and sketch the change",
+    "should_trigger": false
+  },
+  {
+    "query": "review https://github.com/myorg/my-cli/pull/564 and leave comments about the error handling patterns",
+    "should_trigger": false
+  },
+  {
+    "query": "review the buildkite plugin's investigating-builds SKILL.md. it's not triggering reliably and i want to tighten the description to catch bk CLI invocations",
+    "should_trigger": false
+  },
+  {
+    "query": "resolve merge conflicts on https://github.com/myorg/my-cli/pull/453 against main. don't run any tests, just the merge",
+    "should_trigger": false
+  },
+  {
+    "query": "set up my local ~/.bk/config.yml with my org and default pipeline to my-pipeline",
+    "should_trigger": false
+  },
+  {
+    "query": "pull down pickled-claude-plugins main and check open PRs, especially anything touching the buildkite plugin's skills",
+    "should_trigger": false
+  },
+  {
+    "query": "in my rails app, add a new enum to the deprecation model for tracking which team owns it",
+    "should_trigger": false
+  },
+  {
+    "query": "in pickled-claude-plugins, add a new reference doc under plugins/buildkite/skills/investigating-builds/references/ for common bktide errors",
+    "should_trigger": false
+  }
+]
