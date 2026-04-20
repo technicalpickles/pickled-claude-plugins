@@ -1,0 +1,6 @@
+{
+  "eval_id": 3,
+  "eval_name": "cold-reorient",
+  "prompt": "I haven't looked at https://github.com/Gusto/gdev-wish/pull/603 in a while. Catch me up and let's address what's left on it.",
+  "assertions": []
+}

@@ -1,0 +1,6 @@
+{
+  "eval_id": 1,
+  "eval_name": "explicit-pr-ref",
+  "prompt": "pull down the review on Gusto/gdev-wish#603 and let's work through the feedback",
+  "assertions": []
+}
