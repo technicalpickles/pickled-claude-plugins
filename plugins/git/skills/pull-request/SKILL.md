@@ -1,6 +1,6 @@
 ---
 name: pull-request
-description: Use when creating, updating, or commenting on GitHub pull requests - focuses on material impact, safety, and human reviewability
+description: Invoke this skill BEFORE running any gh pr create, gh pr edit, or gh pr comment command, or any task that will produce or modify a GitHub pull request. This is the skill for authoring outbound PR communication, including creating, drafting, opening, filing, or starting a PR, updating a PR body or description, and posting a PR comment or reply to review feedback. Trigger on short and casual user phrasings, not only the literal word "create". Example triggers include "create a PR", "draft a PR", "open a PR", "file a PR", "push and PR it", "push up a draft PR", "PR this branch", "PR it", "time to PR this", "let's start a PR", "commit these and push a PR", "update the PR body", "rewrite the PR description", "comment on the PR", "reply to the review comments", and "reply to copilot". The skill exists because running gh directly produces low-quality PR bodies that annoy reviewers. It drafts to .scratch/pr-bodies/ for human review, honors PR templates and CONTRIBUTING.md, avoids metrics/H1/diff-noise anti-patterns, and detects manual edits before overwriting. Do NOT use for reviewing someone else's PR, merging, checking CI/build status, listing review requests, checking out PRs locally, or cleaning up merged branches. Those are separate skills.
 ---
 
 # GitHub PR Communication Skill
