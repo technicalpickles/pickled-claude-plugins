@@ -45,7 +45,7 @@ Record the starting point:
 - **Branch name**: Current git branch
 - **PR number**: If applicable (`gh pr view --json number`)
 - **Build number**: The failing build (from input contract)
-- **Failure count**: Number of failed jobs (from investigation skill)
+- **Failure count**: Number of failed jobs (from a bktide snapshot of the build)
 
 Announce:
 
@@ -101,7 +101,8 @@ If the failure is `flake` or `infra` (CI runner/queue/dependencies), **stop**. S
 ```bash
 bin/rspec <spec_files>
 bin/srb tc <modified_files>      # if using Sorbet
-lefthook run pre-commit          # or: pre-commit run --files <modified_files>
+lefthook run pre-commit          # if using lefthook
+pre-commit run --files <modified_files>  # if using pre-commit framework
 ```
 
 ### JavaScript/TypeScript projects
