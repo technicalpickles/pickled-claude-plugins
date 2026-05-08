@@ -1,0 +1,71 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "number": 123,
+        "title": "Add email throttling to signup",
+        "url": "https://github.com/owner/repo/pull/123",
+        "state": "OPEN",
+        "reviewDecision": "CHANGES_REQUESTED",
+        "author": { "login": "me" },
+        "baseRefName": "main",
+        "headRefName": "feature/throttling",
+        "reviewThreads": {
+          "nodes": [
+            {
+              "id": "PRRT_kwDOA1b2c3",
+              "isResolved": false,
+              "isOutdated": false,
+              "path": "app/models/user.rb",
+              "line": 42,
+              "originalLine": 42,
+              "comments": {
+                "nodes": [
+                  {
+                    "author": { "login": "alice" },
+                    "body": "This should use the existing `find_by_email` helper instead of raw SQL.",
+                    "createdAt": "2026-04-19T10:00:00Z",
+                    "diffHunk": "@@ ... @@"
+                  },
+                  {
+                    "author": { "login": "me" },
+                    "body": "good point, will update.",
+                    "createdAt": "2026-04-19T11:00:00Z",
+                    "diffHunk": "@@ ... @@"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "PRRT_kwDOA1b2c4",
+              "isResolved": false,
+              "isOutdated": false,
+              "path": "app/services/billing.rb",
+              "line": 120,
+              "originalLine": 120,
+              "comments": {
+                "nodes": [
+                  {
+                    "author": { "login": "alice" },
+                    "body": "This looks like a race condition.",
+                    "createdAt": "2026-04-19T10:05:00Z",
+                    "diffHunk": "@@ ... @@"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "author": { "login": "alice" },
+              "state": "CHANGES_REQUESTED",
+              "submittedAt": "2026-04-19T10:10:00Z"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

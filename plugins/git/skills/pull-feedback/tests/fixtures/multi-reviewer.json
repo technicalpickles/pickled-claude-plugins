@@ -1,0 +1,52 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "number": 200,
+        "title": "Ship the thing",
+        "url": "https://github.com/owner/repo/pull/200",
+        "state": "OPEN",
+        "reviewDecision": "CHANGES_REQUESTED",
+        "author": { "login": "me" },
+        "baseRefName": "main",
+        "headRefName": "ship-thing",
+        "reviewThreads": {
+          "nodes": [
+            {
+              "id": "PRRT_mr1",
+              "isResolved": false,
+              "isOutdated": false,
+              "path": "README.md",
+              "line": 8,
+              "originalLine": 8,
+              "comments": {
+                "nodes": [
+                  {
+                    "author": { "login": "bob" },
+                    "body": "Maybe add a quickstart?",
+                    "createdAt": "2026-04-19T10:00:00Z",
+                    "diffHunk": "@@ ... @@"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "author": { "login": "alice" },
+              "state": "CHANGES_REQUESTED",
+              "submittedAt": "2026-04-19T10:10:00Z"
+            },
+            {
+              "author": { "login": "bob" },
+              "state": "APPROVED",
+              "submittedAt": "2026-04-19T10:15:00Z"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
