@@ -59,17 +59,19 @@ task _get <uuid>.project <uuid>.tags <uuid>.due
 
 ## Multi-task lookup
 
-When inspecting several tasks at once, batch them through `export`:
+When inspecting several tasks at once, pass UUIDs (or short UUIDs) as space-separated positional args to `export`:
 
 ```bash
-task uuid:UUID1,UUID2,UUID3 export | jq -r '.[] | "\(.uuid[0:8])  [\(.project // "-")]  \(.description[0:120])"'
+task UUID1 UUID2 UUID3 export | jq -r '.[] | "\(.uuid[0:8])  [\(.project // "-")]  \(.description[0:120])"'
 ```
 
 Or for richer output:
 
 ```bash
-task uuid:UUID1,UUID2,UUID3 export | jq -r '.[] | "uuid: \(.uuid[0:8])  tags: \(.tags // [] | join(","))  due: \(.due // "-")  desc: \(.description[0:80])"'
+task UUID1 UUID2 UUID3 export | jq -r '.[] | "uuid: \(.uuid[0:8])  tags: \(.tags // [] | join(","))  due: \(.due // "-")  desc: \(.description[0:80])"'
 ```
+
+Short (8-char) UUIDs work fine — `task c9dca83f 53c8850a b940d369 export` is equivalent. Comma-separated forms (`uuid:A,B,C`) do NOT work in taskwarrior 3.4.2 — they return empty.
 
 **Never:** `task A info && echo --- && task B info && echo --- && task C info && ...`. This pattern has been observed at 25,000+ chars per call (vs ~600 chars for the batched export equivalent).
 
@@ -126,7 +128,7 @@ Soft target. Existing bloated descriptions decay naturally as tasks are complete
 | "What's on the backlog overall?" | `task summary` (then drill into a project with `dense`) |
 | "What does task `<uuid>` look like?" | `task <uuid> info` (full metadata is fine for one task) |
 | "What's the description of `<uuid>`?" | `task _get <uuid>.description` |
-| "What about these 5 tasks?" | `task uuid:A,B,C,D,E export \| jq -r '...'` |
+| "What about these 5 tasks?" | `task A B C D E export \| jq -r '...'` (space-separated UUIDs) |
 | "Find tasks mentioning 'oauth'" | `task export \| jq -r '.[] \| select(.description \| test("oauth"; "i")) \| ...'` |
 | "Add a task" | `task add project:X +tag "short title ≤100c"` then optionally `task <uuid> annotate "context"` |
 | "Mark done" | `task <uuid> done` |
