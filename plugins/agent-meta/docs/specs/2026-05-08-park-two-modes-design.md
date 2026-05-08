@@ -8,8 +8,8 @@
 
 The `park` skill is used in two distinct ways that produce meaningfully different artifacts, but the current SKILL.md treats them as one shape:
 
-1. **Close-out** — the work is done. The park is a record: what got built, what got decided, anything left dangling. The user is walking away from this thread.
-2. **Continuation** — the work is unfinished and the user is about to bounce to a new session. The park is a baton-pass: the resume prompt is the most important thing in the file.
+1. **Close-out**: the work is done. The park is a record: what got built, what got decided, anything left dangling. The user is walking away from this thread.
+2. **Continuation**: the work is unfinished and the user is about to bounce to a new session. The park is a baton-pass: the resume prompt is the most important thing in the file.
 
 Evidence in `~/pickleton/.parkinglot/`:
 
@@ -120,12 +120,12 @@ When `unpark` lists parked sessions, it groups them:
 
 ```
 Active handoffs:
-(A) jwt-authentication.md     — Parked 2026-05-06
-(B) fix-login-bug.md          — Parked 2026-05-04
+(A) jwt-authentication.md     - Parked 2026-05-06
+(B) fix-login-bug.md          - Parked 2026-05-04
 
 Wrapped (reference only):
-(C) sanitation-skill-fix-wrapped.md       — Wrapped 2026-03-30
-(D) confirm-dotfiles-work-role-wrapped.md — Wrapped 2026-04-12
+(C) sanitation-skill-fix-wrapped.md       - Wrapped 2026-03-30
+(D) confirm-dotfiles-work-role-wrapped.md - Wrapped 2026-04-12
 
 (E) Other location
 ```

@@ -14,10 +14,10 @@
 
 ## Files Touched
 
-- Modify: `plugins/agent-meta/skills/park/SKILL.md` — add mode detection block, replace single output template with two templates, add filename rule, expand examples
-- Modify: `plugins/agent-meta/skills/unpark/SKILL.md` — add grouped listing, add wrapped-file detection and reference-mode flow
-- Modify: `plugins/agent-meta/README.md` — document the two modes in the Skills table
-- Modify: `.claude-plugin/marketplace.json` — bump `agent-meta` from `2.0.0` to `2.1.0` (minor, since this is a `feat`)
+- Modify: `plugins/agent-meta/skills/park/SKILL.md`: add mode detection block, replace single output template with two templates, add filename rule, expand examples
+- Modify: `plugins/agent-meta/skills/unpark/SKILL.md`: add grouped listing, add wrapped-file detection and reference-mode flow
+- Modify: `plugins/agent-meta/README.md`: document the two modes in the Skills table
+- Modify: `.claude-plugin/marketplace.json`: bump `agent-meta` from `2.0.0` to `2.1.0` (minor, since this is a `feat`)
 
 No new files. No scripts. Skills are markdown.
 
@@ -50,7 +50,7 @@ allowed-tools: Bash(scripts/get-session-id.sh)
 
 # Park
 
-Save the current work session. Park has two modes — pick one, write that shape, do not mix.
+Save the current work session. Park has two modes. Pick one, write that shape, do not mix.
 
 ## Modes
 
@@ -154,7 +154,7 @@ Surface candidates for beans, but DO NOT auto-create them.]
 
 Filename: `[topic-slug]-wrapped.md`
 
-Close-out has no Resume Prompt and no Next Steps. If you find yourself wanting to write either, the work is probably a continuation — re-check the mode.
+Close-out has no Resume Prompt and no Next Steps. If you find yourself wanting to write either, the work is probably a continuation: re-check the mode.
 
 ## After Parking
 
@@ -240,12 +240,12 @@ If multiple files exist, group them by mode and list:
 
 ```
 Active handoffs:
-(A) jwt-authentication.md     — Parked 2026-05-06
-(B) fix-login-bug.md          — Parked 2026-05-04
+(A) jwt-authentication.md     - Parked 2026-05-06
+(B) fix-login-bug.md          - Parked 2026-05-04
 
 Wrapped (reference only):
-(C) sanitation-skill-fix-wrapped.md       — Wrapped 2026-03-30
-(D) confirm-dotfiles-work-role-wrapped.md — Wrapped 2026-04-12
+(C) sanitation-skill-fix-wrapped.md       - Wrapped 2026-03-30
+(D) confirm-dotfiles-work-role-wrapped.md - Wrapped 2026-04-12
 
 (E) Other location
 ```
@@ -419,8 +419,8 @@ Invoke by asking naturally ("park this session", "wrap this up", "unpark docs/ha
 
 `park` produces two distinct artifacts:
 
-- **Continuation** (`Parked:` heading, `[topic].md` filename) — for handoffs to a new session. The Resume Prompt is the centerpiece: tight, specific, copy-paste ready.
-- **Close-out** (`Wrapped:` heading, `[topic]-wrapped.md` filename) — for records of completed work. No Resume Prompt; an "Outcome" section in past tense and an optional "Open Threads" list.
+- **Continuation** (`Parked:` heading, `[topic].md` filename): for handoffs to a new session. The Resume Prompt is the centerpiece: tight, specific, copy-paste ready.
+- **Close-out** (`Wrapped:` heading, `[topic]-wrapped.md` filename): for records of completed work. No Resume Prompt; an "Outcome" section in past tense and an optional "Open Threads" list.
 
 Mode is picked at park time from your phrasing ("park to continue" vs "wrap this up"), inferred from the work's state, or asked if ambiguous.
 ```

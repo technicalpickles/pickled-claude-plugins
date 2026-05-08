@@ -6,7 +6,7 @@ allowed-tools: Bash(scripts/get-session-id.sh)
 
 # Park
 
-Save the current work session. Park has two modes — pick one, write that shape, do not mix.
+Save the current work session. Park has two modes. Pick one, write that shape, do not mix.
 
 ## Modes
 
@@ -110,7 +110,7 @@ Surface candidates for beans, but DO NOT auto-create them.]
 
 Filename: `[topic-slug]-wrapped.md`
 
-Close-out has no Resume Prompt and no Next Steps. If you find yourself wanting to write either, the work is probably a continuation — re-check the mode.
+Close-out has no Resume Prompt and no Next Steps. If you find yourself wanting to write either, the work is probably a continuation: re-check the mode.
 
 ## After Parking
 
