@@ -37,17 +37,23 @@ This produces ~120 chars/task. The `dense` report produces ~150 chars/task with 
 
 ## Single-field lookup
 
-When you need ONE field of a known task, use `_get`:
+When you need ONE field of a known task, use `_get` with a DOM reference (`<uuid>.<field>`):
 
 ```bash
-task <uuid> _get description
-task <uuid> _get project
-task <uuid> _get tags
-task <uuid> _get due
-task <uuid> _get urgency
+task _get <uuid>.description
+task _get <uuid>.project
+task _get <uuid>.tags
+task _get <uuid>.due
+task _get <uuid>.urgency
 ```
 
-`_get` returns the raw field value, no metadata, no formatting. Roughly 10× denser than `task <uuid> info`.
+You can also batch fields in one call:
+
+```bash
+task _get <uuid>.project <uuid>.tags <uuid>.due
+```
+
+`_get` returns the raw field value(s), no metadata, no formatting. Roughly 10× denser than `task <uuid> info`. Note the syntax: `_get` is the command and the DOM reference is its argument — NOT `task <uuid> _get description` (that returns empty).
 
 **Never:** `task <uuid> info` when you only need one field. `info` dumps full metadata (entry/modified/uuid/status/etc.) — useful when triaging, wasteful for field lookup.
 
@@ -119,7 +125,7 @@ Soft target. Existing bloated descriptions decay naturally as tasks are complete
 | "How many open in project X?" | `task project:X count` |
 | "What's on the backlog overall?" | `task summary` (then drill into a project with `dense`) |
 | "What does task `<uuid>` look like?" | `task <uuid> info` (full metadata is fine for one task) |
-| "What's the description of `<uuid>`?" | `task <uuid> _get description` |
+| "What's the description of `<uuid>`?" | `task _get <uuid>.description` |
 | "What about these 5 tasks?" | `task uuid:A,B,C,D,E export \| jq -r '...'` |
 | "Find tasks mentioning 'oauth'" | `task export \| jq -r '.[] \| select(.description \| test("oauth"; "i")) \| ...'` |
 | "Add a task" | `task add project:X +tag "short title ≤100c"` then optionally `task <uuid> annotate "context"` |
