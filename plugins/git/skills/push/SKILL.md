@@ -1,6 +1,6 @@
 ---
 name: push
-description: Use when pushing changes to git, especially when a push fails - covers reading mixed SSH/hook output, debugging SSH without dropping core.sshCommand, and the background-push retry trap
+description: Use when running git push or diagnosing why a push failed. Especially when output mixes SSH transport with hook output (lefthook, husky, pre-commit), errors include "Permission denied (publickey)" or "rejected/non-fast-forward", a pre-push hook fails, or about to debug SSH with `-v`.
 ---
 
 # Git Push
