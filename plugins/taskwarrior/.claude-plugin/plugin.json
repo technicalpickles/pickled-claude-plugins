@@ -1,0 +1,10 @@
+{
+  "name": "taskwarrior",
+  "description": "Token-dense recipes for taskwarrior CLI: dense listings, single-field lookups, batched exports, full-text search",
+  "author": {
+    "name": "Josh Nichols",
+    "email": "josh@technicalpickles.com"
+  },
+  "repository": "https://github.com/technicalpickles/pickled-claude-plugins",
+  "license": "MIT"
+}
