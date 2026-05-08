@@ -7,8 +7,8 @@ Token-dense recipes for the [taskwarrior](https://taskwarrior.org/) CLI.
 Provides a skill that activates when you query or modify tasks. Captures dense recipes for the operations that otherwise dump thousands of characters per call:
 
 - **Listing:** `task <filter> dense` (named report) or `task <filter> export | jq -r '...'`
-- **Single-field lookup:** `task <uuid> _get <field>` instead of `task <uuid> info`
-- **Multi-task lookup:** `task uuid:A,B,C export | jq -r '...'` instead of `task A info && task B info && ...`
+- **Single-field lookup:** `task _get <uuid>.<field>` instead of `task <uuid> info`
+- **Multi-task lookup:** `task A B C export | jq -r '...'` (space-separated UUIDs) instead of `task A info && task B info && ...`
 - **Full-text search:** `task export | jq -r '.[] | select(.annotations[]?.description | test("..."))'`
 - **Description-length convention:** ≤ 100 chars; long context goes in annotations.
 

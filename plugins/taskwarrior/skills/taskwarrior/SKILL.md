@@ -11,7 +11,7 @@ Use these recipes whenever you invoke `task` on the user's behalf. They cut outp
 
 ## Listing tasks
 
-**Default — use the named report:**
+**Default. Use the named report:**
 
 ```bash
 task <filter> dense
@@ -25,7 +25,7 @@ task +followup dense
 task dense  # bare = all pending, urgency-sorted
 ```
 
-**Custom shape — when you need different columns or truncation:**
+**Custom shape, when you need different columns or truncation:**
 
 ```bash
 task <filter> export | jq -r '.[] | "\(.uuid[0:8]) [\(.project // "-")] \(.tags // [] | join(",")) \(.due // "-")  \(.description[0:80])"'
@@ -53,9 +53,9 @@ You can also batch fields in one call:
 task _get <uuid>.project <uuid>.tags <uuid>.due
 ```
 
-`_get` returns the raw field value(s), no metadata, no formatting. Roughly 10× denser than `task <uuid> info`. Note the syntax: `_get` is the command and the DOM reference is its argument — NOT `task <uuid> _get description` (that returns empty).
+`_get` returns the raw field value(s), no metadata, no formatting. Roughly 10× denser than `task <uuid> info`. Note the syntax: `_get` is the command and the DOM reference is its argument. NOT `task <uuid> _get description` (that returns empty).
 
-**Never:** `task <uuid> info` when you only need one field. `info` dumps full metadata (entry/modified/uuid/status/etc.) — useful when triaging, wasteful for field lookup.
+**Never:** `task <uuid> info` when you only need one field. `info` dumps full metadata (entry/modified/uuid/status/etc.): useful when triaging, wasteful for field lookup.
 
 ## Multi-task lookup
 
@@ -71,7 +71,7 @@ Or for richer output:
 task UUID1 UUID2 UUID3 export | jq -r '.[] | "uuid: \(.uuid[0:8])  tags: \(.tags // [] | join(","))  due: \(.due // "-")  desc: \(.description[0:80])"'
 ```
 
-Short (8-char) UUIDs work fine — `task c9dca83f 53c8850a b940d369 export` is equivalent. Comma-separated forms (`uuid:A,B,C`) do NOT work in taskwarrior 3.4.2 — they return empty.
+Short (8-char) UUIDs work fine: `task c9dca83f 53c8850a b940d369 export` is equivalent. Comma-separated forms (`uuid:A,B,C`) do NOT work in taskwarrior 3.4.2; they return empty.
 
 **Never:** `task A info && echo --- && task B info && echo --- && task C info && ...`. This pattern has been observed at 25,000+ chars per call (vs ~600 chars for the batched export equivalent).
 
@@ -80,8 +80,8 @@ Short (8-char) UUIDs work fine — `task c9dca83f 53c8850a b940d369 export` is e
 `task list | grep` is unreliable because descriptions wrap across lines. Use export + jq:
 
 ```bash
-# Search descriptions
-task export | jq -r '.[] | select(.description | test("PATTERN"; "i")) | "\(.uuid[0:8])  \(.description[0:120])"'
+# Search descriptions (null-safe)
+task export | jq -r '.[] | select((.description // "") | test("PATTERN"; "i")) | "\(.uuid[0:8])  \(.description[0:120])"'
 
 # Search annotations
 task export | jq -r '.[] | select(.annotations[]?.description | test("PATTERN"; "i")) | "\(.uuid[0:8])  \(.description[0:120])"'
@@ -97,27 +97,26 @@ The `"i"` flag makes the test case-insensitive. Drop it for case-sensitive match
 When creating tasks (`task add ...`), aim for descriptions ≤ 100 chars. Long context goes in annotations:
 
 ```bash
-# Good — short title, then annotate context
+# Good: short title, then annotate context.
 task add project:foo +bug "OAuth token refresh fails with 401 after 24h"
-# `Created task <N>.` prints; grab the int ID, or look up by the most-recent-entry filter:
-task entry.after:now-1m +bug uuid.short
-# Then attach the longer context as an annotation:
-task <uuid> annotate "Repro: lifecycle.test.ts:124 - happens only with refresh-token rotation enabled. Suspect cache key collision between user_id and session_id; see retro 2026-04-19."
+# Output: "Created task 197." Use that int ID for follow-up annotate in the same shell session,
+# or for scripting: NEW_UUID=$(task entry.after:now-1m +bug export | jq -r '.[0].uuid[0:8]')
+task 197 annotate "Repro: lifecycle.test.ts:124. Happens only with refresh-token rotation enabled. Suspect cache key collision between user_id and session_id; see retro 2026-04-19."
 ```
 
 ```bash
-# Bad — paragraph as description
-task add project:foo +bug "OAuth token refresh fails with 401 after 24h. Repro: lifecycle.test.ts:124 — happens only with refresh-token rotation enabled. Suspect cache key collision between user_id and session_id; see retro 2026-04-19. Affects all users on the canary deployment, blocks GA. Fix: split cache namespace by token_type."
+# Bad: paragraph as description.
+task add project:foo +bug "OAuth token refresh fails with 401 after 24h. Repro: lifecycle.test.ts:124. Happens only with refresh-token rotation enabled. Suspect cache key collision between user_id and session_id; see retro 2026-04-19. Affects all users on the canary deployment, blocks GA. Fix: split cache namespace by token_type."
 ```
 
 Soft target. Existing bloated descriptions decay naturally as tasks are completed or edited; no retroactive cleanup is required.
 
 ## Other dense idioms
 
-- **Counts:** `task <filter> count` — single integer, ~3 chars.
-- **Project summary:** `task summary` — project-by-project rollup, very dense.
-- **Project list:** `task projects` — list of all project names with counts.
-- **Tag list:** `task tags` — all tags with counts.
+- **Counts:** `task <filter> count` returns a single integer, ~3 chars.
+- **Project summary:** `task summary` is a project-by-project rollup, very dense.
+- **Project list:** `task projects` lists all project names with counts.
+- **Tag list:** `task tags` lists all tags with counts.
 
 ## Decision tree: what should I run?
 
