@@ -10,11 +10,20 @@ Working with AI coding agents generates valuable artifacts beyond code: session 
 
 | Skill | Description |
 |-------|-------------|
-| `agent-meta:park` | Save current work context for later resumption |
-| `agent-meta:unpark` | Resume work from a parked handoff |
-| `agent-meta:snapshot` | Capture current session state (inline or with save) |
+| `agent-meta:park` | Save current work context. Two modes: **continuation** (handoff to new session) and **close-out** (record of completed work). |
+| `agent-meta:unpark` | Resume work from a parked handoff, or read a wrapped close-out as reference. |
+| `agent-meta:snapshot` | Capture current session state (inline or with save). In-flow checkpoint, not a walking-away artifact. |
 
-Invoke by asking naturally ("park this session", "unpark docs/handoffs/foo.md") or with the fully qualified slash form (`/agent-meta:park`).
+Invoke by asking naturally ("park this session", "wrap this up", "unpark docs/handoffs/foo.md") or with the fully qualified slash form (`/agent-meta:park`).
+
+### Park modes
+
+`park` produces two distinct artifacts:
+
+- **Continuation** (`Parked:` heading, `[topic].md` filename): for handoffs to a new session. The Resume Prompt is the centerpiece: tight, specific, copy-paste ready.
+- **Close-out** (`Wrapped:` heading, `[topic]-wrapped.md` filename): for records of completed work. No Resume Prompt; an "Outcome" section in past tense and an optional "Open Threads" list.
+
+Mode is picked at park time from your phrasing ("park to continue" vs "wrap this up"), inferred from the work's state, or asked if ambiguous.
 
 ## Scripts
 
