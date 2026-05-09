@@ -23,8 +23,6 @@ This feels like [description of change - e.g., "exploring GraphQL as an alternat
 
 - **(A) Explore here:** Continue in current conversation, scope expands
 - **(B) Branch now:** Provide guidance on starting new conversation with context
-- **(C) Note for later:** Background subagent writes handoff doc, reports location
-
-**Handoff document location:** Check CLAUDE.md for `## Handoffs` section with Location, otherwise use `.handoffs/` (gitignored).
+- **(C) Note for later:** Invoke the `agent-meta:park` skill in continuation mode to capture the side-quest, then keep working on the original task. If `agent-meta:park` is not available, write a brief markdown note to `.handoffs/` in the project root (covering: original task, the deferred branch, why it was considered, files involved). Report the path either way.
 
 **Why this matters:** Prevents rabbit holes and feature creep, keeps conversations focused.

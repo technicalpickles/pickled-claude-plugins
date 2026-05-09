@@ -23,14 +23,11 @@ Requires the [pickled-claude-plugins marketplace](../../README.md#installation).
 /plugin install stay-on-target@pickled-claude-plugins
 ```
 
-## Configuration
+## Companion Plugins
 
-Configure handoff location in your project's CLAUDE.md:
+The drift-detection behavior's "Note for later" option delegates to the `agent-meta:park` skill (continuation mode) when available. Install `agent-meta@pickled-claude-plugins` for the richer handoff format with session ID, branch, and resume prompt. Otherwise stay-on-target falls back to a plain note in `.handoffs/`.
 
-```markdown
-## Handoffs
-Location: ~/Vaults/your-vault/handoffs/
-```
+Park's output location is configured in your project's CLAUDE.md (see the agent-meta README for `## Handoffs` / `## Parking` conventions).
 
 ## Structure
 
@@ -40,18 +37,16 @@ stay-on-target/
 ├── hooks/hooks.json           # SessionStart hook registration
 ├── hooks-handlers/
 │   └── session-start.sh       # Composes prompt from modules
-├── prompts/
-│   ├── _base.md               # Core philosophy
-│   └── behaviors/
-│       ├── 01-git-state.md    # Git/WIP awareness
-│       ├── 02-codebase-maturity.md
-│       ├── 03-prior-art.md    # Find existing solutions
-│       ├── 04-clarify.md      # Ask questions first
-│       ├── 05-plan.md         # Always plan
-│       ├── 06-verify.md       # Test harness
-│       └── 07-drift.md        # Scope drift detection
-└── skills/
-    └── scope-handoffs/        # Handoff doc generation
+└── prompts/
+    ├── _base.md               # Core philosophy
+    └── behaviors/
+        ├── 01-git-state.md    # Git/WIP awareness
+        ├── 02-codebase-maturity.md
+        ├── 03-prior-art.md    # Find existing solutions
+        ├── 04-clarify.md      # Ask questions first
+        ├── 05-plan.md         # Always plan
+        ├── 06-verify.md       # Test harness
+        └── 07-drift.md        # Scope drift detection
 ```
 
 ## Design
