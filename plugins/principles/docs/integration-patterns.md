@@ -41,13 +41,15 @@ Hard, deterministic. A `settings.json` PreToolUse hook that fires `skill-advice`
         "matcher": "Skill",
         "hooks": [{
           "type": "command",
-          "command": "python3 \"$HOME/.claude/plugins/cache/pickled-claude-plugins/principles/latest/scripts/skill-advice.py\" --skill superpowers:brainstorming --if-file docs/agents/principles.md --advice 'Principles configured for this project. Consider grill-with-principles first to anchor the why before generating options.'"
+          "command": "python3 \"$HOME/.claude/plugins/cache/pickled-claude-plugins/principles/0.1.0/scripts/skill-advice.py\" --skill superpowers:brainstorming --if-file docs/agents/principles.md --advice 'Principles configured for this project. Consider grill-with-principles first to anchor the why before generating options.'"
         }]
       }
     ]
   }
 }
 ```
+
+**Note:** The `0.1.0` segment in the path is the installed plugin version. Update it after upgrading the plugin. (A future enhancement may add a `latest` symlink to the marketplace cache; for now, the version is hardcoded.)
 
 The `--if-file docs/agents/principles.md` guard means this user-level hook fires only in projects that have principles configured. That's the per-project layering achieved through standard mechanisms; no plugin-internal config needed.
 
@@ -62,15 +64,16 @@ Hard, deterministic. Uses the existing `tool-routing` plugin's PreToolUse interc
 
 **Requires:** `tool-routing` plugin installed and enabled.
 
-**Where:** A route file readable by tool-routing (typically `plugins/tool-routing/scripts/tool-routes.yaml` or a per-project routes file).
+**Where:** A route file readable by tool-routing. The default file is `plugins/tool-routing/hooks/tool-routes.yaml` (shipped with the plugin); per-project routes can live in `.claude/tool-routes.yaml`.
 
-**Snippet:**
+**Snippet (add to the `routes:` dict):**
 
 ```yaml
-- name: brainstorm-suggests-principles
-  tool: Skill
-  pattern: 'superpowers:brainstorming'
-  message: "If docs/agents/principles.md exists, consider grill-with-principles first to anchor the why."
+routes:
+  brainstorm-suggests-principles:
+    tool: Skill
+    pattern: 'superpowers:brainstorming'
+    message: "If docs/agents/principles.md exists, consider grill-with-principles first to anchor the why."
 ```
 
 **Pros:** Integrates with existing tool-routing config; centralized place to manage all routing rules.
