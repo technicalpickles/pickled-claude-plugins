@@ -158,12 +158,36 @@ The command output shows:
 - Step counts (how many passed/failed/broken)
 - Snapshot location
 
-**Step 3: Analyze failed steps**
+**Step 3: Filter to root failures**
+
+Most builds have 1-3 root failures and dozens-to-hundreds of dependent BROKEN steps. Counting BROKEN/RUNNING steps as failures sends you down rabbit holes investigating noise.
+
+First, see the state distribution:
 
 ```bash
-# List failed steps
-jq -r '.steps[] | select(.exit_status != "0" and .exit_status != null) | "\(.id): \(.label) (exit \(.exit_status))"' ./tmp/bktide/snapshots/<org>/<pipeline>/<build>/manifest.json
+jq -r '.steps[].state' ./tmp/bktide/snapshots/<org>/<pipeline>/<build>/manifest.json | sort | uniq -c | sort -rn
+```
 
+**Only these are real failures:**
+- Steps with state `FINISHED` (or `FAILED`) AND non-zero `exit_status`
+
+**These are NOT failures — do not count or investigate them:**
+- **BROKEN** — Downstream dependencies that never ran. Auto-resolve when the root failure is fixed.
+- **RUNNING** — Still in progress.
+- **WAITING** / **SCHEDULED** — Haven't started yet.
+- **CANCELED** — Manually or automatically canceled.
+
+Find actual root failures:
+
+```bash
+jq -r '.steps[] | select((.state == "FINISHED" or .state == "FAILED") and .exit_status != null and .exit_status != 0) | "\(.id): \(.label) (exit \(.exit_status))"' ./tmp/bktide/snapshots/<org>/<pipeline>/<build>/manifest.json
+```
+
+**Example:** A summary reads "466 steps: 43 passed, 397 failed, 361 running" — filtering reveals 1 actual failure (e.g. codeownership validation) and 396 BROKEN dependents. Fix the root and everything else passes.
+
+**Step 4: Read the failing step's log**
+
+```bash
 # View a specific log
 cat ./tmp/bktide/snapshots/<org>/<pipeline>/<build>/steps/<step-id>/log.txt
 
@@ -171,7 +195,7 @@ cat ./tmp/bktide/snapshots/<org>/<pipeline>/<build>/steps/<step-id>/log.txt
 grep -r "Error\|Failed\|Exception" ./tmp/bktide/snapshots/<org>/<pipeline>/<build>/steps/
 ```
 
-**Step 4: Analyze error output**
+**Step 5: Analyze error output**
 
 Look for:
 - Stack traces
@@ -179,7 +203,7 @@ Look for:
 - Exit codes and error messages
 - File paths and line numbers
 
-**Step 5: Reproduce locally**
+**Step 6: Reproduce locally**
 
 Follow the "Reproducing Build Failures Locally" workflow below to:
 1. Extract the exact command CI ran (visible in the log)
