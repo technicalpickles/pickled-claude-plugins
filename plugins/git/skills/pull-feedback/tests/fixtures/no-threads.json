@@ -1,0 +1,18 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "number": 42,
+        "title": "Empty PR",
+        "url": "https://github.com/owner/repo/pull/42",
+        "state": "OPEN",
+        "reviewDecision": null,
+        "author": { "login": "me" },
+        "baseRefName": "main",
+        "headRefName": "feature",
+        "reviewThreads": { "nodes": [] },
+        "latestReviews": { "nodes": [] }
+      }
+    }
+  }
+}

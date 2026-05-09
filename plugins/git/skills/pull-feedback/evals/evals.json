@@ -1,0 +1,26 @@
+{
+  "skill_name": "pull-feedback",
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "explicit-pr-ref",
+      "prompt": "pull down the review on Gusto/gdev-wish#603 and let's work through the feedback",
+      "expected_output": "A structured doc listing each unresolved review thread with a verdict (valid/invalid/nice-to-have/needs-clarification), reasoning, and plan. Verdicts should be tentative; no code changes yet.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "eval_name": "ambient-pr-context",
+      "prompt": "what did rubberduck203 say on my PR at https://github.com/Gusto/gdev-wish/pull/603 ? I want to address their feedback specifically",
+      "expected_output": "Structured doc scoped to rubberduck203's threads (other reviewers' threads can be deferred or omitted). Each thread has a tentative verdict + reasoning + plan.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "eval_name": "cold-reorient",
+      "prompt": "I haven't looked at https://github.com/Gusto/gdev-wish/pull/603 in a while. Catch me up and let's address what's left on it.",
+      "expected_output": "Structured doc plus a short (1-2 sentence) PR summary, since the context is cold. Verdicts tentative; deep-dive available on request.",
+      "files": []
+    }
+  ]
+}
