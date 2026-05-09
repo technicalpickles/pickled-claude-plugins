@@ -114,6 +114,11 @@
       "source": "./plugins/tailscale",
       "version": "0.1.0",
       "description": "Tailscale CLI reference and safe patterns for exposing local services over a tailnet"
+    },
+    {
+      "name": "principles",
+      "source": "./plugins/principles",
+      "version": "0.1.0"
     }
   ]
 }
