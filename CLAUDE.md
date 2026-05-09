@@ -154,7 +154,7 @@ For changes touching multiple plugins, either:
 1. Use no scope: `fix: use markdown links in skills`
 2. Make separate commits per plugin
 
-Version bumps happen automatically when PRs are approved.
+**Bump versions in your PR.** Run `./scripts/bump-version.sh --auto` to apply the bumps that conventional commits imply, then commit the result as `chore(plugin): bump version to X.Y.Z`. The Version Check workflow blocks merge until pending bumps are applied.
 
 → Full details: [`docs/versioning.md`](docs/versioning.md)
 
@@ -187,6 +187,6 @@ The `@path/to/file` import syntax is a CLAUDE.md-specific feature. In SKILL.md f
 2. Make changes to plugin source in `plugins/{name}/`
 3. Test locally with appropriate env vars
 4. Commit using conventional format: `feat(plugin): description`
-5. Create PR - CI validates commits and reports required bumps
-6. Get PR approved - versions auto-bump
-7. Merge
+5. Run `./scripts/bump-version.sh --auto` and commit the bump as `chore(plugin): bump version to X.Y.Z`
+6. Create PR - CI validates commits and that pending bumps are applied
+7. Merge once green and approved

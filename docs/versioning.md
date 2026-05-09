@@ -21,7 +21,7 @@ This document explains how plugin versions are managed in this marketplace.
 
 **Conventional commits drive bumps:** The commit message format determines what version changes are needed.
 
-**Auto-bump on PR approval:** When a PR is approved, GitHub Actions automatically commits the version bumps.
+**Bump in your PR before merging.** Run `./scripts/bump-version.sh --auto` and commit the result as `chore(plugin): bump version to X.Y.Z`. The Version Check workflow fails if pending bumps aren't applied, so you can't merge without doing this.
 
 ## Commit Format
 
@@ -93,16 +93,13 @@ feat(tool-routing)!: change route configuration format
 
 1. **Create branch** from main
 2. **Make commits** using conventional format
-3. **Push and create PR**
-4. **CI validates:**
+3. **Apply version bumps:** Run `./scripts/bump-version.sh --auto` and commit as `chore(plugin): bump version to X.Y.Z`
+4. **Push and create PR**
+5. **CI validates:**
    - Commit format is correct
    - Scopes are valid plugin names
-   - Reports what version bumps are needed
-   - **Fails if bumps are pending** (blocks merge until applied)
-5. **Get PR approved**
-6. **Auto-bump:** GitHub Actions commits version updates to your branch
-7. **CI re-runs:** Now passes (no pending bumps)
-8. **Merge PR**
+   - Pending bumps have been applied (fails otherwise — blocks merge)
+6. **Get PR approved and merge**
 
 ## Local Validation
 
