@@ -75,6 +75,11 @@
       "name": "taskwarrior",
       "source": "./plugins/taskwarrior",
       "version": "1.0.0"
+    },
+    {
+      "name": "principles",
+      "source": "./plugins/principles",
+      "version": "0.1.0"
     }
   ]
 }
