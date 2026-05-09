@@ -19,6 +19,7 @@ Brainstorming-style breadth-first menus drag conversations toward implementation
 - Otherwise probe `docs/principles.md` and `docs/ops-principles.md` directly.
 - Resolve all paths against `git rev-parse --show-toplevel` so worktree invocations find the right files.
 - If nothing is found, ask: *"No principles configured. Skip principle-anchoring, or run `setup-principles` first?"* and exit cleanly. Do not pretend to grill without principles. The whole point is anchoring.
+- If `docs/agents/principles.md` includes a `## Skip patterns` section, check whether the current branch (`git branch --show-current`) or current path matches any pattern. If so, mention it to the user and ask whether to proceed anyway. The skip patterns are advisory in v1, not strict gates.
 
 ### 2. Read and shortlist
 
@@ -88,7 +89,7 @@ Always output inline. Offer to write to `docs/plans/YYYY-MM-DD-<topic>-principle
 
   > "That's a brainstorming question. Want to settle the principle 3 boundary first, or jump?"
 
-- Cite principles by number, always. The numbering is the lingua franca that makes cross-references and correction-case citations cheap.
+- Cite by stable identifier. When principles are numbered, use the number; when they aren't, use the bolded name or a short quote. Cross-references and correction-case citations should use whatever identifier the principles file provides consistently.
 
 ## What this skill does not do
 
