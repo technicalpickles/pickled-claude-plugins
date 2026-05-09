@@ -39,7 +39,7 @@ For each principle:
 - One question at a time. Never present a menu.
 - Cite the principle by number explicitly so cross-references stay easy: *"Per #3..."*
 
-Carry constraints forward. An answer to a principle 3 question constrains follow-up principle 9 questions. Don't re-ask what's already settled.
+Carry constraints forward: if principle 3 established that 'agents propose, humans confirm', use that boundary when asking the principle 9 question instead of re-asking whether agents should propose. Don't re-ask what's already settled.
 
 ### 4. Surface conflicts emergently
 
@@ -53,13 +53,13 @@ Frame: *"#5 says defer, #4 says capture. Which dominates here?"*
 
 ### 5. Cite correction cases
 
-When the principles file has correction-case entries (e.g. `Where:` mentions like "Disposition rework is a correction case for #8"), surface them when the topic resembles the original violation pattern. Don't just cite; ask whether the same shape applies:
+When the principles file documents correction cases or known violations (however they are formatted), surface them when the topic resembles the original pattern. Don't just cite; ask whether the same shape applies:
 
-> "Principle 8 had a leak in disposition rework where mutation logic ended up in skill prose. Does the same pattern apply to what we're discussing?"
+> "Principle 8 had a leak in [context from principles file]. Does the same pattern apply here?"
 
 ### 6. Output the brief
 
-When the tree is walked or visibly stabilized, synthesize a brief inline:
+When the tree is walked or visibly stabilized, synthesize a brief inline. Include only the fields that apply; omit any that are empty (e.g., omit 'Active conflicts' if none surfaced):
 
 ```
 ## Principle brief: <topic>
