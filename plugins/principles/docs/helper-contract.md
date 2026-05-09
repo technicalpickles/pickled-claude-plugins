@@ -48,7 +48,9 @@ See the [Claude Code hooks reference](https://code.claude.com/docs/en/hooks.md) 
 To use this helper from another plugin, invoke it with a path that resolves to this plugin's cache directory:
 
 ```bash
-python3 "$HOME/.claude/plugins/cache/pickled-claude-plugins/principles/latest/scripts/skill-advice.py" ...
+python3 "$HOME/.claude/plugins/cache/pickled-claude-plugins/principles/0.1.0/scripts/skill-advice.py" ...
 ```
+
+Note: replace `0.1.0` with your installed version. The marketplace cache uses versioned paths; there is no `latest` symlink today.
 
 The contract is stable. Future versions will not change argument names or output shape without a major version bump.
