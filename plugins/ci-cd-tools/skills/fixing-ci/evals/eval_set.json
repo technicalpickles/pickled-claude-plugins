@@ -1,0 +1,66 @@
+[
+  {
+    "query": "fix CI on this branch — it's failing with a few rspec errors and i want to push fixes until it goes green",
+    "should_trigger": true
+  },
+  {
+    "query": "make CI green for PR #196",
+    "should_trigger": true
+  },
+  {
+    "query": "iterate on https://buildkite.com/gusto/pinwheel/builds/481 — i think there's a real test failure to fix",
+    "should_trigger": true
+  },
+  {
+    "query": "this build has been red for 3 pushes, can you help me figure out what to fix",
+    "should_trigger": true
+  },
+  {
+    "query": "rubocop is failing in CI, fix it and push",
+    "should_trigger": true
+  },
+  {
+    "query": "i pushed a fix and CI is still red, take a look and try again",
+    "should_trigger": true
+  },
+  {
+    "query": "Gemfile.lock checksum errors in CI again, regenerate and push",
+    "should_trigger": true
+  },
+  {
+    "query": "the typescript build is failing, can you fix the type errors and push",
+    "should_trigger": true
+  },
+  {
+    "query": "verify the rspec changes pass locally then push them so CI goes green",
+    "should_trigger": true
+  },
+  {
+    "query": "loop on this until CI is green: https://buildkite.com/gusto/pinwheel/builds/481",
+    "should_trigger": true
+  },
+  {
+    "query": "why did this build fail https://buildkite.com/gusto/pinwheel/builds/481",
+    "should_trigger": false
+  },
+  {
+    "query": "summarize pass/fail rates across the last 20 builds on main",
+    "should_trigger": false
+  },
+  {
+    "query": "add a deploy step to .buildkite/pipeline.yml",
+    "should_trigger": false
+  },
+  {
+    "query": "GitHub Actions workflow is failing, can you fix it",
+    "should_trigger": false
+  },
+  {
+    "query": "review this PR and tell me if the test changes look right",
+    "should_trigger": false
+  },
+  {
+    "query": "edit the SKILL.md for fixing-ci to clarify the iteration cap",
+    "should_trigger": false
+  }
+]

@@ -6,90 +6,115 @@ allowed-tools: Bash(scripts/get-session-id.sh)
 
 # Park
 
-Save the current work session for later resumption.
+Save the current work session. Park has two modes. Pick one, write that shape, do not mix.
 
-## What to Capture
+## Modes
 
-1. **Git state**
-   - Current branch
-   - Worktree path (if applicable)
-   - Uncommitted changes summary
+| Mode | Use when | Heading | Filename |
+|------|----------|---------|----------|
+| **Continuation** | Bouncing to a new session, work continues | `Parked:` | `[topic-slug].md` |
+| **Close-out** | Work is done, capturing a record before walking away | `Wrapped:` | `[topic-slug]-wrapped.md` |
 
-2. **Current task**
-   - What we're doing
-   - What's in progress
-   - Any blockers
+## Mode Detection
 
-3. **Key decisions**
-   - Choices made during this session
-   - Rationale (so they don't get re-litigated)
+Pick one mode by checking three signals in order. Stop at the first one that resolves.
 
-4. **Relevant files**
-   - Files created, modified, or read
-   - Mark as (new), (modified), or (read)
+1. **Explicit user hint.**
+   - "park, I'm done" / "wrap this up" / "park to close it out" / "park as record" → close-out
+   - "park, switching sessions" / "park to continue" / "park, picking back up later" → continuation
+2. **Terminal-state inference.** If all major next steps are done, no blockers remain, and the current state reads as terminal → close-out. If concrete unfinished next actions exist → continuation.
+3. **Ambiguity fallback.** Use the AskUserQuestion tool with one A/B question:
+   - Question: "Is this a close-out (work is done, archiving) or a continuation (planning to pick this up in a new session)?"
+   - Options: "Close-out (record)" / "Continuation (handoff)"
 
-5. **Next steps**
-   - What should happen next
-   - In priority order
-
-6. **Resume prompt**
-   - Suggested prompt to continue this work
-
-## Output Location
-
-Resolve location in order:
-1. Project `CLAUDE.md` → `## Handoffs` or `## Parking` → `Location:`
-2. User `~/.claude/CLAUDE.md` → same lookup
-3. Default: `.parkinglot/` in project root
-
-Ensure the directory exists. If using `.parkinglot/`, check it's gitignored.
+Pick once and commit. Do not switch modes mid-write.
 
 ## Before Writing
 
-1. Get the current session ID:
-   - **Preferred:** Look for a `Session ID:` line in the PostToolUse hook context that this plugin injects when the `agent-meta:park` skill is invoked. If present, use that value. A `Transcript:` line may also be present with the path to the current conversation transcript.
-   - **Fallback:** If no injected context is visible (hook disabled, older install, etc.), run [scripts/get-session-id.sh](scripts/get-session-id.sh) via Bash. If that returns empty, use "unknown".
-2. Gather git branch, worktree path, and other context.
+1. Resolve session ID:
+   - **Preferred:** Look for a `Session ID:` line in the PostToolUse hook context that this plugin injects when `agent-meta:park` is invoked. Use that value. A `Transcript:` line may also be present.
+   - **Fallback:** Run [scripts/get-session-id.sh](scripts/get-session-id.sh) via Bash. If empty, use `unknown`.
+2. Gather git branch, worktree path, files touched.
+3. Resolve output location, in order:
+   1. Project `CLAUDE.md` → `## Handoffs` or `## Parking` → `Location:`
+   2. User `~/.claude/CLAUDE.md` → same lookup
+   3. Default: `.parkinglot/` in project root (verify it is gitignored)
 
-## Output Format
+## Continuation Template
 
-```markdown
+Use when the user is bouncing to a new session and the work continues.
+
+~~~markdown
 # Parked: [Topic]
 
 **Parked:** [Date/time]
-**Session:** [session ID from Bash]
+**Session:** [session ID]
 **Branch:** [branch-name]
 **Worktree:** [path if applicable]
 
-## Current State
-[What's done, what's in progress, any blockers]
-
-## Key Decisions
-- [Decision 1 with brief rationale]
-- [Decision 2 with brief rationale]
-
-## Relevant Files
-- path/to/file.ts (new)
-- path/to/other.ts (modified)
-- path/to/reference.ts (read)
-
-## Next Steps
-1. [Next step]
-2. [Next step]
-
 ## Resume Prompt
-[Suggested prompt to continue this work - specific enough to pick up where we left off]
+
+```
+unpark [path]
+
+[Tight, specific next-action paragraph. Names files, names skill to invoke,
+names the open question to resolve. Copy-paste ready.]
 ```
 
-## Filename
+## Current State
+[What's done, what's in progress, what's blocked. Present tense.]
 
-Use slug from topic: `[topic-slug].md`
+## Key Decisions
+- [Decision + brief rationale]
 
-Example: `jwt-authentication.md`, `fix-login-bug.md`
+## Relevant Files
+- path/to/file.ts (new|modified|read)
+
+## Next Steps
+1. [Concrete next action]
+2. [Concrete next action]
+
+## Open Questions
+[Optional. Things the next session needs to resolve.]
+~~~
+
+**Resume Prompt is mandatory and must be specific.** Before writing the file, check the generated prompt: if it reads as filler ("if you want to resume...", "feel free to continue...", "you could pick this up..."), regenerate it with concrete file paths, named skills to invoke, and explicit next actions. Do not write the file with a filler prompt.
+
+Filename: `[topic-slug].md`
+
+## Close-out Template
+
+Use when the work is done and the user is walking away. There may be open threads, but no baton-pass.
+
+```markdown
+# Wrapped: [Topic]
+
+**Wrapped:** [Date/time]
+**Session:** [session ID]
+**Branch:** [branch-name]
+**Worktree:** [path if applicable]
+
+## Outcome
+[What got done. Past tense. Reference commits where applicable.]
+
+## Key Decisions
+- [Decision + brief rationale]
+
+## Relevant Files
+- path/to/file.ts (new|modified|read)
+
+## Open Threads
+[Optional. Things noticed but not done. One line each.
+Surface candidates for beans, but DO NOT auto-create them.]
+```
+
+Filename: `[topic-slug]-wrapped.md`
+
+Close-out has no Resume Prompt and no Next Steps. If you find yourself wanting to write either, the work is probably a continuation: re-check the mode.
 
 ## After Parking
 
-Report:
+For continuation:
 
 ```
 Parked to `[path]`.
@@ -98,4 +123,10 @@ To resume in a new session, ask Claude:
 > unpark [path]
 ```
 
-The resume prompt should be copy-pasteable so the user can easily paste it into a new session.
+For close-out:
+
+```
+Wrapped to `[path]`.
+
+This is a close-out record. To start fresh work that builds on it, reference the file in your next session.
+```

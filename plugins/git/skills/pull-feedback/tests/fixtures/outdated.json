@@ -1,0 +1,47 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "number": 77,
+        "title": "Refactor queue",
+        "url": "https://github.com/owner/repo/pull/77",
+        "state": "OPEN",
+        "reviewDecision": "CHANGES_REQUESTED",
+        "author": { "login": "me" },
+        "baseRefName": "main",
+        "headRefName": "refactor-queue",
+        "reviewThreads": {
+          "nodes": [
+            {
+              "id": "PRRT_outdated1",
+              "isResolved": false,
+              "isOutdated": true,
+              "path": "lib/queue.rb",
+              "line": null,
+              "originalLine": 15,
+              "comments": {
+                "nodes": [
+                  {
+                    "author": { "login": "bob" },
+                    "body": "Rename this to dequeue_batch.",
+                    "createdAt": "2026-04-15T09:00:00Z",
+                    "diffHunk": "@@ ... @@"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "latestReviews": {
+          "nodes": [
+            {
+              "author": { "login": "bob" },
+              "state": "CHANGES_REQUESTED",
+              "submittedAt": "2026-04-15T09:05:00Z"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

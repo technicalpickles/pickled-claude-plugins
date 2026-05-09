@@ -14,12 +14,12 @@
     {
       "name": "git",
       "source": "./plugins/git",
-      "version": "3.0.1"
+      "version": "3.2.0"
     },
     {
       "name": "ci-cd-tools",
       "source": "./plugins/ci-cd-tools",
-      "version": "1.1.2"
+      "version": "1.2.0"
     },
     {
       "name": "dev-tools",
@@ -39,7 +39,7 @@
     {
       "name": "tool-routing",
       "source": "./plugins/tool-routing",
-      "version": "1.2.2"
+      "version": "1.2.3"
     },
     {
       "name": "stay-on-target",
@@ -49,17 +49,17 @@
     {
       "name": "agent-meta",
       "source": "./plugins/agent-meta",
-      "version": "2.0.0"
+      "version": "2.1.0"
     },
     {
       "name": "sandbox-first",
       "source": "./plugins/sandbox-first",
-      "version": "0.2.0"
+      "version": "0.3.0"
     },
     {
       "name": "buildkite",
       "source": "./plugins/buildkite",
-      "version": "1.0.1"
+      "version": "1.1.0"
     },
     {
       "name": "cq",
@@ -70,6 +70,11 @@
         "ref": "main"
       },
       "version": "0.1.0"
+    },
+    {
+      "name": "taskwarrior",
+      "source": "./plugins/taskwarrior",
+      "version": "1.0.0"
     }
   ]
 }
