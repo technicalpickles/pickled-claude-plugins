@@ -30,7 +30,7 @@ Assume the user does not know what these terms mean. Each section starts with a 
 
 > Explainer: The `grill-with-principles` skill needs to know which markdown files contain your principles. Most projects have one (`docs/principles.md`); some split into multiple (e.g. engineering vs ops). The skill reads all of them at session start to build a working set.
 
-Default posture: list any `*principles*.md` files found during exploration. Ask the user to confirm or describe a different layout. Multi-file is fine.
+Default posture: if any `*principles*.md` files were found during exploration, list them and ask the user to confirm or adjust. Multi-file is fine. If none were found, ask the user where their principles are documented (or if they don't yet exist; in that case, suggest creating `docs/principles.md` and offer to scaffold a starter file before continuing).
 
 **Section B: Format hint.**
 
@@ -94,7 +94,7 @@ The block:
 [one-line summary of where principles live]. See `docs/agents/principles.md` for format and configuration. The `grill-with-principles` skill reads from these files.
 ```
 
-Then write `docs/agents/principles.md` using this template:
+Then write `docs/agents/principles.md` using this template, replacing the file's content if it already exists:
 
 ```markdown
 # Principles configuration
