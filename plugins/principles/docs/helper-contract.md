@@ -22,12 +22,12 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/skill-advice.py" \
 | All checks pass | emit `hookSpecificOutput` JSON, exit 0 |
 | Required args missing (`--skill`, `--advice`) | exit non-zero (argparse), error to stderr |
 
-The non-zero exit on missing args is intentional — settings.json misconfigurations should surface during development, not fail silently in production.
+The non-zero exit on missing args is intentional. Settings.json misconfigurations should surface during development, not fail silently in production.
 
 ## Path resolution for `--if-file`
 
-- Absolute path — used as-is.
-- Relative path — resolved against `cwd` from the stdin payload, or `os.getcwd()` as fallback.
+- Absolute path: used as-is.
+- Relative path: resolved against `cwd` from the stdin payload, or `os.getcwd()` as fallback.
 
 This means a single user-level hook in `~/.claude/settings.json` with `--if-file docs/agents/principles.md` will fire only in projects that have that file at their root, regardless of which project is active.
 
