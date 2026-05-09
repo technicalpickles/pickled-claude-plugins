@@ -139,8 +139,8 @@ jobs:
             }
 
             body += '\n---\n';
-            body += '**Auto-bump will apply these changes when the PR is approved.**\n';
-            body += '\nOr apply manually:\n```bash\n./scripts/bump-version.sh --auto\n```';
+            body += '**Apply these bumps before merging:**\n';
+            body += '```bash\n./scripts/bump-version.sh --auto\ngit commit -m "chore(plugin): bump version to X.Y.Z"\n```';
 
             // Find existing comment
             const { data: comments } = await github.rest.issues.listComments({
@@ -174,8 +174,9 @@ jobs:
         run: |
           echo "❌ Version bumps required but not yet applied."
           echo ""
-          echo "This check will pass after:"
-          echo "  1. A reviewer approves the PR (triggers auto-bump), OR"
-          echo "  2. You manually run: ./scripts/bump-version.sh --auto"
+          echo "Apply them in this PR:"
+          echo "  ./scripts/bump-version.sh --auto"
+          echo "  git commit -am 'chore(plugin): bump version to X.Y.Z'"
+          echo "  git push"
           echo ""
           exit 1
