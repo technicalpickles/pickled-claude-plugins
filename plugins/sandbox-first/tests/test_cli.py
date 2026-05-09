@@ -86,6 +86,32 @@ class TestPostToolUseFailureCLI:
         assert result.returncode == 0
         assert result.stdout.strip() == ""
 
+
+class TestPostToolUseCLI:
+    def test_silent_partial_failure_exits_0_with_context(self):
+        result = run_cli("post-tool-use", {
+            "tool_name": "Bash",
+            "tool_input": {"command": "git worktree remove .worktrees/x"},
+            "tool_response": {
+                "stdout": "",
+                "stderr": "error: could not write config file .git/config: Operation not permitted",
+            },
+        })
+        assert result.returncode == 0
+        output = json.loads(result.stdout)
+        assert "additionalContext" in output["hookSpecificOutput"]
+
+    def test_clean_stderr_exits_0_no_output(self):
+        result = run_cli("post-tool-use", {
+            "tool_name": "Bash",
+            "tool_input": {"command": "echo hi"},
+            "tool_response": {"stdout": "hi\n", "stderr": ""},
+        })
+        assert result.returncode == 0
+        assert result.stdout.strip() == ""
+
+
+class TestMiscCLI:
     def test_unknown_subcommand_exits_0(self):
         result = run_cli("unknown-thing", {
             "tool_name": "Bash",

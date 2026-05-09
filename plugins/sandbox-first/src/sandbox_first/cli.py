@@ -4,7 +4,11 @@ import json
 import os
 import sys
 
-from sandbox_first.checker import check_pre_tool_use, check_post_tool_use_failure
+from sandbox_first.checker import (
+    check_post_tool_use,
+    check_post_tool_use_failure,
+    check_pre_tool_use,
+)
 from sandbox_first.config import load_merged_skip_list
 
 CONFIG_FILENAME = "sandbox-first.json"
@@ -25,7 +29,10 @@ def _resolve_config_paths() -> tuple[str, str]:
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: sandbox-first <pre-tool-use|post-tool-use-failure>", file=sys.stderr)
+        print(
+            "Usage: sandbox-first <pre-tool-use|post-tool-use|post-tool-use-failure>",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     subcommand = sys.argv[1]
@@ -40,6 +47,8 @@ def main():
         user_config, project_config = _resolve_config_paths()
         skip_list = load_merged_skip_list(user_config, project_config)
         result = check_pre_tool_use(hook_input, skip_list=skip_list)
+    elif subcommand == "post-tool-use":
+        result = check_post_tool_use(hook_input)
     elif subcommand == "post-tool-use-failure":
         result = check_post_tool_use_failure(hook_input)
     else:
