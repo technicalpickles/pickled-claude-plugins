@@ -2,9 +2,18 @@
 
 import json
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, call
 
 import pytest
+
+
+def _mock_subprocess_run_to_file(mock_output, returncode=0):
+    """Create a side_effect that writes mock_output to the stdout file arg."""
+    def side_effect(cmd, stdout=None, **kwargs):
+        if stdout is not None and hasattr(stdout, 'write'):
+            stdout.write(mock_output)
+        return MagicMock(returncode=returncode)
+    return side_effect
 
 
 def test_get_enabled_plugins_parses_claude_output():
@@ -26,12 +35,8 @@ def test_get_enabled_plugins_parses_claude_output():
         }
     ])
 
-    with patch("subprocess.run") as mock_run:
-        mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout=mock_output,
-            stderr=""
-        )
+    with patch("tool_routing.discovery.subprocess.run",
+               side_effect=_mock_subprocess_run_to_file(mock_output)):
         plugins = get_enabled_plugins()
 
     assert len(plugins) == 1
@@ -86,12 +91,8 @@ routes:
         "installPath": str(plugin_path)
     }])
 
-    with patch("tool_routing.discovery.subprocess.run") as mock_run:
-        mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout=mock_output,
-            stderr=""
-        )
+    with patch("tool_routing.discovery.subprocess.run",
+               side_effect=_mock_subprocess_run_to_file(mock_output)):
         paths = discover_all_routes()
 
     assert len(paths) == 1
