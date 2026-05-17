@@ -75,6 +75,11 @@
       "name": "taskwarrior",
       "source": "./plugins/taskwarrior",
       "version": "1.0.0"
+    },
+    {
+      "name": "stay-principled",
+      "source": "./plugins/stay-principled",
+      "version": "0.1.0"
     }
   ]
 }
