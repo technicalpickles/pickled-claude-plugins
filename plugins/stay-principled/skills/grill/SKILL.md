@@ -1,6 +1,6 @@
 ---
-name: grill-with-principles
-description: Walk a depth-first decision tree anchored to a project's documented principles before brainstorming opens options. Reads docs/agents/principles.md (or probes docs/principles.md and docs/ops-principles.md directly), shortlists principles relevant to the topic, asks one question at a time with a recommended answer per question, surfaces conflicts emergently, and outputs a brief that downstream brainstorming or planning can consume. Use when starting design work and the project has principles documented; redirects to setup-principles otherwise. Auto-routes from phrases like "grill me with principles", "anchor this to the principles", "what principles bear on this".
+name: grill
+description: Walk a depth-first decision tree anchored to a project's documented principles before brainstorming opens options. Reads docs/agents/principles.md (or probes docs/principles.md and docs/ops-principles.md directly), shortlists principles relevant to the topic, asks one question at a time with a recommended answer per question, surfaces conflicts emergently, and outputs a brief that downstream brainstorming or planning can consume. Use when starting design work and the project has principles documented; redirects to stay-principled:setup otherwise. Auto-routes from phrases like "grill me with principles", "anchor this to the principles", "what principles bear on this", "stay principled on this".
 ---
 
 # Grill with Principles
@@ -15,10 +15,10 @@ Brainstorming-style breadth-first menus drag conversations toward implementation
 
 ### 1. Discover principles
 
-- Read `docs/agents/principles.md` if it exists. This is the canonical config written by `setup-principles`.
+- Read `docs/agents/principles.md` if it exists. This is the canonical config written by `stay-principled:setup`.
 - Otherwise probe `docs/principles.md` and `docs/ops-principles.md` directly.
 - Resolve all paths against `git rev-parse --show-toplevel` so worktree invocations find the right files.
-- If nothing is found, ask: *"No principles configured. Skip principle-anchoring, or run `setup-principles` first?"* and exit cleanly. Do not pretend to grill without principles. The whole point is anchoring.
+- If nothing is found, ask: *"No principles configured. Skip principle-anchoring, or run `stay-principled:setup` first?"* and exit cleanly. Do not pretend to grill without principles. The whole point is anchoring.
 - If `docs/agents/principles.md` includes a `## Skip patterns` section, check whether the current branch (`git branch --show-current`) or current path matches any pattern. If so, mention it to the user and ask whether to proceed anyway. The skip patterns are advisory in v1, not strict gates.
 
 ### 2. Read and shortlist

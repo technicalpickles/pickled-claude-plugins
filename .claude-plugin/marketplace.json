@@ -77,8 +77,8 @@
       "version": "1.0.0"
     },
     {
-      "name": "principles",
-      "source": "./plugins/principles",
+      "name": "stay-principled",
+      "source": "./plugins/stay-principled",
       "version": "0.1.0"
     }
   ]

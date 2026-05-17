@@ -1,10 +1,10 @@
-# Principles Plugin Implementation Plan
+# Stay-Principled Plugin Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a `principles` plugin in `pickled-claude-plugins/` that anchors design conversations to a project's documented principles via depth-first grilling before brainstorming opens.
+**Goal:** Build a `stay-principled` plugin in `pickled-claude-plugins/` that anchors design conversations to a project's documented principles via depth-first grilling before brainstorming opens.
 
-**Architecture:** Two skills (`setup-principles`, `grill-with-principles`) plus a generic Python helper (`scripts/skill-advice.py`) that emits `additionalContext` from PreToolUse hooks. Setup writes a contract file (`docs/agents/principles.md`) following the mattpocock convention. Runtime reads that contract and grills depth-first using grill-me's mechanism with principles as tree roots.
+**Architecture:** Two skills (`stay-principled:setup`, `stay-principled:grill`) plus a generic Python helper (`scripts/skill-advice.py`) that emits `additionalContext` from PreToolUse hooks. Setup writes a contract file (`docs/agents/principles.md`) following the mattpocock convention. Runtime reads that contract and grills depth-first using grill-me's mechanism with principles as tree roots.
 
 **Tech Stack:** Python 3 stdlib only for the helper. Markdown for skills and config. No external dependencies. No `pyproject.toml` for the plugin (helper runs via direct `python3` invocation to avoid uv cold-start latency).
 
@@ -16,15 +16,15 @@
 
 ## File structure
 
-Files to create under `plugins/principles/`:
+Files to create under `plugins/stay-principled/`:
 
 | Path | Responsibility |
 |---|---|
 | `.claude-plugin/plugin.json` | Plugin manifest (no version per repo convention) |
 | `scripts/skill-advice.py` | Generic conditional advice emitter for PreToolUse hooks. Stdlib only. |
 | `scripts/test_skill_advice.py` | Unit tests for the helper |
-| `skills/setup-principles/SKILL.md` | One-shot config skill, `disable-model-invocation: true` |
-| `skills/grill-with-principles/SKILL.md` | Runtime grilling skill |
+| `skills/setup/SKILL.md` | One-shot config skill, `disable-model-invocation: true` |
+| `skills/grill/SKILL.md` | Runtime grilling skill |
 | `docs/helper-contract.md` | Contract documentation for `skill-advice.py` |
 | `docs/integration-patterns.md` | The three integration patterns A/B/C with full examples |
 | `README.md` | Plugin overview, install instructions, usage |
@@ -33,46 +33,46 @@ Files to modify:
 
 | Path | Change |
 |---|---|
-| `.claude-plugin/marketplace.json` | Append `principles` plugin entry with `version: "0.1.0"` |
+| `.claude-plugin/marketplace.json` | Append `stay-principled` plugin entry with `version: "0.1.0"` |
 
 ---
 
 ## Task: plugin-scaffold
 
-Create the plugin directory structure, manifest, marketplace registration, and a README stub. After this task, the plugin is registered (empty) and `feat(principles):` becomes a valid commit scope for subsequent tasks.
+Create the plugin directory structure, manifest, marketplace registration, and a README stub. After this task, the plugin is registered (empty) and `feat(stay-principled):` becomes a valid commit scope for subsequent tasks.
 
 **Files:**
-- Create: `plugins/principles/.claude-plugin/plugin.json`
-- Create: `plugins/principles/README.md` (stub; expanded in `readme-finalization`)
-- Create: `plugins/principles/scripts/.gitkeep`
-- Create: `plugins/principles/skills/.gitkeep`
-- Create: `plugins/principles/docs/.gitkeep`
-- Modify: `.claude-plugin/marketplace.json` (append `principles` entry)
+- Create: `plugins/stay-principled/.claude-plugin/plugin.json`
+- Create: `plugins/stay-principled/README.md` (stub; expanded in `readme-finalization`)
+- Create: `plugins/stay-principled/scripts/.gitkeep`
+- Create: `plugins/stay-principled/skills/.gitkeep`
+- Create: `plugins/stay-principled/docs/.gitkeep`
+- Modify: `.claude-plugin/marketplace.json` (append `stay-principled` entry)
 
 - [ ] **Step 1: Create the plugin directory structure**
 
 ```bash
-mkdir -p plugins/principles/.claude-plugin
-mkdir -p plugins/principles/scripts
-mkdir -p plugins/principles/skills
-mkdir -p plugins/principles/docs
-touch plugins/principles/scripts/.gitkeep
-touch plugins/principles/skills/.gitkeep
-touch plugins/principles/docs/.gitkeep
+mkdir -p plugins/stay-principled/.claude-plugin
+mkdir -p plugins/stay-principled/scripts
+mkdir -p plugins/stay-principled/skills
+mkdir -p plugins/stay-principled/docs
+touch plugins/stay-principled/scripts/.gitkeep
+touch plugins/stay-principled/skills/.gitkeep
+touch plugins/stay-principled/docs/.gitkeep
 ```
 
-- [ ] **Step 2: Write `plugins/principles/.claude-plugin/plugin.json`**
+- [ ] **Step 2: Write `plugins/stay-principled/.claude-plugin/plugin.json`**
 
 ```json
 {
-  "name": "principles",
+  "name": "stay-principled",
   "description": "Anchor design conversations to project principles via depth-first grilling before brainstorming generates options. Reads docs/principles.md (or docs/agents/principles.md), surfaces relevant principles for the topic, asks one question at a time with recommended answers, and outputs a brief that downstream planning can consume."
 }
 ```
 
 No `version` field. Versions live in `.claude-plugin/marketplace.json` only per repo convention (see project CLAUDE.md `## Versioning`).
 
-- [ ] **Step 3: Write a stub `plugins/principles/README.md`**
+- [ ] **Step 3: Write a stub `plugins/stay-principled/README.md`**
 
 ```markdown
 # principles
@@ -97,8 +97,8 @@ Modify the tail of `.claude-plugin/marketplace.json` so it reads:
       "version": "1.0.0"
     },
     {
-      "name": "principles",
-      "source": "./plugins/principles",
+      "name": "stay-principled",
+      "source": "./plugins/stay-principled",
       "version": "0.1.0"
     }
   ]
@@ -113,8 +113,8 @@ Expected output:
 
 ```json
 {
-  "name": "principles",
-  "source": "./plugins/principles",
+  "name": "stay-principled",
+  "source": "./plugins/stay-principled",
   "version": "0.1.0"
 }
 ```
@@ -123,15 +123,15 @@ Expected output:
 
 Run: `bash scripts/validate-plugin-versions.sh` (if it exists; otherwise skip).
 
-Run: `printf 'feat(principles): scaffold plugin\n' > /tmp/test-msg && bash scripts/check-commit-scope.sh /tmp/test-msg && rm /tmp/test-msg`
+Run: `printf 'feat(stay-principled): scaffold plugin\n' > /tmp/test-msg && bash scripts/check-commit-scope.sh /tmp/test-msg && rm /tmp/test-msg`
 
-Expected: exit 0 (scope `principles` now valid because it's in marketplace.json).
+Expected: exit 0 (scope `stay-principled` now valid because it's in marketplace.json).
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add plugins/principles/.claude-plugin/plugin.json plugins/principles/README.md plugins/principles/scripts/.gitkeep plugins/principles/skills/.gitkeep plugins/principles/docs/.gitkeep .claude-plugin/marketplace.json
-git commit -m "feat(principles): scaffold plugin and register in marketplace
+git add plugins/stay-principled/.claude-plugin/plugin.json plugins/stay-principled/README.md plugins/stay-principled/scripts/.gitkeep plugins/stay-principled/skills/.gitkeep plugins/stay-principled/docs/.gitkeep .claude-plugin/marketplace.json
+git commit -m "feat(stay-principled): scaffold plugin and register in marketplace
 
 Empty plugin scaffold with manifest, README stub, and marketplace
 registration at version 0.1.0. Subsequent commits add the helper script,
@@ -145,11 +145,11 @@ both skills, and documentation."
 Write failing tests for `scripts/skill-advice.py` covering all behaviors described in the spec's Helper Contract section: tool-name filter, skill-name filter, file-existence guard, JSON output shape, silent failure on unparseable stdin.
 
 **Files:**
-- Create: `plugins/principles/scripts/test_skill_advice.py`
+- Create: `plugins/stay-principled/scripts/test_skill_advice.py`
 
 - [ ] **Step 1: Write the test file with failing tests for all behaviors**
 
-Create `plugins/principles/scripts/test_skill_advice.py`:
+Create `plugins/stay-principled/scripts/test_skill_advice.py`:
 
 ```python
 """Tests for the skill-advice hook helper.
@@ -304,15 +304,15 @@ if __name__ == "__main__":
 
 - [ ] **Step 2: Run the tests to verify they fail (skill-advice.py does not exist yet)**
 
-Run: `python3 -m unittest plugins/principles/scripts/test_skill_advice.py -v`
+Run: `python3 -m unittest plugins/stay-principled/scripts/test_skill_advice.py -v`
 
-Expected: All tests fail or error because `plugins/principles/scripts/skill-advice.py` does not exist. Common failure: `FileNotFoundError` from the subprocess invocation, surfaced as test errors.
+Expected: All tests fail or error because `plugins/stay-principled/scripts/skill-advice.py` does not exist. Common failure: `FileNotFoundError` from the subprocess invocation, surfaced as test errors.
 
 - [ ] **Step 3: Commit (red phase)**
 
 ```bash
-git add plugins/principles/scripts/test_skill_advice.py
-git commit -m "test(principles): add skill-advice helper tests
+git add plugins/stay-principled/scripts/test_skill_advice.py
+git commit -m "test(stay-principled): add skill-advice helper tests
 
 Tests for tool/skill matching, JSON output shape, file-existence guard
 (relative and absolute paths), unparseable/empty stdin handling, and
@@ -328,11 +328,11 @@ Per superpowers TDD: red commit first, then green."
 Implement `scripts/skill-advice.py` to satisfy the tests from the previous task. Stdlib only. Argparse for the CLI; json for stdin parsing and stdout emission.
 
 **Files:**
-- Create: `plugins/principles/scripts/skill-advice.py`
+- Create: `plugins/stay-principled/scripts/skill-advice.py`
 
 - [ ] **Step 1: Write the helper implementation**
 
-Create `plugins/principles/scripts/skill-advice.py`:
+Create `plugins/stay-principled/scripts/skill-advice.py`:
 
 ```python
 #!/usr/bin/env python3
@@ -431,12 +431,12 @@ if __name__ == "__main__":
 - [ ] **Step 2: Make the helper executable (defensive, in case someone invokes it directly)**
 
 ```bash
-chmod +x plugins/principles/scripts/skill-advice.py
+chmod +x plugins/stay-principled/scripts/skill-advice.py
 ```
 
 - [ ] **Step 3: Run the tests and verify they all pass**
 
-Run: `python3 -m unittest plugins/principles/scripts/test_skill_advice.py -v`
+Run: `python3 -m unittest plugins/stay-principled/scripts/test_skill_advice.py -v`
 
 Expected: 9 tests pass (8 behavioral tests + 1 missing-arg test).
 
@@ -448,7 +448,7 @@ Run:
 
 ```bash
 echo '{"tool_name": "Skill", "tool_input": {"skill": "superpowers:brainstorming"}}' \
-  | python3 plugins/principles/scripts/skill-advice.py \
+  | python3 plugins/stay-principled/scripts/skill-advice.py \
       --skill superpowers:brainstorming \
       --advice "principles configured: consider grilling first"
 ```
@@ -463,7 +463,7 @@ Run again with a non-matching skill and confirm no output:
 
 ```bash
 echo '{"tool_name": "Skill", "tool_input": {"skill": "other"}}' \
-  | python3 plugins/principles/scripts/skill-advice.py \
+  | python3 plugins/stay-principled/scripts/skill-advice.py \
       --skill superpowers:brainstorming \
       --advice "should not appear"
 ```
@@ -473,15 +473,15 @@ Expected: empty stdout, exit code 0.
 - [ ] **Step 5: Commit (green phase)**
 
 ```bash
-git add plugins/principles/scripts/skill-advice.py
-git commit -m "feat(principles): implement skill-advice hook helper
+git add plugins/stay-principled/scripts/skill-advice.py
+git commit -m "feat(stay-principled): implement skill-advice hook helper
 
 Stdlib-only Python script. Reads PreToolUse JSON from stdin, filters
 on tool_name=Skill and tool_input.skill matching --skill, optionally
 guards on --if-file existence, emits hookSpecificOutput.additionalContext
 JSON. All tests from the previous commit now pass.
 
-Generic by design: nothing principles-specific. Other plugins can use
+Generic by design: nothing plugin-specific. Other plugins can use
 the same helper for any 'when this skill is invoked, suggest X' pattern."
 ```
 
@@ -492,16 +492,16 @@ the same helper for any 'when this skill is invoked, suggest X' pattern."
 Document the helper's contract so other plugins can reuse it without reading the source.
 
 **Files:**
-- Create: `plugins/principles/docs/helper-contract.md`
+- Create: `plugins/stay-principled/docs/helper-contract.md`
 
 - [ ] **Step 1: Write the helper contract document**
 
-Create `plugins/principles/docs/helper-contract.md`:
+Create `plugins/stay-principled/docs/helper-contract.md`:
 
 ```markdown
 # `skill-advice` helper contract
 
-`scripts/skill-advice.py` is a generic conditional-advice emitter for Claude Code PreToolUse hooks targeting the `Skill` tool. Nothing in it is principles-specific; other plugins can wire it into their own hooks.
+`scripts/skill-advice.py` is a generic conditional-advice emitter for Claude Code PreToolUse hooks targeting the `Skill` tool. Nothing in it is plugin-specific; other plugins can wire it into their own hooks.
 
 ## Invocation
 
@@ -549,7 +549,7 @@ See the [Claude Code hooks reference](https://code.claude.com/docs/en/hooks.md) 
 To use this helper from another plugin, invoke it with a path that resolves to this plugin's cache directory:
 
 ```bash
-python3 "$HOME/.claude/plugins/cache/pickled-claude-plugins/principles/latest/scripts/skill-advice.py" ...
+python3 "$HOME/.claude/plugins/cache/pickled-claude-plugins/stay-principled/latest/scripts/skill-advice.py" ...
 ```
 
 The contract is stable. Future versions will not change argument names or output shape without a major version bump.
@@ -558,8 +558,8 @@ The contract is stable. Future versions will not change argument names or output
 - [ ] **Step 2: Commit**
 
 ```bash
-git add plugins/principles/docs/helper-contract.md
-git commit -m "docs(principles): document skill-advice helper contract
+git add plugins/stay-principled/docs/helper-contract.md
+git commit -m "docs(stay-principled): document skill-advice helper contract
 
 Contract reference for other plugins that want to reuse the helper.
 Covers invocation, behavior table, path resolution rules, output shape,
@@ -570,25 +570,25 @@ and reusability guidance."
 
 ## Task: setup-skill
 
-Write the `setup-principles` skill that scaffolds project configuration. Mattpocock-style: explore, present, confirm, write. `disable-model-invocation: true` so it only runs when the user explicitly asks.
+Write the `stay-principled:setup` skill that scaffolds project configuration. Mattpocock-style: explore, present, confirm, write. `disable-model-invocation: true` so it only runs when the user explicitly asks.
 
 **Files:**
-- Create: `plugins/principles/skills/setup-principles/SKILL.md`
+- Create: `plugins/stay-principled/skills/setup/SKILL.md`
 
 - [ ] **Step 1: Write the setup skill**
 
-Create `plugins/principles/skills/setup-principles/SKILL.md`:
+Create `plugins/stay-principled/skills/setup/SKILL.md`:
 
 ```markdown
 ---
-name: setup-principles
-description: Scaffolds principle-anchoring configuration for a project. Writes docs/agents/principles.md, adds an `### Principles` block to `## Agent skills` in CLAUDE.md or AGENTS.md, and optionally drafts hook integration snippets for settings.json or tool-routing. Run once per project before using grill-with-principles. Re-run only if the principles file layout changes.
+name: stay-principled:setup
+description: Scaffolds principle-anchoring configuration for a project. Writes docs/agents/principles.md, adds an `### Principles` block to `## Agent skills` in CLAUDE.md or AGENTS.md, and optionally drafts hook integration snippets for settings.json or tool-routing. Run once per project before using stay-principled:grill. Re-run only if the principles file layout changes.
 disable-model-invocation: true
 ---
 
 # Setup Principles
 
-Scaffold the per-project configuration that `grill-with-principles` reads. This is a prompt-driven skill, not a deterministic script. Explore, present what you found, confirm with the user, then write.
+Scaffold the per-project configuration that `stay-principled:grill` reads. This is a prompt-driven skill, not a deterministic script. Explore, present what you found, confirm with the user, then write.
 
 ## Process
 
@@ -610,7 +610,7 @@ Assume the user does not know what these terms mean. Each section starts with a 
 
 **Section A — Where do principles live?**
 
-> Explainer: The `grill-with-principles` skill needs to know which markdown files contain your principles. Most projects have one (`docs/principles.md`); some split into multiple (e.g. engineering vs ops). The skill reads all of them at session start to build a working set.
+> Explainer: The `stay-principled:grill` skill needs to know which markdown files contain your principles. Most projects have one (`docs/principles.md`); some split into multiple (e.g. engineering vs ops). The skill reads all of them at session start to build a working set.
 
 Default posture: list any `*principles*.md` files found during exploration. Ask the user to confirm or describe a different layout. Multi-file is fine.
 
@@ -632,7 +632,7 @@ If the principles file has a `## Domain-specific principles` section (or similar
 
 **Section D — Hook integration (optional, opt-in).**
 
-> Explainer: By default, you invoke `grill-with-principles` manually. Hook integration makes other skills (typically `superpowers:brainstorming`) suggest grilling first when this project has principles configured. Three patterns are available; pick zero, one, or multiple.
+> Explainer: By default, you invoke `stay-principled:grill` manually. Hook integration makes other skills (typically `superpowers:brainstorming`) suggest grilling first when this project has principles configured. Three patterns are available; pick zero, one, or multiple.
 
 Present the three patterns. The user can decline all of them — the runtime skill works fine without integration.
 
@@ -673,7 +673,7 @@ The block:
 
 ### Principles
 
-[one-line summary of where principles live]. See `docs/agents/principles.md` for format and configuration. The `grill-with-principles` skill reads from these files.
+[one-line summary of where principles live]. See `docs/agents/principles.md` for format and configuration. The `stay-principled:grill` skill reads from these files.
 ```
 
 Then write `docs/agents/principles.md` using this template:
@@ -703,7 +703,7 @@ Tell the user:
 
 1. Setup is complete.
 2. Which files were written.
-3. That `grill-with-principles` will now read from `docs/agents/principles.md`.
+3. That `stay-principled:grill` will now read from `docs/agents/principles.md`.
 4. That re-running this skill is only needed if the file layout changes; manual edits to `docs/agents/principles.md` are fine.
 
 If integration patterns were offered, remind the user to paste any Pattern B/C snippets into the appropriate config file.
@@ -712,8 +712,8 @@ If integration patterns were offered, remind the user to paste any Pattern B/C s
 - [ ] **Step 2: Commit**
 
 ```bash
-git add plugins/principles/skills/setup-principles/SKILL.md
-git commit -m "feat(principles): add setup-principles skill
+git add plugins/stay-principled/skills/setup/SKILL.md
+git commit -m "feat(stay-principled): add stay-principled:setup skill
 
 One-shot configuration scaffold for projects that want principle
 anchoring. Mattpocock-style flow: explore, present sections one at a
@@ -731,19 +731,19 @@ snippets are printed, not auto-written, given their blast radius."
 
 ## Task: runtime-skill
 
-Write the `grill-with-principles` skill — the core runtime. Reads the config from `setup-principles`, shortlists relevant principles for the topic, walks depth-first with recommended answers, surfaces conflicts emergently, outputs a brief.
+Write the `stay-principled:grill` skill — the core runtime. Reads the config from `stay-principled:setup`, shortlists relevant principles for the topic, walks depth-first with recommended answers, surfaces conflicts emergently, outputs a brief.
 
 **Files:**
-- Create: `plugins/principles/skills/grill-with-principles/SKILL.md`
+- Create: `plugins/stay-principled/skills/grill/SKILL.md`
 
 - [ ] **Step 1: Write the runtime skill**
 
-Create `plugins/principles/skills/grill-with-principles/SKILL.md`:
+Create `plugins/stay-principled/skills/grill/SKILL.md`:
 
 ```markdown
 ---
-name: grill-with-principles
-description: Walk a depth-first decision tree anchored to a project's documented principles before brainstorming opens options. Reads docs/agents/principles.md (or probes docs/principles.md and docs/ops-principles.md directly), shortlists principles relevant to the topic, asks one question at a time with a recommended answer per question, surfaces conflicts emergently, and outputs a brief that downstream brainstorming or planning can consume. Use when starting design work and the project has principles documented; redirects to setup-principles otherwise. Auto-routes from phrases like "grill me with principles", "anchor this to the principles", "what principles bear on this".
+name: stay-principled:grill
+description: Walk a depth-first decision tree anchored to a project's documented principles before brainstorming opens options. Reads docs/agents/principles.md (or probes docs/principles.md and docs/ops-principles.md directly), shortlists principles relevant to the topic, asks one question at a time with a recommended answer per question, surfaces conflicts emergently, and outputs a brief that downstream brainstorming or planning can consume. Use when starting design work and the project has principles documented; redirects to stay-principled:setup otherwise. Auto-routes from phrases like "grill me with principles", "anchor this to the principles", "what principles bear on this".
 ---
 
 # Grill with Principles
@@ -758,10 +758,10 @@ Brainstorming-style breadth-first menus drag conversations toward implementation
 
 ### 1. Discover principles
 
-- Read `docs/agents/principles.md` if it exists. This is the canonical config written by `setup-principles`.
+- Read `docs/agents/principles.md` if it exists. This is the canonical config written by `stay-principled:setup`.
 - Otherwise probe `docs/principles.md` and `docs/ops-principles.md` directly.
 - Resolve all paths against `git rev-parse --show-toplevel` so worktree invocations find the right files.
-- If nothing is found, ask: *"No principles configured. Skip principle-anchoring, or run `setup-principles` first?"* and exit cleanly. Do not pretend to grill without principles — the whole point is anchoring.
+- If nothing is found, ask: *"No principles configured. Skip principle-anchoring, or run `stay-principled:setup` first?"* and exit cleanly. Do not pretend to grill without principles — the whole point is anchoring.
 
 ### 2. Read and shortlist
 
@@ -844,8 +844,8 @@ Always output inline. Offer to write to `docs/plans/YYYY-MM-DD-<topic>-principle
 - [ ] **Step 2: Commit**
 
 ```bash
-git add plugins/principles/skills/grill-with-principles/SKILL.md
-git commit -m "feat(principles): add grill-with-principles runtime skill
+git add plugins/stay-principled/skills/grill/SKILL.md
+git commit -m "feat(stay-principled): add stay-principled:grill runtime skill
 
 Depth-first decision-tree walker anchored to project principles.
 Reads docs/agents/principles.md (or probes docs/principles.md
@@ -863,19 +863,19 @@ configured rather than degrading into unprincipled grilling."
 
 ## Task: integration-patterns-doc
 
-Write the integration-patterns reference document. This is what `setup-principles` Section D pulls templates from, and what users read directly to add new integration points.
+Write the integration-patterns reference document. This is what `stay-principled:setup` Section D pulls templates from, and what users read directly to add new integration points.
 
 **Files:**
-- Create: `plugins/principles/docs/integration-patterns.md`
+- Create: `plugins/stay-principled/docs/integration-patterns.md`
 
 - [ ] **Step 1: Write the integration patterns document**
 
-Create `plugins/principles/docs/integration-patterns.md`:
+Create `plugins/stay-principled/docs/integration-patterns.md`:
 
 ```markdown
 # Integration patterns
 
-`grill-with-principles` works fine without any integration — invoke it manually whenever you start design work. These patterns make other skills (typically `superpowers:brainstorming`) suggest grilling first when this project has principles configured.
+`stay-principled:grill` works fine without any integration — invoke it manually whenever you start design work. These patterns make other skills (typically `superpowers:brainstorming`) suggest grilling first when this project has principles configured.
 
 All three patterns are optional. Pick zero, one, or multiple. They compose; using multiple is harmless because each is idempotent.
 
@@ -888,7 +888,7 @@ Soft, model-driven. A line added to `CLAUDE.md` telling the model to consider gr
 **Snippet:**
 
 ```markdown
-For design conversations or when invoking brainstorming on non-trivial topics, invoke `grill-with-principles` first if `docs/agents/principles.md` exists.
+For design conversations or when invoking brainstorming on non-trivial topics, invoke `stay-principled:grill` first if `docs/agents/principles.md` exists.
 ```
 
 **Pros:** Zero infrastructure. Works anywhere CLAUDE.md is loaded into context.
@@ -916,7 +916,7 @@ Hard, deterministic. A `settings.json` PreToolUse hook that fires `skill-advice`
         "matcher": "Skill",
         "hooks": [{
           "type": "command",
-          "command": "python3 \"$HOME/.claude/plugins/cache/pickled-claude-plugins/principles/latest/scripts/skill-advice.py\" --skill superpowers:brainstorming --if-file docs/agents/principles.md --advice 'Principles configured for this project. Consider grill-with-principles first to anchor the why before generating options.'"
+          "command": "python3 \"$HOME/.claude/plugins/cache/pickled-claude-plugins/stay-principled/latest/scripts/skill-advice.py\" --skill superpowers:brainstorming --if-file docs/agents/principles.md --advice 'Principles configured for this project. Consider stay-principled:grill first to anchor the why before generating options.'"
         }]
       }
     ]
@@ -942,10 +942,10 @@ Hard, deterministic. Uses the existing `tool-routing` plugin's PreToolUse interc
 **Snippet:**
 
 ```yaml
-- name: brainstorm-suggests-principles
+- name: brainstorm-suggests-stay-principled
   tool: Skill
   pattern: 'superpowers:brainstorming'
-  message: "If docs/agents/principles.md exists, consider grill-with-principles first to anchor the why."
+  message: "If docs/agents/principles.md exists, consider stay-principled:grill first to anchor the why."
 ```
 
 **Pros:** Integrates with existing tool-routing config; centralized place to manage all routing rules.
@@ -956,16 +956,16 @@ Hard, deterministic. Uses the existing `tool-routing` plugin's PreToolUse interc
 - **Just want it to work?** Pattern A. Done in one line.
 - **Want determinism?** Pattern B. The model has no choice but to see the advice.
 - **Already use tool-routing for everything?** Pattern C. Keeps your routing rules consolidated.
-- **Don't care?** Skip all three. Invoke `grill-with-principles` manually.
+- **Don't care?** Skip all three. Invoke `stay-principled:grill` manually.
 ```
 
 - [ ] **Step 2: Commit**
 
 ```bash
-git add plugins/principles/docs/integration-patterns.md
-git commit -m "docs(principles): document the three integration patterns
+git add plugins/stay-principled/docs/integration-patterns.md
+git commit -m "docs(stay-principled): document the three integration patterns
 
-Reference for users wiring grill-with-principles into other skills'
+Reference for users wiring stay-principled:grill into other skills'
 flows. Pattern A (CLAUDE.md prose, soft), Pattern B (settings.json
 hook with skill-advice helper, hard), Pattern C (tool-routing rule,
 hard, requires that plugin). All three optional and composable."
@@ -978,11 +978,11 @@ hard, requires that plugin). All three optional and composable."
 Replace the README stub with a complete plugin overview. Covers what the plugin does, why it exists, how to install, how to use both skills, and links to the helper contract and integration patterns docs.
 
 **Files:**
-- Modify: `plugins/principles/README.md`
+- Modify: `plugins/stay-principled/README.md`
 
 - [ ] **Step 1: Replace the README with the full version**
 
-Overwrite `plugins/principles/README.md` with:
+Overwrite `plugins/stay-principled/README.md` with:
 
 ```markdown
 # principles
@@ -999,14 +999,14 @@ This plugin closes that gap. It applies grill-me's depth-first decision-tree wal
 
 | Component | Purpose |
 |---|---|
-| `setup-principles` skill | One-shot config scaffolder. Run once per project. |
-| `grill-with-principles` skill | Runtime grilling. Invoke at the start of design work. |
+| `stay-principled:setup` skill | One-shot config scaffolder. Run once per project. |
+| `stay-principled:grill` skill | Runtime grilling. Invoke at the start of design work. |
 | `scripts/skill-advice.py` | Generic Python helper for PreToolUse hooks. Used by Pattern B integration. Reusable from other plugins. |
 
 ## Install
 
 ```bash
-/plugin install principles@pickled-claude-plugins
+/plugin install stay-principled@pickled-claude-plugins
 ```
 
 Restart Claude Code after install (per the marketplace's directory-source caching).
@@ -1018,7 +1018,7 @@ In a project that has principles documented (a `docs/principles.md` or similar m
 1. **Configure once:**
 
    ```
-   /skill setup-principles
+   /skill stay-principled:setup
    ```
 
    Walks you through where principles live, format hints, optional domain map, and optional integration patterns. Writes `docs/agents/principles.md` and adds an `### Principles` subsection to your CLAUDE.md.
@@ -1026,14 +1026,14 @@ In a project that has principles documented (a `docs/principles.md` or similar m
 2. **Use whenever you start design work:**
 
    ```
-   /skill grill-with-principles
+   /skill stay-principled:grill
    ```
 
    Or just say "grill me with principles on this" / "anchor this to the principles" / similar.
 
 ## Using without setup
 
-`grill-with-principles` works without setup if `docs/principles.md` exists at the repo root. Setup adds nuance (domain map, format hints, integration). Skip setup if you just want quick grilling on a one-off project.
+`stay-principled:grill` works without setup if `docs/principles.md` exists at the repo root. Setup adds nuance (domain map, format hints, integration). Skip setup if you just want quick grilling on a one-off project.
 
 ## Integration with other skills
 
@@ -1047,7 +1047,7 @@ See [`docs/integration-patterns.md`](docs/integration-patterns.md) for full temp
 
 ## Reusing the helper
 
-The `scripts/skill-advice.py` helper is generic — nothing principles-specific about it. Other plugins can wire it into their own PreToolUse hooks for "when this skill is invoked, suggest also doing X" patterns.
+The `scripts/skill-advice.py` helper is generic — nothing plugin-specific about it. Other plugins can wire it into their own PreToolUse hooks for "when this skill is invoked, suggest also doing X" patterns.
 
 See [`docs/helper-contract.md`](docs/helper-contract.md) for the contract.
 
@@ -1064,15 +1064,15 @@ This plugin lives in [`pickled-claude-plugins`](https://github.com/technicalpick
 
 - [ ] **Step 2: Verify the README links resolve correctly**
 
-Run: `ls plugins/principles/docs/integration-patterns.md plugins/principles/docs/helper-contract.md`
+Run: `ls plugins/stay-principled/docs/integration-patterns.md plugins/stay-principled/docs/helper-contract.md`
 
 Expected: both files exist (created in earlier tasks).
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add plugins/principles/README.md
-git commit -m "docs(principles): expand README with full overview
+git add plugins/stay-principled/README.md
+git commit -m "docs(stay-principled): expand README with full overview
 
 Replaces the stub from plugin-scaffold. Covers what the plugin does,
 why, install, quick start (with and without setup), the three
@@ -1093,8 +1093,8 @@ Skim each major section of the spec at [`docs/plans/2026-05-09-principles-plugin
 | Spec section | Implementing task(s) |
 |---|---|
 | Plugin layout | `plugin-scaffold` |
-| `setup-principles` skill | `setup-skill` |
-| `grill-with-principles` skill | `runtime-skill` |
+| `stay-principled:setup` skill | `setup-skill` |
+| `stay-principled:grill` skill | `runtime-skill` |
 | Helper `skill-advice.py` | `helper-tests`, `helper-implementation` |
 | Helper "Why this output shape" | `helper-contract-doc` |
 | Configuration model (three layers) | `integration-patterns-doc` (Pattern B section), `setup-skill` (Section D) |
@@ -1115,21 +1115,21 @@ Search the plan for these patterns and remove or replace:
 
 Verify across tasks:
 
-- Helper script path is `plugins/principles/scripts/skill-advice.py` everywhere. (Tests reference it via `Path(__file__).parent / "skill-advice.py"`.)
-- Helper test path is `plugins/principles/scripts/test_skill_advice.py` everywhere.
-- Skill paths: `plugins/principles/skills/setup-principles/SKILL.md` and `plugins/principles/skills/grill-with-principles/SKILL.md`.
-- Doc paths: `plugins/principles/docs/helper-contract.md` and `plugins/principles/docs/integration-patterns.md`.
+- Helper script path is `plugins/stay-principled/scripts/skill-advice.py` everywhere. (Tests reference it via `Path(__file__).parent / "skill-advice.py"`.)
+- Helper test path is `plugins/stay-principled/scripts/test_skill_advice.py` everywhere.
+- Skill paths: `plugins/stay-principled/skills/setup/SKILL.md` and `plugins/stay-principled/skills/grill/SKILL.md`.
+- Doc paths: `plugins/stay-principled/docs/helper-contract.md` and `plugins/stay-principled/docs/integration-patterns.md`.
 - Output JSON shape `{"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": "..."}}` is identical in tests, implementation, helper-contract doc, and integration-patterns doc.
-- Skill description triggers in `grill-with-principles/SKILL.md` match the auto-route phrasing in the spec.
+- Skill description triggers in `grill/SKILL.md` match the auto-route phrasing in the spec.
 - Marketplace.json entry uses `"version": "0.1.0"` consistently.
 
 ### Final verification (after all tasks committed)
 
-- [ ] All tests pass: `python3 -m unittest plugins/principles/scripts/test_skill_advice.py -v`
+- [ ] All tests pass: `python3 -m unittest plugins/stay-principled/scripts/test_skill_advice.py -v`
 - [ ] Marketplace entry parses: `jq '.plugins[] | select(.name == "principles")' .claude-plugin/marketplace.json`
-- [ ] Plugin manifest parses: `jq '.' plugins/principles/.claude-plugin/plugin.json`
-- [ ] All commits use valid scopes (`feat(principles):`, `test(principles):`, `docs(principles):`).
-- [ ] No `TBD`/`TODO`/placeholder strings in any file under `plugins/principles/`.
+- [ ] Plugin manifest parses: `jq '.' plugins/stay-principled/.claude-plugin/plugin.json`
+- [ ] All commits use valid scopes (`feat(stay-principled):`, `test(stay-principled):`, `docs(stay-principled):`).
+- [ ] No `TBD`/`TODO`/placeholder strings in any file under `plugins/stay-principled/`.
 - [ ] Smoke-test the helper end-to-end (Step 4 of `helper-implementation` task).
 
 ---

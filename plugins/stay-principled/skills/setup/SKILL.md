@@ -1,12 +1,12 @@
 ---
-name: setup-principles
-description: Scaffolds principle-anchoring configuration for a project. Writes docs/agents/principles.md, adds a `### Principles` block to `## Agent skills` in CLAUDE.md or AGENTS.md, and optionally drafts hook integration snippets for settings.json or tool-routing. Run once per project before using grill-with-principles. Re-run only if the principles file layout changes.
+name: setup
+description: Scaffolds principle-anchoring configuration for a project. Writes docs/agents/principles.md, adds a `### Principles` block to `## Agent skills` in CLAUDE.md or AGENTS.md, and optionally drafts hook integration snippets for settings.json or tool-routing. Run once per project before using stay-principled:grill. Re-run only if the principles file layout changes.
 disable-model-invocation: true
 ---
 
 # Setup Principles
 
-Scaffold the per-project configuration that `grill-with-principles` reads. This is a prompt-driven skill, not a deterministic script. Explore, present what you found, confirm with the user, then write.
+Scaffold the per-project configuration that `stay-principled:grill` reads. This is a prompt-driven skill, not a deterministic script. Explore, present what you found, confirm with the user, then write.
 
 ## Process
 
@@ -28,7 +28,7 @@ Assume the user does not know what these terms mean. Each section starts with a 
 
 **Section A: Where do principles live?**
 
-> Explainer: The `grill-with-principles` skill needs to know which markdown files contain your principles. Most projects have one (`docs/principles.md`); some split into multiple (e.g. engineering vs ops). The skill reads all of them at session start to build a working set.
+> Explainer: The `stay-principled:grill` skill needs to know which markdown files contain your principles. Most projects have one (`docs/principles.md`); some split into multiple (e.g. engineering vs ops). The skill reads all of them at session start to build a working set.
 
 Default posture: if any `*principles*.md` files were found during exploration, list them and ask the user to confirm or adjust. Multi-file is fine. If none were found, ask the user where their principles are documented (or if they don't yet exist; in that case, suggest creating `docs/principles.md` and offer to scaffold a starter file before continuing).
 
@@ -50,7 +50,7 @@ If the principles file has a `## Domain-specific principles` section (or similar
 
 **Section D: Hook integration (optional, opt-in).**
 
-> Explainer: By default, you invoke `grill-with-principles` manually. Hook integration makes other skills (typically `superpowers:brainstorming`) suggest grilling first when this project has principles configured. Three patterns are available; pick zero, one, or multiple.
+> Explainer: By default, you invoke `stay-principled:grill` manually. Hook integration makes other skills (typically `superpowers:brainstorming`) suggest grilling first when this project has principles configured. Three patterns are available; pick zero, one, or multiple.
 
 Present the three patterns. The user can decline all of them; the runtime skill works fine without integration.
 
@@ -91,7 +91,7 @@ The block:
 
 ### Principles
 
-[one-line summary of where principles live]. See `docs/agents/principles.md` for format and configuration. The `grill-with-principles` skill reads from these files.
+[one-line summary of where principles live]. See `docs/agents/principles.md` for format and configuration. The `stay-principled:grill` skill reads from these files.
 ```
 
 Then write `docs/agents/principles.md` using this template, replacing the file's content if it already exists:
@@ -121,7 +121,7 @@ Tell the user:
 
 1. Setup is complete.
 2. Which files were written.
-3. That `grill-with-principles` will now read from `docs/agents/principles.md`.
+3. That `stay-principled:grill` will now read from `docs/agents/principles.md`.
 4. That re-running this skill is only needed if the file layout changes; manual edits to `docs/agents/principles.md` are fine.
 
 If integration patterns were offered, remind the user to paste any Pattern B/C snippets into the appropriate config file.

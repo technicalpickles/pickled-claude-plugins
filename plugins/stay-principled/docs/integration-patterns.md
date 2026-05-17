@@ -1,6 +1,6 @@
 # Integration patterns
 
-`grill-with-principles` works fine without any integration. Invoke it manually whenever you start design work. These patterns make other skills (typically `superpowers:brainstorming`) suggest grilling first when this project has principles configured.
+`stay-principled:grill` works fine without any integration. Invoke it manually whenever you start design work. These patterns make other skills (typically `superpowers:brainstorming`) suggest grilling first when this project has principles configured.
 
 All three patterns are optional. Pick zero, one, or multiple. They compose; using multiple is harmless because each is idempotent.
 
@@ -13,7 +13,7 @@ Soft, model-driven. A line added to `CLAUDE.md` telling the model to consider gr
 **Snippet:**
 
 ```markdown
-For design conversations or when invoking brainstorming on non-trivial topics, invoke `grill-with-principles` first if `docs/agents/principles.md` exists.
+For design conversations or when invoking brainstorming on non-trivial topics, invoke `stay-principled:grill` first if `docs/agents/principles.md` exists.
 ```
 
 **Pros:** Zero infrastructure. Works anywhere CLAUDE.md is loaded into context.
@@ -41,7 +41,7 @@ Hard, deterministic. A `settings.json` PreToolUse hook that fires `skill-advice`
         "matcher": "Skill",
         "hooks": [{
           "type": "command",
-          "command": "python3 \"$HOME/.claude/plugins/cache/pickled-claude-plugins/principles/0.1.0/scripts/skill-advice.py\" --skill superpowers:brainstorming --if-file docs/agents/principles.md --advice 'Principles configured for this project. Consider grill-with-principles first to anchor the why before generating options.'"
+          "command": "python3 \"$HOME/.claude/plugins/cache/pickled-claude-plugins/stay-principled/0.1.0/scripts/skill-advice.py\" --skill superpowers:brainstorming --if-file docs/agents/principles.md --advice 'Principles configured for this project. Consider stay-principled:grill first to anchor the why before generating options.'"
         }]
       }
     ]
@@ -70,10 +70,10 @@ Hard, deterministic. Uses the existing `tool-routing` plugin's PreToolUse interc
 
 ```yaml
 routes:
-  brainstorm-suggests-principles:
+  brainstorm-suggests-stay-principled:
     tool: Skill
     pattern: 'superpowers:brainstorming'
-    message: "If docs/agents/principles.md exists, consider grill-with-principles first to anchor the why."
+    message: "If docs/agents/principles.md exists, consider stay-principled:grill first to anchor the why."
 ```
 
 **Pros:** Integrates with existing tool-routing config; centralized place to manage all routing rules.
@@ -84,4 +84,4 @@ routes:
 - **Just want it to work?** Pattern A. Done in one line.
 - **Want determinism?** Pattern B. The model has no choice but to see the advice.
 - **Already use tool-routing for everything?** Pattern C. Keeps your routing rules consolidated.
-- **Don't care?** Skip all three. Invoke `grill-with-principles` manually.
+- **Don't care?** Skip all three. Invoke `stay-principled:grill` manually.
