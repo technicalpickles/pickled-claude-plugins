@@ -4,7 +4,7 @@
 
 **Goal:** Build a `pickled-claude-plugins` plugin that anchors design conversations to a project's documented principles by walking a depth-first decision tree before brainstorming generates option menus.
 
-**Architecture:** Two skills (`setup-principles`, `grill-with-principles`) plus one helper command (`skill-advice`). Setup writes a contract file (`docs/agents/principles.md`) following the mattpocock convention. Runtime skill reads that contract, shortlists relevant principles for the topic, and grills depth-first with recommended answers, then synthesizes a brief that downstream brainstorming/planning consumes. Helper is a generic Python conditional advice emitter for `settings.json` hooks.
+**Architecture:** Two skills (`stay-principled:setup`, `stay-principled:grill`) plus one helper command (`skill-advice`). Setup writes a contract file (`docs/agents/principles.md`) following the mattpocock convention. Runtime skill reads that contract, shortlists relevant principles for the topic, and grills depth-first with recommended answers, then synthesizes a brief that downstream brainstorming/planning consumes. Helper is a generic Python conditional advice emitter for `settings.json` hooks.
 
 **Tech Stack:** Python 3 (stdlib only) for the helper. Markdown for skills and config. No external dependencies.
 
@@ -33,13 +33,13 @@ This spec covers the **apply side** only. Capture-side tooling is out of scope f
 ## Plugin layout
 
 ```
-plugins/principles/
+plugins/stay-principled/
 ├── .claude-plugin/
 │   └── plugin.json
 ├── skills/
-│   ├── setup-principles/
+│   ├── setup/
 │   │   └── SKILL.md
-│   └── grill-with-principles/
+│   └── grill/
 │       └── SKILL.md
 ├── scripts/
 │   └── skill-advice.py
@@ -53,7 +53,7 @@ Mirrors existing plugin structure in this repo (commands flat, skills nested, ho
 
 ---
 
-## Skill: `setup-principles`
+## Skill: `stay-principled:setup`
 
 One-shot configuration scaffolding. `disable-model-invocation: true` (run only when user explicitly asks).
 
@@ -118,12 +118,12 @@ Correction cases embedded in `Where:` sections.
 ```markdown
 ### Principles
 
-Principles for this project live in `docs/principles.md` and `docs/ops-principles.md`. See `docs/agents/principles.md` for format and configuration. The `grill-with-principles` skill reads from these files.
+Principles for this project live in `docs/principles.md` and `docs/ops-principles.md`. See `docs/agents/principles.md` for format and configuration. The `stay-principled:grill` skill reads from these files.
 ```
 
 ---
 
-## Skill: `grill-with-principles`
+## Skill: `stay-principled:grill`
 
 Runtime skill. Model-invokable. Auto-routes from descriptions like "grill me with principles", "anchor this to the principles", "what principles bear on this", or when the user starts design work and `docs/agents/principles.md` exists.
 
@@ -132,7 +132,7 @@ Runtime skill. Model-invokable. Auto-routes from descriptions like "grill me wit
 1. **Discover principles.**
    - Read `docs/agents/principles.md` if it exists.
    - Otherwise probe `docs/principles.md` and `docs/ops-principles.md` directly.
-   - If nothing found, ask: *"No principles configured. Skip principle-anchoring, or run `setup-principles` first?"* and exit cleanly.
+   - If nothing found, ask: *"No principles configured. Skip principle-anchoring, or run `stay-principled:setup` first?"* and exit cleanly.
    - Resolve principle file paths against `git rev-parse --show-toplevel` so worktree invocations find the right files.
 
 2. **Read and shortlist.**
@@ -217,7 +217,7 @@ Per Claude Code's hook documentation, `additionalContext` from PreToolUse hooks 
 
 ### Reusability
 
-Nothing in `skill-advice.py` is principles-specific. Other plugins can use it for any "when this skill is invoked, suggest also doing X" pattern. We ship it inside the principles plugin but treat the contract as stable.
+Nothing in `skill-advice.py` is plugin-specific. Other plugins can use it for any "when this skill is invoked, suggest also doing X" pattern. We ship it inside the principles plugin but treat the contract as stable.
 
 ---
 
@@ -243,7 +243,7 @@ Example user-level entry (`~/.claude/settings.json`):
         "matcher": "Skill",
         "hooks": [{
           "type": "command",
-          "command": "python3 \"$HOME/.claude/plugins/cache/pickled-claude-plugins/principles/latest/scripts/skill-advice.py\" --skill superpowers:brainstorming --if-file docs/agents/principles.md --advice 'Principles configured for this project. Consider grill-with-principles first to anchor the why before generating options.'"
+          "command": "python3 \"$HOME/.claude/plugins/cache/pickled-claude-plugins/stay-principled/latest/scripts/skill-advice.py\" --skill superpowers:brainstorming --if-file docs/agents/principles.md --advice 'Principles configured for this project. Consider stay-principled:grill first to anchor the why before generating options.'"
         }]
       }
     ]
@@ -255,13 +255,13 @@ Example user-level entry (`~/.claude/settings.json`):
 
 ## Integration patterns
 
-All three optional, all three offered by `setup-principles` Section D.
+All three optional, all three offered by `stay-principled:setup` Section D.
 
 ### Pattern A — CLAUDE.md prose
 
 Soft, model-driven. A line added to CLAUDE.md:
 
-> *"For design conversations or when invoking brainstorming on non-trivial topics, invoke `grill-with-principles` first if `docs/agents/principles.md` exists."*
+> *"For design conversations or when invoking brainstorming on non-trivial topics, invoke `stay-principled:grill` first if `docs/agents/principles.md` exists."*
 
 Pros: zero infrastructure, works anywhere CLAUDE.md is loaded.
 Cons: model may ignore it; not deterministic.
@@ -278,10 +278,10 @@ Cons: requires user to maintain `settings.json` entries.
 Hard, deterministic. Only offered if `tool-routing` plugin is detected.
 
 ```yaml
-- name: brainstorm-suggests-principles
+- name: brainstorm-suggests-stay-principled
   tool: Skill
   pattern: 'superpowers:brainstorming'
-  message: "If docs/agents/principles.md exists, consider grill-with-principles first to anchor the why."
+  message: "If docs/agents/principles.md exists, consider stay-principled:grill first to anchor the why."
 ```
 
 Pros: integrates with existing tool-routing config.
@@ -310,7 +310,7 @@ Some principles have embedded correction cases (e.g. #8's disposition rework). W
 
 ### No-principles projects
 
-Skill exits cleanly with a redirect to `setup-principles`. No degraded mode that pretends to grill without principles. The whole point is anchoring.
+Skill exits cleanly with a redirect to `stay-principled:setup`. No degraded mode that pretends to grill without principles. The whole point is anchoring.
 
 ### Worktree paths
 
@@ -326,9 +326,9 @@ Setup adds the block. Never modifies existing sections beyond the agent-skills b
 
 V1 verification is observational, not automated:
 
-1. **Setup smoke test:** Run `setup-principles` in a temp project with no `principles.md`. Confirm it exits cleanly with the "skip or create" branch. Run again with a `principles.md` present. Confirm `docs/agents/principles.md`, CLAUDE.md block, and integration snippets are produced as designed.
+1. **Setup smoke test:** Run `stay-principled:setup` in a temp project with no `principles.md`. Confirm it exits cleanly with the "skip or create" branch. Run again with a `principles.md` present. Confirm `docs/agents/principles.md`, CLAUDE.md block, and integration snippets are produced as designed.
 
-2. **Runtime smoke test:** Run `grill-with-principles` against a small known topic in brineworks. Confirm the shortlist includes principles you'd expect, and the walk produces a brief that downstream brainstorming can use.
+2. **Runtime smoke test:** Run `stay-principled:grill` against a small known topic in brineworks. Confirm the shortlist includes principles you'd expect, and the walk produces a brief that downstream brainstorming can use.
 
 3. **Helper unit tests:** `scripts/skill-advice.py` should have stdlib `unittest` coverage for: (a) tool name mismatch, (b) skill name mismatch, (c) file-not-found short-circuit, (d) successful match emits valid JSON, (e) unparseable stdin exits silently.
 
@@ -350,7 +350,7 @@ Automated integration tests for the skill flows (depth-first walking, conflict s
 
 ## Open questions / followups
 
-- **Capture-side skill (v2).** Worth designing once apply has been used in earnest for a few weeks. Likely a new skill `principle-sweep` plus possible amendments to `setup-principles` to register it.
+- **Capture-side skill (v2).** Worth designing once apply has been used in earnest for a few weeks. Likely a new skill `principle-sweep` plus possible amendments to `stay-principled:setup` to register it.
 - **Default integration choice.** Setup currently offers all three patterns. After real use, a default ranking may emerge ("most users pick A; B is for people who really want determinism").
 - **Cross-machine config sharing.** If user-level `settings.json` grows, a `~/.claude/principles-config.json` could centralize per-project overrides. Not built until the pain shows up.
 - **Principles file watcher.** When `docs/principles.md` changes, no machinery currently invalidates a previously-issued brief. Briefs are inline ephemera, so this matters only for the optional file-write path. Punt.

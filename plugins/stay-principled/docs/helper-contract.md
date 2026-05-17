@@ -1,6 +1,6 @@
 # `skill-advice` helper contract
 
-`scripts/skill-advice.py` is a generic conditional-advice emitter for Claude Code PreToolUse hooks targeting the `Skill` tool. Nothing in it is principles-specific; other plugins can wire it into their own hooks.
+`scripts/skill-advice.py` is a generic conditional-advice emitter for Claude Code PreToolUse hooks targeting the `Skill` tool. Nothing in it is plugin-specific; other plugins can wire it into their own hooks.
 
 ## Invocation
 
@@ -48,7 +48,7 @@ See the [Claude Code hooks reference](https://code.claude.com/docs/en/hooks.md) 
 To use this helper from another plugin, invoke it with a path that resolves to this plugin's cache directory:
 
 ```bash
-python3 "$HOME/.claude/plugins/cache/pickled-claude-plugins/principles/0.1.0/scripts/skill-advice.py" ...
+python3 "$HOME/.claude/plugins/cache/pickled-claude-plugins/stay-principled/0.1.0/scripts/skill-advice.py" ...
 ```
 
 Note: replace `0.1.0` with your installed version. The marketplace cache uses versioned paths; there is no `latest` symlink today.
