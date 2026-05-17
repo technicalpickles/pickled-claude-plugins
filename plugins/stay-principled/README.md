@@ -1,6 +1,6 @@
-# principles
+# stay-principled
 
-Anchor design conversations to a project's documented principles via depth-first grilling before brainstorming opens.
+Anchor design conversations to a project's documented principles via depth-first grilling before brainstorming opens. The plugin's job: keep design *principled*, with bite, when it would otherwise drift.
 
 ## Why
 
@@ -12,14 +12,14 @@ This plugin closes that gap. It applies grill-me's depth-first decision-tree wal
 
 | Component | Purpose |
 |---|---|
-| `setup-principles` skill | One-shot config scaffolder. Run once per project. |
-| `grill-with-principles` skill | Runtime grilling. Invoke at the start of design work. |
+| `stay-principled:setup` skill | One-shot config scaffolder. Run once per project. |
+| `stay-principled:grill` skill | Runtime grilling. Invoke at the start of design work. |
 | `scripts/skill-advice.py` | Generic Python helper for PreToolUse hooks. Used by Pattern B integration. Reusable from other plugins. |
 
 ## Install
 
 ```bash
-/plugin install principles@pickled-claude-plugins
+/plugin install stay-principled@pickled-claude-plugins
 ```
 
 Restart Claude Code after install (per the marketplace's directory-source caching).
@@ -31,7 +31,7 @@ In a project that has principles documented (a `docs/principles.md` or similar m
 1. **Configure once:**
 
    ```
-   /skill setup-principles
+   /skill stay-principled:setup
    ```
 
    Walks you through where principles live, format hints, optional domain map, and optional integration patterns. Writes `docs/agents/principles.md` and adds an `### Principles` subsection to your CLAUDE.md.
@@ -39,14 +39,14 @@ In a project that has principles documented (a `docs/principles.md` or similar m
 2. **Use whenever you start design work:**
 
    ```
-   /skill grill-with-principles
+   /skill stay-principled:grill
    ```
 
-   Or just say "grill me with principles on this" / "anchor this to the principles" / similar.
+   Or just say "grill me with principles on this" / "anchor this to the principles" / "stay principled on this" / similar.
 
 ## Using without setup
 
-`grill-with-principles` works without setup if `docs/principles.md` exists at the repo root. Setup adds nuance (domain map, format hints, integration). Skip setup if you just want quick grilling on a one-off project.
+`stay-principled:grill` works without setup if `docs/principles.md` exists at the repo root. Setup adds nuance (domain map, format hints, integration). Skip setup if you just want quick grilling on a one-off project.
 
 ## Integration with other skills
 
@@ -60,7 +60,7 @@ See [`docs/integration-patterns.md`](docs/integration-patterns.md) for full temp
 
 ## Reusing the helper
 
-The `scripts/skill-advice.py` helper is generic, nothing principles-specific about it. Other plugins can wire it into their own PreToolUse hooks for "when this skill is invoked, suggest also doing X" patterns.
+The `scripts/skill-advice.py` helper is generic, nothing plugin-specific about it. Other plugins can wire it into their own PreToolUse hooks for "when this skill is invoked, suggest also doing X" patterns.
 
 See [`docs/helper-contract.md`](docs/helper-contract.md) for the contract.
 

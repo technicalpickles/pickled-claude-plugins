@@ -1,4 +1,4 @@
 {
-  "name": "principles",
+  "name": "stay-principled",
   "description": "Anchor design conversations to project principles via depth-first grilling before brainstorming generates options. Reads docs/principles.md (or docs/agents/principles.md), surfaces relevant principles for the topic, asks one question at a time with recommended answers, and outputs a brief that downstream planning can consume."
 }
