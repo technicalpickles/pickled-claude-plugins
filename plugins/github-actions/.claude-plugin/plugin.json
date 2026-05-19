@@ -1,0 +1,10 @@
+{
+  "name": "github-actions",
+  "description": "GitHub Actions CI tools: investigate failing runs via gh + a structured snapshot helper",
+  "author": {
+    "name": "Josh Nichols",
+    "email": "josh@technicalpickles.com"
+  },
+  "repository": "https://github.com/technicalpickles/pickled-claude-plugins",
+  "license": "MIT"
+}

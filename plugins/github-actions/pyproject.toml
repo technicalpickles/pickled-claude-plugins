@@ -1,0 +1,15 @@
+[project]
+name = "github-actions-plugin"
+version = "0.1.0"
+description = "GitHub Actions CI tools for Claude Code"
+requires-python = ">=3.9"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "pytest>=8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["scripts"]
