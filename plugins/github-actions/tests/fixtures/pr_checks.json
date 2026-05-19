@@ -1,0 +1,5 @@
+[
+  {"name": "test", "state": "FAILURE", "link": "https://github.com/octocat/Hello-World/actions/runs/200/job/300", "workflow": "ci", "bucket": "fail"},
+  {"name": "build", "state": "SUCCESS", "link": "https://github.com/octocat/Hello-World/actions/runs/199/job/299", "workflow": "ci", "bucket": "pass"},
+  {"name": "lint", "state": "FAILURE", "link": "https://github.com/octocat/Hello-World/actions/runs/201/job/301", "workflow": "lint", "bucket": "fail"}
+]
