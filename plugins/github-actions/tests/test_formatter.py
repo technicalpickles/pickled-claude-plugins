@@ -93,3 +93,33 @@ class TestFormatSnapshot:
         # Should contain the last 10 lines, not the first
         assert "line 99" in out
         assert "line 0" not in out
+
+    def test_fallback_to_job_lines_when_step_unknown(self):
+        # gh sometimes emits "UNKNOWN STEP" in the step column for short-lived
+        # steps. The formatter should fall back to all lines for the failing job
+        # rather than render an empty Failed step output section.
+        log = (
+            "test\tUNKNOWN STEP\tprep work\n"
+            "test\tUNKNOWN STEP\tactual error happened here\n"
+        )
+        out = format_snapshot(_minimal_run(), log, RunRef("octocat", "Hello-World", 123), tail=50)
+        assert "Failed step output" in out
+        assert "actual error happened here" in out
+
+    def test_fallback_trims_after_last_error_marker(self):
+        # When falling back to job-wide lines, post-step cleanup output appears
+        # after the failing step's ##[error] marker. Trim it so the relevant
+        # error context isn't drowned in cleanup noise.
+        log = "\n".join([
+            "test\tUNKNOWN STEP\tline before error",
+            "test\tUNKNOWN STEP\t##[error]Process completed with exit code 1.",
+            "test\tUNKNOWN STEP\tPost job cleanup.",
+            "test\tUNKNOWN STEP\tgit config cleanup",
+            "test\tUNKNOWN STEP\tCleaning up orphan processes",
+        ])
+        out = format_snapshot(_minimal_run(), log, RunRef("octocat", "Hello-World", 123), tail=50)
+        assert "line before error" in out
+        assert "##[error]Process completed" in out
+        # Cleanup lines after the error should be excluded
+        assert "Post job cleanup" not in out
+        assert "Cleaning up orphan processes" not in out

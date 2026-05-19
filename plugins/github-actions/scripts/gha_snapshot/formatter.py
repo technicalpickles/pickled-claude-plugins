@@ -116,12 +116,37 @@ def _first_failed_step(job: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def _log_lines_for(log: str, job_name: str, step_name: str, tail: int) -> list[str]:
-    matching = []
+    """Extract log lines for a given job + step.
+
+    `gh run view --log-failed` sometimes emits "UNKNOWN STEP" in the step
+    column when the runner couldn't resolve a display name (common on
+    short-lived steps). When step-name matching yields nothing, fall back
+    to all lines for the job, then trim everything after the last
+    `##[error]` marker so post-step cleanup output doesn't drown the
+    actual failure context.
+    """
+    job_matches = []
+    step_matches = []
     for line in log.splitlines():
         m = _LOG_LINE.match(line)
-        if m and m["job"] == job_name and m["step"] == step_name:
-            matching.append(m["content"])
-    return matching[-tail:]
+        if not m or m["job"] != job_name:
+            continue
+        job_matches.append(m["content"])
+        if m["step"] == step_name:
+            step_matches.append(m["content"])
+    if step_matches:
+        return step_matches[-tail:]
+    last_error = _last_index(job_matches, "##[error]")
+    if last_error is not None:
+        job_matches = job_matches[: last_error + 1]
+    return job_matches[-tail:]
+
+
+def _last_index(lines: list[str], needle: str) -> int | None:
+    for i in range(len(lines) - 1, -1, -1):
+        if needle in lines[i]:
+            return i
+    return None
 
 
 def _duration(start: str | None, end: str | None) -> str:
