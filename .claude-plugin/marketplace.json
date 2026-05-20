@@ -75,6 +75,11 @@
       "name": "taskwarrior",
       "source": "./plugins/taskwarrior",
       "version": "1.0.0"
+    },
+    {
+      "name": "github-actions",
+      "source": "./plugins/github-actions",
+      "version": "0.1.1"
     }
   ]
 }
