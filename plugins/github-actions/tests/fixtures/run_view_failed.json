@@ -1,0 +1,48 @@
+{
+  "conclusion": "failure",
+  "createdAt": "2026-05-18T12:00:00Z",
+  "databaseId": 123,
+  "displayTitle": "fix the thing",
+  "event": "push",
+  "headBranch": "main",
+  "headSha": "abc1234deadbeef5678",
+  "jobs": [
+    {
+      "name": "build",
+      "conclusion": "success",
+      "url": "https://github.com/octocat/Hello-World/actions/runs/123/job/200",
+      "startedAt": "2026-05-18T12:00:10Z",
+      "completedAt": "2026-05-18T12:02:24Z",
+      "steps": [
+        {"name": "Checkout", "conclusion": "success", "number": 1},
+        {"name": "Build", "conclusion": "success", "number": 2}
+      ]
+    },
+    {
+      "name": "test",
+      "conclusion": "failure",
+      "url": "https://github.com/octocat/Hello-World/actions/runs/123/job/201",
+      "startedAt": "2026-05-18T12:02:25Z",
+      "completedAt": "2026-05-18T12:03:28Z",
+      "steps": [
+        {"name": "Checkout", "conclusion": "success", "number": 1},
+        {"name": "Run npm test", "conclusion": "failure", "number": 2}
+      ]
+    },
+    {
+      "name": "deploy",
+      "conclusion": "skipped",
+      "url": "https://github.com/octocat/Hello-World/actions/runs/123/job/202",
+      "startedAt": null,
+      "completedAt": null,
+      "steps": []
+    }
+  ],
+  "name": "CI",
+  "number": 42,
+  "startedAt": "2026-05-18T12:00:00Z",
+  "status": "completed",
+  "updatedAt": "2026-05-18T12:03:30Z",
+  "url": "https://github.com/octocat/Hello-World/actions/runs/123",
+  "workflowName": "CI"
+}
