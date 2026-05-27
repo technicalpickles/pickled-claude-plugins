@@ -9,7 +9,7 @@
     {
       "name": "actually-lsp",
       "source": "./plugins/actually-lsp",
-      "version": "0.2.1"
+      "version": "0.2.2"
     },
     {
       "name": "working-in-monorepos",
