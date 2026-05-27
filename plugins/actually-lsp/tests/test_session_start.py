@@ -75,3 +75,30 @@ def test_hook_emits_activation_context_when_ready(tmp_path):
     # Activation context contains the deferred-tool explanation
     assert "ToolSearch" in stdout
     assert "select:LSP" in stdout
+
+
+def test_hook_nudges_for_rust(tmp_path):
+    (tmp_path / "Cargo.toml").write_text("[package]\nname = \"foo\"\n")
+    stdout, _, rc = run_hook(tmp_path, plugin_list_output='[]')
+    assert rc == 0
+    assert "rust-analyzer-lsp@claude-plugins-official" in stdout
+
+
+def test_hook_nudges_for_ruby(tmp_path):
+    (tmp_path / "Gemfile").write_text("source 'https://rubygems.org'\n")
+    stdout, _, rc = run_hook(tmp_path, plugin_list_output='[]')
+    assert rc == 0
+    assert "ruby-lsp@claude-plugins-official" in stdout
+
+
+def test_hook_handles_polyglot(tmp_path):
+    """Polyglot project: all three ecosystems get nudged."""
+    (tmp_path / "Cargo.toml").write_text("[package]\nname = \"foo\"\n")
+    (tmp_path / "Gemfile").write_text("source 'https://rubygems.org'\n")
+    (tmp_path / "package.json").write_text("{}")
+    (tmp_path / "src.ts").write_text("export {};")
+    stdout, _, rc = run_hook(tmp_path, plugin_list_output='[]')
+    assert rc == 0
+    assert "rust-analyzer-lsp" in stdout
+    assert "typescript-lsp" in stdout
+    assert "ruby-lsp" in stdout
