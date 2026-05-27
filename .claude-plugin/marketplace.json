@@ -7,6 +7,11 @@
   },
   "plugins": [
     {
+      "name": "actually-lsp",
+      "source": "./plugins/actually-lsp",
+      "version": "0.2.0"
+    },
+    {
       "name": "working-in-monorepos",
       "source": "./plugins/working-in-monorepos",
       "version": "1.0.0"
@@ -34,7 +39,7 @@
     {
       "name": "second-brain",
       "source": "./plugins/second-brain",
-      "version": "1.8.0"
+      "version": "1.8.1"
     },
     {
       "name": "tool-routing",
@@ -75,6 +80,11 @@
       "name": "taskwarrior",
       "source": "./plugins/taskwarrior",
       "version": "1.0.0"
+    },
+    {
+      "name": "github-actions",
+      "source": "./plugins/github-actions",
+      "version": "0.1.1"
     }
   ]
 }

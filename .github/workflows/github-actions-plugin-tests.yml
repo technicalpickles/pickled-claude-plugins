@@ -1,0 +1,35 @@
+name: github-actions plugin tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'plugins/github-actions/scripts/**'
+      - 'plugins/github-actions/tests/**'
+      - 'plugins/github-actions/pyproject.toml'
+      - 'plugins/github-actions/uv.lock'
+      - '.github/workflows/github-actions-plugin-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    name: pytest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugins/github-actions
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v8.1.0
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --frozen --no-install-project
+
+      - name: Run pytest
+        run: uv run pytest tests/ -v

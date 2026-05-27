@@ -15,12 +15,20 @@ Review the current conversation and extract insights worth capturing.
 
 ## Step 1: Load Configuration
 
-Verify sb CLI is available:
+Verify sb CLI is available and routing correctly:
 ```bash
 npx @techpickles/sb --version
+npm --version
 ```
 
-If unavailable:
+If both return the same version (e.g., both `11.9.0`), `npx` is misdispatching to `npm` itself — an upstream npx bin-dispatch quirk seen intermittently. Subcommands will then fail with `npm error enoent Could not read package.json`. Fall back to direct-node invocation:
+
+```bash
+SB=$(ls ~/.npm/_npx/*/node_modules/@techpickles/sb/dist/index.js 2>/dev/null | head -1)
+node "$SB" <subcommand>
+```
+
+If sb is not installed at all (`command not found` or hang):
 ```
 sb CLI is required but not available. Install Node.js and npm, then try again.
 Or install globally for faster execution: npm i -g @techpickles/sb
@@ -92,50 +100,66 @@ Include "None - skip capture" option.
 
 ## Step 5: Capture Selected
 
-For each selected insight, append as a bullet to the session notes file.
+Build one session note containing all selected insights as bullets, then write it via `sb note create`. The CLI has no `note list` subcommand and `note create` has no `--type` flag, so don't try to "find or create" a per-session file by type — render the content first and create the note once.
 
-**5a. Get or create session notes file:**
+**5a. Build session context:**
 
-Check if a session file exists in the vault by querying sb:
-```bash
-npx @techpickles/sb note list --type session-notes
-```
-
-If none exists, create one with session context:
-```bash
-npx @techpickles/sb note create \
-  --source auto \
-  --title "{session context}" \
-  --type session-notes
-```
-
-Parse the returned JSON to get the file path.
-
-**5b. Build metadata:**
-
-Collect session context:
+Collect for the `--source` provenance string:
 - Current repo (if in a worktree)
 - Current branch (if in a worktree)
-- Current bean ID (if available from context)
-- Session topic (topic of conversation)
-- Timestamp (ISO 8601)
+- Current bean ID (if applicable)
+- Short session id (first 8 chars of the session UUID)
 
-**5c. Append insights as bullets:**
+Format: `claude-code session {short-id} ({repo}, branch {branch}, bean {id})`
 
-For each selected insight, append a clean bullet point:
-- Keep prose concise and standalone
-- Include minimal metadata as needed (source, why this matters)
-- Format: `- {insight description}` or `- {insight description} ({context})`
+**5b. Render bullets:**
 
-Use the Write tool to update the session file, preserving frontmatter and adding bullets to the content.
+For each selected insight, write a clean prose bullet:
+- Standalone (readable months later without conversation context)
+- One short paragraph per insight
+- Format: `- **{name}**: {description}`
 
-**5d. Confirm:**
+Stage the full content (optional framing paragraph + bullets) in a temp file:
+
+```bash
+cat > "$TMPDIR/distill-content.txt" <<'EOF'
+{optional framing paragraph}
+
+- **{name}**: {description}
+- **{name}**: {description}
+EOF
+```
+
+A temp file is preferred over inlining `--content "..."` because heredoc-quoted content avoids shell escaping bugs on multi-line markdown.
+
+**5c. Create the note:**
+
+```bash
+npx @techpickles/sb note create \
+  --title "Session: {topic}" \
+  --source "{session-context-string}" \
+  --content "$(cat "$TMPDIR/distill-content.txt")"
+```
+
+Parse the returned JSON for the `path` field; show it in the confirmation.
+
+**5d. Sandbox EPERM on vault writes:**
+
+Vault paths like `~/.claude/vaults/primary` symlink into directories outside Claude Code's sandbox writeable allowlist. The first `sb note create` against the vault in a session will fail with:
 
 ```
-✓ Captured {N} insights to {session-file}
+Error: EPERM: operation not permitted, open '/path/to/vault/📫 Inbox/...'
 ```
 
-Show the file path so user can find the notes later.
+This is not an sb bug — retry the same command with the Bash tool's `dangerouslyDisableSandbox: true` option. Subsequent vault writes in the same session usually succeed without retry.
+
+**5e. Confirm:**
+
+```
+✓ Captured {N} insights to {filename}
+```
+
+The note lands in the vault inbox and will be routed / connected / daily-linked by the next `/second-brain:process-inbox` run.
 
 ## Constraints
 

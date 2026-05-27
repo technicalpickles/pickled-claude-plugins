@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Thin shim so the snapshot is invocable as `gha-snapshot` (no extension).
+# Delegates to the Python package alongside this script.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+export PYTHONPATH="$SCRIPT_DIR:$PYTHONPATH"
+exec python3 -m gha_snapshot.main "$@"
