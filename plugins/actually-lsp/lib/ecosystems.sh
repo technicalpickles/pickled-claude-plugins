@@ -6,4 +6,6 @@
 
 ecosystems=(
   "typescript|package.json|typescript-lsp@claude-plugins-official|typescript-language-server|test -d node_modules"
+  "rust|Cargo.toml|rust-analyzer-lsp@claude-plugins-official|rust-analyzer|cargo metadata --no-deps"
+  "ruby|Gemfile|ruby-lsp@claude-plugins-official|ruby-lsp|bundle check"
 )
