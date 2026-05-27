@@ -1,6 +1,6 @@
 # Incus Runtime
 
-Colima supports running [Incus](https://linuxcontainers.org/incus/) as a runtime, in addition to Docker and containerd. Incus is a system container and VM manager (the LXD fork). Unlike Docker/containerd, it can run full Linux **virtual machines** with their own kernel — useful when you need stronger isolation than a shared-kernel container provides.
+Colima supports running [Incus](https://linuxcontainers.org/incus/) as a runtime, in addition to Docker and containerd. Incus is a system container and VM manager (the LXD fork). Unlike Docker/containerd, it can run full Linux **virtual machines** with their own kernel, useful when you need stronger isolation than a shared-kernel container provides.
 
 ## When to use this
 
@@ -38,10 +38,10 @@ colima start incus \
 ```
 
 Flag notes:
-- `--runtime incus` — selects the runtime instead of docker/containerd
-- `--vm-type vz` — required for nested virt (qemu backend can't do it)
-- `--nested-virtualization` (or `-z`) — must be set explicitly; not implied by vz
-- `--network-address` — gives the colima VM a reachable IP; needs sudo for sudoers setup on first run. In a non-interactive shell the prompt is swallowed and a warning is logged, but the address still gets assigned. Re-run from an actual terminal if routing breaks.
+- `--runtime incus`: selects the runtime instead of docker/containerd
+- `--vm-type vz`: required for nested virt (qemu backend can't do it)
+- `--nested-virtualization` (or `-z`): must be set explicitly; not implied by vz
+- `--network-address`: gives the colima VM a reachable IP. Needs sudo for sudoers setup on first run. In a non-interactive shell the prompt is swallowed and a warning is logged, but the address still gets assigned. Re-run from an actual terminal if routing breaks.
 
 ## How the host CLI talks to the server
 
@@ -58,7 +58,7 @@ incus remote list
 # colima-incus (current) | unix:///Users/<you>/.colima/incus/incus.sock | incus | tls
 ```
 
-So plain `incus list`, `incus launch ...` etc. from the macOS terminal Just Work. Client/server version skew is normal and expected — the linuxcontainers project releases them independently. Don't try to "fix" it.
+So plain `incus list`, `incus launch ...` etc. from the macOS terminal Just Work. Client/server version skew is normal and expected: the linuxcontainers project releases them independently. Don't try to "fix" it.
 
 ## Containers vs VMs
 
@@ -83,8 +83,8 @@ Three layers to keep straight:
 
 To reach an inner instance from macOS:
 
-1. **`incus exec`** (analog of `docker exec`) — `incus exec myvm -- bash`
-2. **`incus shell`** — interactive shell
+1. **`incus exec`** (analog of `docker exec`): `incus exec myvm -- bash`
+2. **`incus shell`**: interactive shell
 3. **Proxy device** for specific ports:
    ```bash
    incus config device add myvm web proxy \
@@ -100,7 +100,7 @@ To reach an inner instance from macOS:
 Error: mkdir /Users/<you>/.cache/incus/<sha>: operation not permitted
 ```
 
-Workaround: run the `incus` command with `dangerouslyDisableSandbox: true`. Per-path allowlisting isn't worth the whack-a-mole — the client touches sockets, image registries, and ssh-exec into the colima VM as well.
+Workaround: run the `incus` command with `dangerouslyDisableSandbox: true`. Per-path allowlisting isn't worth the whack-a-mole: the client touches sockets, image registries, and ssh-exec into the colima VM as well.
 
 ## Verifying nested virt actually works
 
@@ -125,7 +125,7 @@ The `--data` flag is colima 0.9+; on older versions the inner data persists acro
 
 ## Resource sizing reality check
 
-Lima disks are sparse (qcow2), so `--disk 40` is a cap not a floor. But once you launch inner VMs, real bytes get committed. On a constrained host (e.g. <100GB free) be conservative — the colima VM disk grows as inner VMs grow, and it doesn't shrink back automatically when you delete them. `incus image flush` and `incus rm <vm>` help, but the host-visible qcow2 file stays large.
+Lima disks are sparse (qcow2), so `--disk 40` is a cap not a floor. But once you launch inner VMs, real bytes get committed. On a constrained host (e.g. <100GB free) be conservative: the colima VM disk grows as inner VMs grow, and it doesn't shrink back automatically when you delete them. `incus image flush` and `incus rm <vm>` help, but the host-visible qcow2 file stays large.
 
 ## References
 
