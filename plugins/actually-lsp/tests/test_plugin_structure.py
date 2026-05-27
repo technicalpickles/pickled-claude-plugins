@@ -61,19 +61,24 @@ class TestHooksJson:
         assert "session-start.sh" in cmd
 
 
-class TestCommands:
-    """Validate slash command files exist with required frontmatter."""
+class TestSkills:
+    """Validate skill files exist with required frontmatter.
 
-    def test_doctor_command_exists(self):
-        path = PLUGIN_ROOT / "commands" / "doctor.md"
-        assert path.exists(), f"Missing slash command at {path}"
+    Skills are user-invocable via `/actually-lsp:<name>`. They replace the
+    old `commands/<name>.md` pattern, which Claude Code no longer surfaces
+    for plugins.
+    """
+
+    def test_doctor_skill_exists(self):
+        path = PLUGIN_ROOT / "skills" / "doctor" / "SKILL.md"
+        assert path.exists(), f"Missing skill at {path}"
         content = path.read_text()
         assert "name: doctor" in content
         assert "description:" in content
 
-    def test_skip_command_exists(self):
-        path = PLUGIN_ROOT / "commands" / "skip.md"
-        assert path.exists(), f"Missing slash command at {path}"
+    def test_skip_skill_exists(self):
+        path = PLUGIN_ROOT / "skills" / "skip" / "SKILL.md"
+        assert path.exists(), f"Missing skill at {path}"
         content = path.read_text()
         assert "name: skip" in content
         assert "description:" in content
