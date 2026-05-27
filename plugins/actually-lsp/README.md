@@ -38,8 +38,8 @@ State lives at `<project>/.claude/actually-lsp.json`. Gitignored by default; com
 
 ## Commands
 
-- `/actually-lsp:doctor [fix] [<ecosystem>]`: diagnose and fix LSP setup. With no args, runs a per-ecosystem diagnostic then fixes anything not `ready`. `fix` skips the report and jumps straight to action. `<ecosystem>` narrows to one of `rust`, `typescript`, `ruby`.
-- `/actually-lsp:skip [<ecosystem>]`: dismiss nudges for an ecosystem in this project. With no arg, prompts to pick.
+- `/actually-lsp-doctor [fix] [<ecosystem>]`: diagnose and fix LSP setup. With no args, runs a per-ecosystem diagnostic then fixes anything not `ready`. `fix` skips the report and jumps straight to action. `<ecosystem>` narrows to one of `rust`, `typescript`, `ruby`.
+- `/actually-lsp-ignore [<ecosystem>]`: ignore nudges for an ecosystem in this project. With no arg, prompts to pick.
 
 ## Internals
 

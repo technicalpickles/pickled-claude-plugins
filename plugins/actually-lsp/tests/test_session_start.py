@@ -59,17 +59,17 @@ def test_hook_nudges_when_no_lsp_plugin(tmp_path):
     stdout, stderr, rc = run_hook(tmp_path, plugin_list_output='[]')
     assert rc == 0
     assert "typescript-lsp@claude-plugins-official" in stdout
-    assert "/actually-lsp:doctor" in stdout
+    assert "/actually-lsp-doctor" in stdout
 
 
-def test_hook_references_skip_in_no_lsp_plugin_nudge(tmp_path):
-    """no-lsp-plugin nudge points at both /actually-lsp:doctor and /actually-lsp:skip."""
+def test_hook_references_ignore_in_no_lsp_plugin_nudge(tmp_path):
+    """no-lsp-plugin nudge points at both /actually-lsp-doctor and /actually-lsp-ignore."""
     (tmp_path / "package.json").write_text("{}")
     (tmp_path / "src.ts").write_text("export const x = 1;")
     stdout, _, rc = run_hook(tmp_path, plugin_list_output='[]')
     assert rc == 0
-    assert "/actually-lsp:doctor" in stdout
-    assert "/actually-lsp:skip typescript" in stdout
+    assert "/actually-lsp-doctor" in stdout
+    assert "/actually-lsp-ignore typescript" in stdout
 
 
 def test_hook_nudges_for_typescript_in_large_tree(tmp_path):

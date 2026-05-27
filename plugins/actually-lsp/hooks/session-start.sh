@@ -75,18 +75,18 @@ emit_for_state() {
       ;;
     no-lsp-plugin)
       echo "[actually-lsp] Detected $ecosystem. Recommended LSP plugin: $recommended_plugin."
-      echo "Run \`/actually-lsp:doctor\` to set up, or \`/actually-lsp:skip $ecosystem\` to dismiss."
+      echo "Run \`/actually-lsp-doctor\` to set up, or \`/actually-lsp-ignore $ecosystem\` to ignore."
       ;;
     server-not-runnable)
       echo "[actually-lsp] $ecosystem LSP plugin installed but env not ready (server binary missing or env check failed)."
-      echo "Run \`/actually-lsp:doctor $ecosystem\` to fix."
+      echo "Run \`/actually-lsp-doctor $ecosystem\` to fix."
       ;;
     ready)
       cat "$PLUGIN_ROOT/activation/$ecosystem.md"
       ;;
     error)
       echo "[actually-lsp] Detection failed for $ecosystem."
-      echo "Run \`/actually-lsp:doctor $ecosystem\` for details."
+      echo "Run \`/actually-lsp-doctor $ecosystem\` for details."
       ;;
   esac
 }

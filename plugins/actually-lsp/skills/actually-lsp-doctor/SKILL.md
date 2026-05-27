@@ -1,11 +1,11 @@
 ---
-name: doctor
-description: Diagnose and fix LSP setup for the current project's detected ecosystems (Rust, TypeScript, Ruby). Use when the SessionStart hook nudged about a missing LSP plugin, when the env isn't ready (no `bundle install`, no `cargo build`, missing server binary), when LSP calls are failing, or when the user invokes `/actually-lsp:doctor` directly. Walks the per-ecosystem state machine, reports what's missing, then runs the fix.
+name: actually-lsp-doctor
+description: Diagnose and fix LSP setup for the current project's detected ecosystems (Rust, TypeScript, Ruby). Use when the SessionStart hook nudged about a missing LSP plugin, when the env isn't ready (no `bundle install`, no `cargo build`, missing server binary), when LSP calls are failing, or when the user invokes `/actually-lsp-doctor` directly. Walks the per-ecosystem state machine, reports what's missing, then runs the fix.
 ---
 
-# /actually-lsp:doctor
+# /actually-lsp-doctor
 
-Parse the user's args from the command invocation:
+Parse the user's args from the invocation:
 
 - `fix` as the first arg means skip the diagnostic report and jump straight to action.
 - `rust` | `typescript` | `ruby` as an arg narrows focus to that ecosystem.

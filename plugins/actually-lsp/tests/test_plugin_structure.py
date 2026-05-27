@@ -64,21 +64,24 @@ class TestHooksJson:
 class TestSkills:
     """Validate skill files exist with required frontmatter.
 
-    Skills are user-invocable via `/actually-lsp:<name>`. They replace the
-    old `commands/<name>.md` pattern, which Claude Code no longer surfaces
-    for plugins.
+    Skills are user-invocable via `/<skill-name>`. The skill `name` field
+    must be globally unique (Claude Code surfaces skills by their bare
+    slug, not by `plugin:name`), so the names here are prefixed with the
+    plugin name to avoid colliding with other plugins' `doctor` or
+    `ignore` skills. They replace the old `commands/<name>.md` pattern,
+    which Claude Code no longer surfaces for plugins.
     """
 
     def test_doctor_skill_exists(self):
-        path = PLUGIN_ROOT / "skills" / "doctor" / "SKILL.md"
+        path = PLUGIN_ROOT / "skills" / "actually-lsp-doctor" / "SKILL.md"
         assert path.exists(), f"Missing skill at {path}"
         content = path.read_text()
-        assert "name: doctor" in content
+        assert "name: actually-lsp-doctor" in content
         assert "description:" in content
 
-    def test_skip_skill_exists(self):
-        path = PLUGIN_ROOT / "skills" / "skip" / "SKILL.md"
+    def test_ignore_skill_exists(self):
+        path = PLUGIN_ROOT / "skills" / "actually-lsp-ignore" / "SKILL.md"
         assert path.exists(), f"Missing skill at {path}"
         content = path.read_text()
-        assert "name: skip" in content
+        assert "name: actually-lsp-ignore" in content
         assert "description:" in content
