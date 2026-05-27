@@ -59,3 +59,21 @@ class TestHooksJson:
         cmd = ss[0]["hooks"][0]["command"]
         assert "${CLAUDE_PLUGIN_ROOT}" in cmd
         assert "session-start.sh" in cmd
+
+
+class TestCommands:
+    """Validate slash command files exist with required frontmatter."""
+
+    def test_doctor_command_exists(self):
+        path = PLUGIN_ROOT / "commands" / "doctor.md"
+        assert path.exists(), f"Missing slash command at {path}"
+        content = path.read_text()
+        assert "name: doctor" in content
+        assert "description:" in content
+
+    def test_skip_command_exists(self):
+        path = PLUGIN_ROOT / "commands" / "skip.md"
+        assert path.exists(), f"Missing slash command at {path}"
+        content = path.read_text()
+        assert "name: skip" in content
+        assert "description:" in content
