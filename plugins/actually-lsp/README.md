@@ -16,7 +16,7 @@ Full background: [the activation gap share-out](https://github.com/technicalpick
 
 ## Status
 
-Pre-1.0. v1 supports TypeScript. Rust and Ruby coming in 0.2.
+v1 supports TypeScript, Rust, and Ruby.
 
 ## Install
 
