@@ -4,9 +4,9 @@
 
 **Goal:** Build the actually-lsp Claude Code plugin: closes the LSP activation gap end-to-end (detection, setup, activation, failure diagnosis) for Rust, TypeScript, and Ruby projects.
 
-**Architecture:** Single plugin in pickled-claude-plugins. Three hooks (SessionStart, PreToolUse, PostToolUseFailure) plus two slash commands. Layered on top of the official LSP plugins from `claude-plugins-official`; ecosystem-aware data tables drive detection per language. See [`2026-05-27-design.md`](2026-05-27-design.md) for the full spec.
+**Architecture:** Single plugin in pickled-claude-plugins. Three hooks (SessionStart, PreToolUse, PostToolUseFailure) plus two skills (`/actually-lsp-doctor` and `/actually-lsp-ignore`). Layered on top of the official LSP plugins from `claude-plugins-official`; ecosystem-aware data tables drive detection per language. See [`2026-05-27-design.md`](2026-05-27-design.md) for the full spec.
 
-**Tech Stack:** Bash for hook scripts, Python (pytest) for tests, JSON for state files, markdown for slash command prompts and activation context. Conventional commits with `actually-lsp` scope. Versions live in `.claude-plugin/marketplace.json` at the marketplace root.
+**Tech Stack:** Bash for hook scripts, Python (pytest) for tests, JSON for state files, markdown for skill bodies and activation context. Conventional commits with `actually-lsp` scope. Versions live in `.claude-plugin/marketplace.json` at the marketplace root.
 
 ---
 
@@ -21,7 +21,7 @@
 - `plugins/actually-lsp/docs/adr/0002-ecosystem-aware-not-lsp-plugin-aware.md`
 
 **Existing plugin patterns to crib from:**
-- `plugins/working-in-monorepos/` is the closest analog: bash SessionStart hook + Python pytest tests + commands/*.md. Read its `hooks/scripts/detect-monorepo.sh`, `hooks/hooks.json`, `tests/test_hooks_integration.py`, `tests/test_plugin_structure.py`, and `pyproject.toml` before starting.
+- `plugins/working-in-monorepos/` is the closest analog for the hook + test layout (bash SessionStart hook + Python pytest tests). Read its `hooks/scripts/detect-monorepo.sh`, `hooks/hooks.json`, `tests/test_hooks_integration.py`, `tests/test_plugin_structure.py`, and `pyproject.toml` before starting. Note: it still ships `commands/*.md` files, which are dead code (Claude Code no longer surfaces plugin commands). Use `skills/<name>/SKILL.md` for user-invocable actions instead. See `plugins/agent-meta/skills/snapshot/SKILL.md` for the right pattern.
 - `plugins/sandbox-first/hooks/hooks.json` shows `PostToolUseFailure` event usage (matched to `Bash`). We'll use it matched to `LSP`.
 
 **Conventional commit rules (from `pickled-claude-plugins/CLAUDE.md` at the repo root):**
@@ -51,7 +51,7 @@ uv run pytest tests/ -v
 - PR 2: Add Rust and Ruby
 - PR 3: PreToolUse hook for deferred detection
 - PR 4: PostToolUseFailure hook for failure context
-- PR 5: Slash commands (`/actually-lsp:doctor`, `/actually-lsp:skip`)
+- PR 5: Skills (`/actually-lsp-doctor`, `/actually-lsp-ignore`)
 - PR 6: Polish (README, smoke test plan, version bump to 1.0.0)
 
 ---
@@ -654,7 +654,7 @@ def test_hook_nudges_when_no_lsp_plugin(tmp_path):
     stdout, stderr, rc = run_hook(tmp_path, plugin_list_output='[]')
     assert rc == 0
     assert "typescript-lsp@claude-plugins-official" in stdout
-    assert "/actually-lsp:doctor" in stdout
+    assert "/actually-lsp-doctor" in stdout
 
 
 def test_hook_emits_activation_context_when_ready(tmp_path):
@@ -761,17 +761,17 @@ emit_for_state() {
       ;;
     no-lsp-plugin)
       echo "[actually-lsp] Detected $ecosystem. Recommended LSP plugin: $recommended_plugin."
-      echo "Run \`/actually-lsp:doctor\` to set up, or \`/actually-lsp:skip $ecosystem\` to dismiss."
+      echo "Run \`/actually-lsp-doctor\` to set up, or \`/actually-lsp-ignore $ecosystem\` to dismiss."
       ;;
     server-not-runnable)
       echo "[actually-lsp] $ecosystem LSP plugin installed but env not ready."
-      echo "Run \`/actually-lsp:doctor\` to fix."
+      echo "Run \`/actually-lsp-doctor\` to fix."
       ;;
     ready)
       cat "$PLUGIN_ROOT/activation/$ecosystem.md"
       ;;
     error)
-      echo "[actually-lsp] Detection failed for $ecosystem. Run \`/actually-lsp:doctor $ecosystem\` for details."
+      echo "[actually-lsp] Detection failed for $ecosystem. Run \`/actually-lsp-doctor $ecosystem\` for details."
       ;;
   esac
 }
@@ -943,8 +943,8 @@ State lives at `<project>/.claude/actually-lsp.json`. Gitignored by default; com
 ## Commands
 
 Coming in 0.5:
-- `/actually-lsp:doctor`: diagnose and fix LSP setup
-- `/actually-lsp:skip`: dismiss nudges for an ecosystem
+- `/actually-lsp-doctor`: diagnose and fix LSP setup
+- `/actually-lsp-ignore`: dismiss nudges for an ecosystem
 
 ## Internals
 
@@ -1766,11 +1766,11 @@ for row in "${ecosystems[@]}"; do
     # Plugin enabled: emit activation context with the caveat
     output+="[actually-lsp] Detected $e_name workspace at $project_root."$'\n'
     output+="$(cat "$PLUGIN_ROOT/activation/$e_name.md")"$'\n\n'
-    output+="(Activation context at PreToolUse position lands soft (0.4/5 per share-out). For inline-rate activation (4.6/5), run \`/actually-lsp:doctor\` to load the context at user-prompt position.)"$'\n'
+    output+="(Activation context at PreToolUse position lands soft (0.4/5 per share-out). For inline-rate activation (4.6/5), run \`/actually-lsp-doctor\` to load the context at user-prompt position.)"$'\n'
   else
     # No plugin: nudge
     output+="[actually-lsp] Detected $e_name workspace at $project_root. Recommended LSP plugin: $e_plugin."$'\n'
-    output+="Run \`/actually-lsp:doctor\` to set up, or \`/actually-lsp:skip $e_name\` to dismiss."$'\n'
+    output+="Run \`/actually-lsp-doctor\` to set up, or \`/actually-lsp-ignore $e_name\` to dismiss."$'\n'
   fi
 
   mark_nudged "$project_root" "$e_name"
@@ -1952,7 +1952,7 @@ def test_hook_emits_failure_context_for_lsp(tmp_path):
     assert rc == 0
     assert "rust" in stdout.lower()
     assert "EPIPE" in stdout
-    assert "/actually-lsp:doctor" in stdout
+    assert "/actually-lsp-doctor" in stdout
 
 
 def test_hook_invalidates_cached_state(tmp_path):
@@ -2029,7 +2029,7 @@ cat <<EOF
 [actually-lsp] LSP call to $method on $lsp_server failed:
 $error_msg
 
-Cache for $ecosystem has been invalidated. Run \`/actually-lsp:doctor $ecosystem\` to re-verify.
+Cache for $ecosystem has been invalidated. Run \`/actually-lsp-doctor $ecosystem\` to re-verify.
 EOF
 
 # Mark state as error (keep dismissed flag if set)
@@ -2130,24 +2130,26 @@ git commit -m "chore(actually-lsp): bump version to 0.4.0"
 
 ---
 
-# PR 5: Slash commands
+# PR 5: Skills (user-invocable slash actions)
 
-**Goal:** `/actually-lsp:doctor` and `/actually-lsp:skip` available.
+**Goal:** `/actually-lsp-doctor` and `/actually-lsp-ignore` available.
 
-## Task 26: commands/doctor.md
+**Note:** These ship as skills (`skills/<name>/SKILL.md`), not plugin commands. Claude Code surfaces skills for `/plugin:skill` invocation; plugin `commands/<name>.md` files are not surfaced. The skill `description:` field is what triggers it, so write it as a "use when X" sentence covering the likely contexts (post-nudge from SessionStart, missing plugin, env not ready, explicit slash invocation).
+
+## Task 26: skills/actually-lsp-doctor/SKILL.md
 
 **Files:**
-- Create: `plugins/actually-lsp/commands/doctor.md`
+- Create: `plugins/actually-lsp/skills/actually-lsp-doctor/SKILL.md`
 
-- [ ] **Step 1: Write the prompt template**
+- [ ] **Step 1: Write the skill**
 
 ```markdown
 ---
-name: doctor
-description: Diagnose and fix LSP setup for the current project (one or all ecosystems)
+name: actually-lsp-doctor
+description: Diagnose and fix LSP setup for the current project's detected ecosystems (Rust, TypeScript, Ruby). Use when the SessionStart hook nudged about a missing LSP plugin, when the env isn't ready (no `bundle install`, no `cargo build`, missing server binary), when LSP calls are failing, or when the user invokes `/actually-lsp-doctor` directly. Walks the per-ecosystem state machine, reports what's missing, then runs the fix.
 ---
 
-You are running `/actually-lsp:doctor`. Parse the user's args from the command invocation:
+You are running `/actually-lsp-doctor`. Parse the user's args from the invocation:
 
 - "fix" as the first arg means skip the diagnostic report and jump straight to action.
 - "rust" | "typescript" | "ruby" as an arg narrows focus to that ecosystem.
@@ -2188,55 +2190,55 @@ Re-run detection (same as Step 1's "if missing" path). Update the project state 
 - [ ] **Step 2: Em-dash check**
 
 ```bash
-grep -n '—' plugins/actually-lsp/commands/doctor.md && echo "EM-DASH" || echo "clean"
+grep -n '—' plugins/actually-lsp/skills/actually-lsp-doctor/SKILL.md && echo "EM-DASH" || echo "clean"
 ```
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add plugins/actually-lsp/commands/doctor.md
-git commit -m "feat(actually-lsp): add /actually-lsp:doctor slash command"
+git add plugins/actually-lsp/skills/actually-lsp-doctor/SKILL.md
+git commit -m "feat(actually-lsp): add /actually-lsp-doctor skill"
 ```
 
-## Task 27: commands/skip.md
+## Task 27: skills/actually-lsp-ignore/SKILL.md
 
 **Files:**
-- Create: `plugins/actually-lsp/commands/skip.md`
+- Create: `plugins/actually-lsp/skills/actually-lsp-ignore/SKILL.md`
 
-- [ ] **Step 1: Write the prompt template**
+- [ ] **Step 1: Write the skill**
 
 ```markdown
 ---
-name: skip
-description: Dismiss actually-lsp nudges for an ecosystem in this project
+name: actually-lsp-ignore
+description: Ignore actually-lsp nudges for an ecosystem in this project. Use when the user wants to silence, dismiss, or ignore the LSP setup nudges for a specific ecosystem (Rust, TypeScript, Ruby), or invokes `/actually-lsp-ignore` directly. Writes `dismissed=true` to `.claude/actually-lsp.json`. Persistent across sessions for this project only.
 ---
 
-You are running `/actually-lsp:skip`. Parse args:
+You are running `/actually-lsp-ignore`. Parse args:
 
-- "rust" | "typescript" | "ruby" as an arg dismisses that ecosystem directly.
-- No args: read `.claude/actually-lsp.json` in the current project root, present the detected ecosystems, and ask the user which to dismiss.
+- "rust" | "typescript" | "ruby" as an arg ignores that ecosystem directly.
+- No args: read `.claude/actually-lsp.json` in the current project root, present the detected ecosystems, and ask the user which to ignore.
 
 ## Action
 
-Update the project state file at `.claude/actually-lsp.json`: set `.ecosystems.<ecosystem>.dismissed` to `true`. If the file doesn't exist, create it with version 1 schema.
+Update the project state file at `.claude/actually-lsp.json`: set `.ecosystems.<ecosystem>.dismissed` to `true`. If the file doesn't exist, create it with version 1 schema. The internal state value stays `dismissed` (state-machine name from `CONTEXT.md`); only the user-facing skill name is `ignore`.
 
 ## Confirmation output
 
-Output a one-line confirmation per dismissed ecosystem:
+Output a one-line confirmation per ignored ecosystem:
 
 ```
-Dismissed <ecosystem> for this project. To re-enable, manually edit .claude/actually-lsp.json and set dismissed back to false. (An `unskip` command is a future extension.)
+Ignoring <ecosystem> for this project. To re-enable, manually edit .claude/actually-lsp.json and set dismissed back to false. (A re-enable command is a future extension.)
 ```
 ```
 
 - [ ] **Step 2: Commit**
 
 ```bash
-git add plugins/actually-lsp/commands/skip.md
-git commit -m "feat(actually-lsp): add /actually-lsp:skip slash command"
+git add plugins/actually-lsp/skills/actually-lsp-ignore/SKILL.md
+git commit -m "feat(actually-lsp): add /actually-lsp-ignore skill"
 ```
 
-## Task 28: Test command files exist with expected frontmatter
+## Task 28: Test skill files exist with expected frontmatter
 
 **Files:**
 - Modify: `plugins/actually-lsp/tests/test_plugin_structure.py`
@@ -2244,19 +2246,19 @@ git commit -m "feat(actually-lsp): add /actually-lsp:skip slash command"
 - [ ] **Step 1: Add tests**
 
 ```python
-class TestCommands:
-    def test_doctor_command_exists(self):
-        path = PLUGIN_ROOT / "commands" / "doctor.md"
+class TestSkills:
+    def test_doctor_skill_exists(self):
+        path = PLUGIN_ROOT / "skills" / "actually-lsp-doctor" / "SKILL.md"
         assert path.exists()
         content = path.read_text()
-        assert "name: doctor" in content
+        assert "name: actually-lsp-doctor" in content
         assert "description:" in content
 
-    def test_skip_command_exists(self):
-        path = PLUGIN_ROOT / "commands" / "skip.md"
+    def test_ignore_skill_exists(self):
+        path = PLUGIN_ROOT / "skills" / "actually-lsp-ignore" / "SKILL.md"
         assert path.exists()
         content = path.read_text()
-        assert "name: skip" in content
+        assert "name: actually-lsp-ignore" in content
         assert "description:" in content
 ```
 
@@ -2270,7 +2272,7 @@ cd plugins/actually-lsp && uv run pytest tests/test_plugin_structure.py -v
 
 ```bash
 git add plugins/actually-lsp/tests/test_plugin_structure.py
-git commit -m "feat(actually-lsp): test slash command files exist with frontmatter"
+git commit -m "feat(actually-lsp): test skill files exist with frontmatter"
 ```
 
 ## Task 29: Bump version
@@ -2285,8 +2287,8 @@ git commit -m "chore(actually-lsp): bump version to 0.5.0"
 
 - [ ] All tests pass
 - [ ] Em-dash check clean across the plugin
-- [ ] Smoke test: install locally, invoke `/actually-lsp:doctor` in a project with no LSP plugin installed; verify Claude follows the prompt template's diagnostic + action flow
-- [ ] Push, open PR titled `feat(actually-lsp): add /doctor and /skip slash commands (PR 5)`
+- [ ] Smoke test: install locally, invoke `/actually-lsp-doctor` in a project with no LSP plugin installed; verify Claude follows the skill's diagnostic + action flow
+- [ ] Push, open PR titled `feat(actually-lsp): add /actually-lsp-doctor and /actually-lsp-ignore (PR 5)`
 
 ---
 

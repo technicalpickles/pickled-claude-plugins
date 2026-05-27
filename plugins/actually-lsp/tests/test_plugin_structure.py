@@ -59,3 +59,29 @@ class TestHooksJson:
         cmd = ss[0]["hooks"][0]["command"]
         assert "${CLAUDE_PLUGIN_ROOT}" in cmd
         assert "session-start.sh" in cmd
+
+
+class TestSkills:
+    """Validate skill files exist with required frontmatter.
+
+    Skills are user-invocable via `/<skill-name>`. The skill `name` field
+    must be globally unique (Claude Code surfaces skills by their bare
+    slug, not by `plugin:name`), so the names here are prefixed with the
+    plugin name to avoid colliding with other plugins' `doctor` or
+    `ignore` skills. They replace the old `commands/<name>.md` pattern,
+    which Claude Code no longer surfaces for plugins.
+    """
+
+    def test_doctor_skill_exists(self):
+        path = PLUGIN_ROOT / "skills" / "actually-lsp-doctor" / "SKILL.md"
+        assert path.exists(), f"Missing skill at {path}"
+        content = path.read_text()
+        assert "name: actually-lsp-doctor" in content
+        assert "description:" in content
+
+    def test_ignore_skill_exists(self):
+        path = PLUGIN_ROOT / "skills" / "actually-lsp-ignore" / "SKILL.md"
+        assert path.exists(), f"Missing skill at {path}"
+        content = path.read_text()
+        assert "name: actually-lsp-ignore" in content
+        assert "description:" in content

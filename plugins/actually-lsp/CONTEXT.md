@@ -29,7 +29,7 @@ The condition of LSP for a specific (project, ecosystem) pair. One state per eco
 The six states:
 
 - `not-detected`: no **ecosystem marker** present for this ecosystem in this project. Hook is silent.
-- `dismissed`: user opted out for this ecosystem via `/actually-lsp:skip`. Hook is silent.
+- `dismissed`: user opted out for this ecosystem via `/actually-lsp-ignore`. Hook is silent.
 - `no-lsp-plugin`: ecosystem detected, no compatible **LSP plugin** enabled. Hook suggests install.
 - `server-not-runnable`: LSP plugin enabled, but **language server** can't start (missing binary, missing deps). Hook suggests env fix.
 - `ready`: LSP plugin enabled, language server runnable. Hook emits activation context. Rust's warm-up caveat is handled inside the Rust-specific activation context, not as a separate state.
@@ -46,12 +46,12 @@ The Claude-facing content the plugin emits when an ecosystem is `ready`. Audienc
 _Avoid_: preamble (the share-out's word, fine in research prose, less fine here where we want to anchor on the Claude Code platform vocab), hint, LSP context.
 
 **dismissal**:
-A user's choice to silence nudges for a specific (project, ecosystem) pair. Scope is per-project. Dismissing Rust in project A does not affect project B. Persistent across sessions. Set by `/actually-lsp:skip`. Once dismissed, the plugin stays silent for that ecosystem in that project (no nudge, no activation context) until the user explicitly undoes it (future extension).
+A user's choice to silence nudges for a specific (project, ecosystem) pair. Scope is per-project. Dismissing Rust in project A does not affect project B. Persistent across sessions. Set by `/actually-lsp-ignore`. Once dismissed, the plugin stays silent for that ecosystem in that project (no nudge, no activation context) until the user explicitly undoes it (future extension).
 
 **trust-but-verify**:
-The plugin's approach to **LSP state** caching. The cache is the fast path; detection re-runs on signal. The signals: ecosystem marker mtime change, `claude plugin list --json` hash change, an LSP tool failure in PostToolUse, or an explicit `/actually-lsp:doctor` invocation. No time-based TTL: verification is signal-driven, not periodic.
+The plugin's approach to **LSP state** caching. The cache is the fast path; detection re-runs on signal. The signals: ecosystem marker mtime change, `claude plugin list --json` hash change, an LSP tool failure in PostToolUse, or an explicit `/actually-lsp-doctor` invocation. No time-based TTL: verification is signal-driven, not periodic.
 
-**/actually-lsp:doctor**:
+**/actually-lsp-doctor**:
 The single user-facing action command. Diagnoses **LSP state** per detected ecosystem, then fixes anything that isn't `ready`, with a per-action permission prompt gating any state-changing step (gem installs, env builds, plugin installs). Arguments narrow focus: `fix` skips the diagnostic report and jumps straight to action; `<ecosystem>` scopes to one of `rust`, `typescript`, `ruby`. Matches the `bundle doctor` / `nvm doctor` pattern where a single command does both phases with the user steering via prompts.
 
 The internal phases (named for prose, not commands):
@@ -62,14 +62,14 @@ The internal phases (named for prose, not commands):
 
 setup and fix are different phases of the same behavior; both transition an ecosystem toward `ready`. The user's invocation always lands in `/doctor`; the plugin picks which phases to run based on current state.
 
-**/actually-lsp:skip**:
+**/actually-lsp-ignore**:
 Dismissal command. Scoped per-(project, ecosystem). With no argument, prompts the user to pick which detected ecosystem(s) to dismiss. With `<ecosystem>` argument, dismisses that one directly. Writes the **dismissal** to the project state file.
 
 **failure context**:
-The content the PostToolUse hook emits as `additionalContext` when an `LSP` tool call errors. Audience is Claude. Sibling concept to **activation context**. Both are additional-context payloads but for different lifecycle moments. v1 scope is minimal: pass the error through verbatim, name the affected ecosystem, and point at `/actually-lsp:doctor <ecosystem>` for re-verification. The hook also invalidates the cached LSP state for that ecosystem so the next deferred detection re-checks. No automated recovery in v1. Classifying failure modes is deferred until there's a corpus of real failures to pattern-match against.
+The content the PostToolUse hook emits as `additionalContext` when an `LSP` tool call errors. Audience is Claude. Sibling concept to **activation context**. Both are additional-context payloads but for different lifecycle moments. v1 scope is minimal: pass the error through verbatim, name the affected ecosystem, and point at `/actually-lsp-doctor <ecosystem>` for re-verification. The hook also invalidates the cached LSP state for that ecosystem so the next deferred detection re-checks. No automated recovery in v1. Classifying failure modes is deferred until there's a corpus of real failures to pattern-match against.
 
 **deferred detection**:
-LSP state detection that runs after SessionStart, triggered by a PreToolUse hook when Claude touches a path outside the initial cwd's detected scope. Motivated by polyglot workspaces (e.g., pickletown) where SessionStart fires at a non-project root and the actual project work happens after a directory shift. Activation context delivered at this hook position lands at 0.4/5 per the share-out, below the activation cliff. The recourse is `/actually-lsp:doctor`, which surfaces activation context at the inline-prompt position (4.6/5) on demand.
+LSP state detection that runs after SessionStart, triggered by a PreToolUse hook when Claude touches a path outside the initial cwd's detected scope. Motivated by polyglot workspaces (e.g., pickletown) where SessionStart fires at a non-project root and the actual project work happens after a directory shift. Activation context delivered at this hook position lands at 0.4/5 per the share-out, below the activation cliff. The recourse is `/actually-lsp-doctor`, which surfaces activation context at the inline-prompt position (4.6/5) on demand.
 
 **polyglot project**:
 A project containing multiple ecosystem markers (e.g., a Rails app with a TypeScript frontend has both `Gemfile` and `package.json`). The plugin tracks LSP state independently per ecosystem; each ecosystem has its own dismissal flag, its own cached state, its own activation context. Hook output groups by ecosystem so the user can see per-ecosystem status at a glance.
@@ -94,13 +94,13 @@ A project containing multiple ecosystem markers (e.g., a Rails app with a TypeSc
 > **Expert:** The PostToolUse hook catches that, emits **failure context** to Claude (so it doesn't loop on the same broken call), and invalidates the cache for Rust. Next time Claude touches a Rust file, **deferred detection** re-runs and computes fresh state.
 >
 > **Dev:** And if I don't want LSP for this project at all?
-> **Expert:** `/actually-lsp:skip rust`. That's a **dismissal**. Persists across sessions for this project, doesn't touch others.
+> **Expert:** `/actually-lsp-ignore rust`. That's a **dismissal**. Persists across sessions for this project, doesn't touch others.
 >
 > **Dev:** What about setup? I'm in a fresh Rust project.
-> **Expert:** `/actually-lsp:doctor`. One command, runs whichever **setup** or **fix** phases the current state needs, prompts you before each state-changing action.
+> **Expert:** `/actually-lsp-doctor`. One command, runs whichever **setup** or **fix** phases the current state needs, prompts you before each state-changing action.
 
 ## Flagged ambiguities
 
-- "doctor" was used both for the slash command and for the PostToolUse hook's diagnosis behavior. Resolved: the slash command is **/actually-lsp:doctor**, the hook's output is **failure context**. Both diagnose, but one is user-invoked and acts; the other is automatic and only emits context to Claude.
+- "doctor" was used both for the slash command and for the PostToolUse hook's diagnosis behavior. Resolved: the slash command is **/actually-lsp-doctor**, the hook's output is **failure context**. Both diagnose, but one is user-invoked and acts; the other is automatic and only emits context to Claude.
 - "marker" was overloaded: ecosystem markers (`Cargo.toml`, etc.) vs marker files (state persistence). Resolved: **ecosystem marker** for the detection trigger, "state file" (or "project state file") for persistence. Reserved "marker" prefix for the detection role.
 - "preamble" (from the share-out) vs "activation context". Resolved: **activation context** in this plugin's vocab to anchor on the Claude Code platform's `additionalContext` field. The share-out's "preamble" remains accurate for that document's research framing; this plugin uses "activation context" going forward.

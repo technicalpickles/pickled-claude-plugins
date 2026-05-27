@@ -109,8 +109,6 @@ Each plugin follows this structure:
 plugins/{name}/
 ├── .claude-plugin/
 │   └── plugin.json       # Manifest with name, description (NO version - see Versioning)
-├── commands/
-│   └── {command}.md      # FLAT files: commands/commit.md (NOT commands/commit/COMMAND.md)
 ├── skills/
 │   └── {skill}/
 │       └── SKILL.md      # NESTED: skills/commit/SKILL.md
@@ -119,11 +117,7 @@ plugins/{name}/
 └── README.md
 ```
 
-**Critical distinction:**
-- **Commands**: Flat files → `commands/{name}.md`
-- **Skills**: Nested directories → `skills/{name}/SKILL.md`
-
-Commands are user-invocable wrappers that reference skills. Skills contain the actual workflow logic.
+**User-invocable actions go in `skills/{name}/SKILL.md`.** Claude Code surfaces skills for `/plugin:skill` invocation; plugin `commands/{name}.md` files are not surfaced and should not be used. If you find `commands/` directories in existing plugins, they are dead code: convert to skills. The `description:` field in SKILL.md frontmatter is what triggers the skill, so write it as a "use when X" sentence.
 
 ## Versioning
 
