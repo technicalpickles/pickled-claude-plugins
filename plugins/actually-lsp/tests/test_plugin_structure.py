@@ -36,3 +36,26 @@ class TestPluginManifest:
         assert "version" not in data, (
             "plugin.json must NOT include version (lives in marketplace.json)"
         )
+
+
+class TestHooksJson:
+    """Validate hooks.json exists and has SessionStart registered."""
+
+    def test_hooks_json_exists(self):
+        hooks_path = PLUGIN_ROOT / "hooks" / "hooks.json"
+        assert hooks_path.exists()
+
+    def test_hooks_json_is_valid_json(self):
+        hooks_path = PLUGIN_ROOT / "hooks" / "hooks.json"
+        data = json.loads(hooks_path.read_text())
+        assert "hooks" in data
+
+    def test_session_start_hook_registered(self):
+        hooks_path = PLUGIN_ROOT / "hooks" / "hooks.json"
+        data = json.loads(hooks_path.read_text())
+        ss = data["hooks"].get("SessionStart")
+        assert ss, "SessionStart hook must be registered"
+        assert len(ss) == 1
+        cmd = ss[0]["hooks"][0]["command"]
+        assert "${CLAUDE_PLUGIN_ROOT}" in cmd
+        assert "session-start.sh" in cmd
