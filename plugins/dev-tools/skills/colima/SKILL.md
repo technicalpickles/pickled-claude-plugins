@@ -1,13 +1,13 @@
 ---
 name: colima
-description: Use when Docker commands fail with "Cannot connect to Docker daemon", when starting/stopping container environments, or when managing multiple Docker contexts on macOS - provides Colima lifecycle management, profile handling, SSH commands, and troubleshooting
+description: Use when Docker commands fail with "Cannot connect to Docker daemon", when starting/stopping container environments on macOS, when managing Docker contexts or profiles, or when running incus (system containers / VMs with nested virtualization) on macOS - provides Colima lifecycle management, profile handling, SSH commands, and troubleshooting
 ---
 
 # Colima
 
 ## Overview
 
-Colima provides container runtimes (Docker, Containerd) on macOS with minimal setup. It runs a Linux VM and exposes Docker via contexts.
+Colima provides container and VM runtimes (Docker, Containerd, Incus) on macOS with minimal setup. It runs a Linux VM and exposes the chosen runtime to the host.
 
 **Use this skill when:**
 - Docker commands fail ("Cannot connect to Docker daemon")
@@ -15,8 +15,9 @@ Colima provides container runtimes (Docker, Containerd) on macOS with minimal se
 - Managing multiple Docker profiles/contexts
 - Troubleshooting container environment issues
 - Need SSH agent forwarding for Docker builds
+- Running incus on macOS (system containers or VMs with nested virtualization)
 
-**Not for:** Docker Compose, Kubernetes clusters, or Linux environments.
+**Not for:** Docker Compose or Kubernetes clusters.
 
 ## Quick Reference
 
@@ -74,6 +75,7 @@ colima stop --force && colima start
 - `references/profile-management.md` - Creating, configuring, deleting profiles
 - `references/troubleshooting.md` - Common issues and solutions
 - `references/common-options.md` - Flags, VM types, resource configuration
+- `references/incus-runtime.md` - Running incus (containers + VMs with nested virt) on Apple Silicon
 
 ## Upstream Documentation
 
