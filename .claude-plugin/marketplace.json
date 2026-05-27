@@ -7,6 +7,11 @@
   },
   "plugins": [
     {
+      "name": "actually-lsp",
+      "source": "./plugins/actually-lsp",
+      "version": "0.1.0"
+    },
+    {
       "name": "working-in-monorepos",
       "source": "./plugins/working-in-monorepos",
       "version": "1.0.0"
