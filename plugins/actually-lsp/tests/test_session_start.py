@@ -62,6 +62,25 @@ def test_hook_nudges_when_no_lsp_plugin(tmp_path):
     assert "/actually-lsp:doctor" in stdout
 
 
+def test_hook_nudges_for_typescript_in_large_tree(tmp_path):
+    """Regression: real-world TS projects have enough .ts files for `find`'s
+    output to exceed the pipe buffer. Once that happens, the old
+    `find ... | head -1` pattern receives SIGPIPE under pipefail, and the
+    hook silently drops TypeScript detection.
+    """
+    (tmp_path / "package.json").write_text("{}")
+    for d in range(50):
+        sub = tmp_path / f"dir{d}"
+        sub.mkdir()
+        for i in range(50):
+            (sub / f"file_with_a_reasonably_long_name_{i}.ts").write_text("")
+    stdout, _, rc = run_hook(tmp_path, plugin_list_output='[]')
+    assert rc == 0
+    assert "typescript-lsp@claude-plugins-official" in stdout, (
+        f"typescript nudge missing from hook stdout: {stdout!r}"
+    )
+
+
 def test_hook_emits_activation_context_when_ready(tmp_path):
     """TypeScript project with LSP plugin + node_modules: emit activation context."""
     (tmp_path / "package.json").write_text("{}")

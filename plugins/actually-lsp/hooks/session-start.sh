@@ -106,7 +106,12 @@ while IFS='|' read -r ecosystem marker_path; do
       # Persist state
       now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
       mtime=$(stat -c %Y "$marker_path" 2>/dev/null || stat -f %m "$marker_path" 2>/dev/null || echo 0)
-      plugin_hash=$(get_plugin_list | sha256sum | head -c 8)
+      # Slice in bash rather than `| head -c 8`: piping into a truncating
+      # reader is the same antipattern that broke detect.sh under pipefail.
+      # sha256sum's output is small enough that it's safe in practice today,
+      # but there's no reason to keep the fragile shape.
+      plugin_hash=$(get_plugin_list | sha256sum)
+      plugin_hash="${plugin_hash:0:8}"
       write_state "$ecosystem" "$state" false "$now" "$mtime" "$plugin_hash" null
       break
     fi
