@@ -50,3 +50,31 @@ def test_detect_skips_typescript_without_ts_files(tmp_path):
     output, rc = run_detect(tmp_path)
     assert rc == 0
     assert "typescript|" not in output
+
+
+def test_detect_finds_rust(tmp_path):
+    (tmp_path / "Cargo.toml").write_text("[package]\nname = \"foo\"\n")
+    output, rc = run_detect(tmp_path)
+    assert rc == 0
+    assert any(l.startswith("rust|") for l in output.split("\n"))
+
+
+def test_detect_finds_ruby(tmp_path):
+    (tmp_path / "Gemfile").write_text("source 'https://rubygems.org'\n")
+    output, rc = run_detect(tmp_path)
+    assert rc == 0
+    assert any(l.startswith("ruby|") for l in output.split("\n"))
+
+
+def test_detect_polyglot(tmp_path):
+    """Project with all three markers: all three should be detected."""
+    (tmp_path / "Cargo.toml").write_text("[package]\nname = \"foo\"\n")
+    (tmp_path / "Gemfile").write_text("source 'https://rubygems.org'\n")
+    (tmp_path / "package.json").write_text("{}")
+    (tmp_path / "src.ts").write_text("export {};")
+    output, rc = run_detect(tmp_path)
+    assert rc == 0
+    lines = output.split("\n")
+    assert any(l.startswith("rust|") for l in lines)
+    assert any(l.startswith("ruby|") for l in lines)
+    assert any(l.startswith("typescript|") for l in lines)
