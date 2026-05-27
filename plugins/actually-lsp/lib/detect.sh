@@ -19,8 +19,13 @@ detect_ecosystems() {
 
     # TypeScript-specific check: package.json without any .ts/.tsx files in
     # the tree is not a TypeScript project (it's plain JavaScript).
+    #
+    # `-print -quit` stops find after the first match. Don't pipe to
+    # `head -1`: under pipefail, the SIGPIPE find receives once its output
+    # exceeds the OS pipe buffer (~64KB, hit by any project with
+    # node_modules) flips the existence check and silently drops TypeScript.
     if [[ "$ecosystem" == "typescript" ]]; then
-      if ! find "$project_dir" -maxdepth 4 -type f \( -name "*.ts" -o -name "*.tsx" \) 2>/dev/null | head -1 | grep -q .; then
+      if [[ -z "$(find "$project_dir" -maxdepth 4 -type f \( -name "*.ts" -o -name "*.tsx" \) -print -quit 2>/dev/null)" ]]; then
         continue
       fi
     fi
