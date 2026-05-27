@@ -1,0 +1,9 @@
+test	Run npm test	> hello-world@1.0.0 test
+test	Run npm test	> jest
+test	Run npm test	
+test	Run npm test	FAIL src/foo.test.ts > should bar
+test	Run npm test	  Expected: 1
+test	Run npm test	  Received: 2
+test	Run npm test	::error file=src/foo.ts,line=42::Expected 1, got 2
+test	Run npm test	Tests: 1 failed, 0 passed
+test	Run npm test	::error::Process completed with exit code 1.
