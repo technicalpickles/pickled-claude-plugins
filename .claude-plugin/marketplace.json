@@ -85,6 +85,16 @@
       "name": "github-actions",
       "source": "./plugins/github-actions",
       "version": "0.1.1"
+    },
+    {
+      "name": "petri-dish",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/technicalpickles/petri-dish.git",
+        "path": "claude-plugin",
+        "ref": "main"
+      },
+      "version": "0.1.0"
     }
   ]
 }
