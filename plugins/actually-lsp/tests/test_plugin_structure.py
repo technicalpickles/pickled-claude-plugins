@@ -79,6 +79,23 @@ class TestSkills:
         assert "name: actually-lsp-doctor" in content
         assert "description:" in content
 
+    def test_doctor_skill_probes_lsp_when_ready(self):
+        """The doctor must verify a `ready` verdict by calling the LSP tool.
+
+        Env-only readiness checks (plugin installed + server binary
+        runnable) miss the case where the server is up but not actually
+        answering queries (not indexed yet, wrong workspace root,
+        crashed). The probe closes that gap.
+        """
+        path = PLUGIN_ROOT / "skills" / "actually-lsp-doctor" / "SKILL.md"
+        content = path.read_text()
+        assert "documentSymbol" in content, (
+            "Doctor SKILL.md must call LSP `documentSymbol` to verify ready ecosystems"
+        )
+        assert "ToolSearch" in content, (
+            "Doctor SKILL.md must instruct loading the deferred LSP tool via ToolSearch"
+        )
+
     def test_ignore_skill_exists(self):
         path = PLUGIN_ROOT / "skills" / "actually-lsp-ignore" / "SKILL.md"
         assert path.exists(), f"Missing skill at {path}"
