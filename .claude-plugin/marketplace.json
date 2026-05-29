@@ -95,6 +95,11 @@
         "ref": "main"
       },
       "version": "0.1.0"
+    },
+    {
+      "name": "writing-tools",
+      "source": "./plugins/writing-tools",
+      "version": "0.1.0"
     }
   ]
 }
