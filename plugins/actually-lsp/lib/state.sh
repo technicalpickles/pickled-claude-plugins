@@ -21,8 +21,11 @@ read_state() {
     '.ecosystems[$eco][$f] // empty' "$file" 2>/dev/null || true
 }
 
-# write_state <ecosystem> <state> <dismissed> <last_check_at> <last_marker_mtime> <last_plugin_list_hash> <last_error>
+# write_state <ecosystem> <state> <dismissed> <last_check_at> <last_marker_mtime> <last_plugin_list_hash> <last_error> [readiness_source]
 #   Atomic: write to temp file, then rename.
+#   readiness_source records how the `ready`/`server-not-runnable` verdict was
+#   reached: "probe" (real documentSymbol), "heuristic" (shell env_check
+#   fallback), "binary" (server binary missing), or "" (earlier short-circuit).
 write_state() {
   local ecosystem="$1"
   local state="$2"
@@ -31,6 +34,7 @@ write_state() {
   local last_marker_mtime="$5"
   local last_plugin_list_hash="$6"
   local last_error="$7"
+  local readiness_source="${8:-}"
 
   local file
   file=$(_state_file)
@@ -52,6 +56,7 @@ write_state() {
     --argjson last_marker_mtime "$last_marker_mtime" \
     --arg last_plugin_list_hash "$last_plugin_list_hash" \
     --argjson last_error "$last_error" \
+    --arg readiness_source "$readiness_source" \
     '
       .version = 1 |
       .ecosystems //= {} |
@@ -61,7 +66,8 @@ write_state() {
         last_check_at: $last_check_at,
         last_marker_mtime: $last_marker_mtime,
         last_plugin_list_hash: $last_plugin_list_hash,
-        last_error: $last_error
+        last_error: $last_error,
+        readiness_source: $readiness_source
       }
     ' > "$tmpfile"
   mv "$tmpfile" "$file"

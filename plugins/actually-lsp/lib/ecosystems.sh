@@ -5,7 +5,7 @@
 # This file is sourced, not executed. It defines the $ecosystems array.
 
 ecosystems=(
-  "typescript|package.json|typescript-lsp@claude-plugins-official|typescript-language-server|test -d node_modules"
+  "typescript|package.json|typescript-lsp@claude-plugins-official|typescript-language-server|test -f tsconfig.json"
   "rust|Cargo.toml|rust-analyzer-lsp@claude-plugins-official|rust-analyzer|cargo metadata --no-deps"
   "ruby|Gemfile|ruby-lsp@claude-plugins-official|ruby-lsp|bundle check"
 )
