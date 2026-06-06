@@ -69,7 +69,8 @@
         "path": "claude-plugin",
         "ref": "main"
       },
-      "version": "0.3.0"
+      "version": "0.3.0",
+      "description": "Query past Claude Code sessions via the cq CLI (SQL over session transcripts)"
     },
     {
       "name": "taskwarrior",
@@ -89,7 +90,8 @@
         "path": "claude-plugin",
         "ref": "main"
       },
-      "version": "0.1.0"
+      "version": "0.1.0",
+      "description": "Author Claude Code experiments (petri-dish cultures) with disciplined schema, baselines, and multi-run averaging"
     },
     {
       "name": "writing-tools",
