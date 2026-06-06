@@ -1,0 +1,5 @@
+{
+  "tool_name": "Bash",
+  "tool_input": {"command": "bundle exec srb tc", "dangerouslyDisableSandbox": false},
+  "tool_response": {"stderr": "mdb_error: \"Operation not permitted\" failed to create database", "exit_code": 1}
+}

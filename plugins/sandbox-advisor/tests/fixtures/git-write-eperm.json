@@ -1,0 +1,5 @@
+{
+  "tool_name": "Bash",
+  "tool_input": {"command": "cd repos/x/worktrees/y && git add .", "dangerouslyDisableSandbox": false},
+  "tool_response": {"stderr": "fatal: Unable to create '.git/worktrees/y/index.lock': Operation not permitted", "exit_code": 128}
+}

@@ -1,0 +1,5 @@
+{
+  "tool_name": "Bash",
+  "tool_input": {"command": "bundle exec srb tc", "dangerouslyDisableSandbox": true},
+  "tool_response": {"stderr": "Operation not permitted", "exit_code": 1}
+}
