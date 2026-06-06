@@ -38,6 +38,64 @@ def matches_mode_fingerprints(text: str, mode: str) -> bool:
     return any(fp in low for fp in _MODE_FINGERPRINTS.get(mode, ()))
 
 
+# git subcommands that write (worktree/index/refs). Read-only forms
+# (log/show/diff/status/...) are intentionally absent so they classify as None.
+_GIT_WRITE_SUBCOMMANDS = {
+    "add", "commit", "rebase", "merge", "cherry-pick", "revert", "rm", "mv",
+    "restore", "reset", "pull", "fetch", "push", "am", "apply", "clean",
+    "checkout", "switch", "clone", "init", "stash", "worktree", "branch", "tag",
+}
+
+_SRB_RE = re.compile(r"^(bundle\s+exec\s+)?(\./)?(bin/)?srb(\s|$)")
+_PS_TOP_RE = re.compile(r"^(rtk\s+)?(/usr/bin/|/bin/)?(ps|top)(\s|$)")
+_ENV_PREFIX_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*=\S*\s+)+")
+
+
+def _strip_leading_cd_and_env(command: str) -> str:
+    """Reduce `cd <path> && FOO=bar <cmd>` to `<cmd>`.
+
+    Only a single leading `cd ... &&` is stripped (the dominant real shape);
+    further chaining is left intact so the segment we inspect is the real one.
+    """
+    seg = command.strip()
+    cd_match = re.match(r"^cd\s+\S+\s*&&\s*(.*)$", seg, re.DOTALL)
+    if cd_match:
+        seg = cd_match.group(1).strip()
+    seg = _ENV_PREFIX_RE.sub("", seg)
+    return seg.strip()
+
+
+def _is_git_write(seg: str) -> bool:
+    toks = seg.split()
+    if not toks or toks[0] != "git":
+        return False
+    # Skip git global options to find the subcommand.
+    i = 1
+    while i < len(toks):
+        t = toks[i]
+        if t in ("-C", "-c", "--git-dir", "--work-tree", "--namespace"):
+            i += 2
+            continue
+        if t.startswith("-"):
+            i += 1
+            continue
+        break
+    sub = toks[i] if i < len(toks) else ""
+    return sub in _GIT_WRITE_SUBCOMMANDS
+
+
+def classify_command(command: str):
+    """Return 'git-write', 'srb', 'ps-top', or None."""
+    seg = _strip_leading_cd_and_env(command)
+    if _SRB_RE.match(seg):
+        return "srb"
+    if _PS_TOP_RE.match(seg):
+        return "ps-top"
+    if _is_git_write(seg):
+        return "git-write"
+    return None
+
+
 def main() -> None:
     # Stub: consume stdin and stay silent. Real logic lands in later tasks.
     try:

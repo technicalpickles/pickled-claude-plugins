@@ -55,3 +55,43 @@ class TestMatchesModeFingerprints:
 
     def test_empty(self):
         assert not advise.matches_mode_fingerprints("", "git-write")
+
+
+class TestClassifyCommand:
+    def test_bare_git_write(self):
+        assert advise.classify_command("git add .") == "git-write"
+
+    def test_git_write_after_cd(self):
+        assert advise.classify_command(
+            "cd repos/x/worktrees/y && git commit -m wip"
+        ) == "git-write"
+
+    def test_git_read_is_none(self):
+        assert advise.classify_command("git log --oneline") is None
+
+    def test_git_status_is_none(self):
+        assert advise.classify_command("git status") is None
+
+    def test_srb_bundle_exec(self):
+        assert advise.classify_command("bundle exec srb tc") == "srb"
+
+    def test_srb_bin(self):
+        assert advise.classify_command("bin/srb tc") == "srb"
+
+    def test_ps(self):
+        assert advise.classify_command("ps aux") == "ps-top"
+
+    def test_rtk_ps(self):
+        assert advise.classify_command("rtk ps -ef") == "ps-top"
+
+    def test_top(self):
+        assert advise.classify_command("/usr/bin/top -l 1") == "ps-top"
+
+    def test_psql_is_not_ps(self):
+        assert advise.classify_command("psql -c 'select 1'") is None
+
+    def test_unrelated_is_none(self):
+        assert advise.classify_command("cat file.txt") is None
+
+    def test_env_prefix_stripped(self):
+        assert advise.classify_command("FOO=bar srb tc") == "srb"
