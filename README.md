@@ -8,14 +8,9 @@ Personal plugin marketplace for Claude Code with curated skills, commands, and h
 pickled-claude-plugins/
 ├── .claude-plugin/
 │   ├── plugin.json           # Root marketplace metadata
-│   └── marketplace.json      # Plugin registry
+│   └── marketplace.json      # Plugin registry (source of truth for the Plugins list)
 ├── plugins/
-│   ├── working-in-monorepos/ # Monorepo navigation and tooling
-│   ├── git/                  # Git workflow tools
-│   ├── ci-cd-tools/          # CI/CD pipeline tools
-│   ├── dev-tools/            # Developer productivity utilities
-│   ├── second-brain/         # Obsidian vault integration
-│   └── tool-routing/         # Tool call interception and routing
+│   └── <plugin-name>/        # One directory per local plugin (see Plugins below)
 └── docs/
 ```
 
