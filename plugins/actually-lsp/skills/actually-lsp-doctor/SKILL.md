@@ -31,11 +31,15 @@ For each ecosystem in `no-lsp-plugin`, `server-not-runnable`, or `error`:
 
 **`no-lsp-plugin`**: try `claude plugin install <recommended_plugin>@claude-plugins-official` via Bash. The user gets a permission prompt. If denied, output the slash command form (`/plugin install <recommended_plugin>@claude-plugins-official`) and ask the user to run it themselves.
 
-**`server-not-runnable`**: run env fixes per ecosystem via Bash. All env fixes auto-run; the user has implicit project consent.
+**`server-not-runnable`**: run env fixes per ecosystem via Bash. All env fixes auto-run; the user has implicit project consent. Check `readiness_source` in the state file to aim the fix: `binary` means the server binary is missing or non-functional (fix the binary, not the deps); `heuristic`/`probe` means the binary ran but the project env needs work (build deps).
 
-- Rust: `cargo build`
-- TypeScript: `npm install`
-- Ruby: `bundle install`, plus `gem install ruby-lsp` if `command -v ruby-lsp` is empty
+- **TypeScript**: `npm install`.
+- **Ruby**: `bundle install`, plus `gem install ruby-lsp` if `command -v ruby-lsp` is empty.
+- **Rust**: the binary is the usual culprit, and `cargo build` does NOT fix it. The `rust-analyzer-lsp` plugin launches a bare `rust-analyzer` from PATH, which is often a rustup proxy that is non-functional when the `rust-analyzer` component isn't installed for the active toolchain (`rust-analyzer is unavailable for the active toolchain`). Recover in order:
+  1. **Binary**: if `rust-analyzer --version` fails or prints `unavailable for the active toolchain` (test it, don't trust `command -v` alone, since the proxy resolves but doesn't run), run `rustup component add rust-analyzer`. This makes the bare `rust-analyzer` the LSP tool launches actually work. If `rustup` is absent, tell the user to install rust-analyzer so a working binary is first on PATH (rustup component, mise, or brew) and stop.
+  2. **Standard library**: rust-analyzer needs `rust-src` to load std; without it nav can return nothing. If `rustc --print sysroot` has no `lib/rustlib/src`, run `rustup component add rust-src`.
+  3. **Deps / proc-macros**: `cargo build` so dependency and macro-generated symbols resolve (intra-project nav works without this, but full semantics need it).
+  Then let Step 5 re-probe to confirm the server actually answers.
 
 **`error`**: surface the cached `last_error` from the state file. Ask the user how to proceed.
 
