@@ -1,0 +1,11 @@
+[project]
+name = "sandbox-advisor"
+version = "0.1.0"
+description = "Sandbox-failure advisor hook for Claude Code"
+requires-python = ">=3.10"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
