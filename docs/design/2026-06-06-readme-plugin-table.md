@@ -30,16 +30,27 @@ from it (sorted alphabetically by name) so that:
 - External git-subdir plugins (`cq`, `petri-dish`) are included even though they have
   no local files.
 
-For each plugin name the generator resolves a **description** and a **skills** list:
+For each plugin name the generator resolves a **description**, a **link**, and a
+**skills** cell:
 
-| Plugin kind | How identified | Description source | Skills source |
-|-------------|----------------|--------------------|---------------|
-| Local | `.plugins[].source` is a string path `./plugins/<name>` | `plugins/<name>/.claude-plugin/plugin.json` `.description` | sorted dir names under `plugins/<name>/skills/` |
-| External (git-subdir) | `.plugins[].source` is an object with `"source": "git-subdir"` | `EXTERNAL` map in the script | `EXTERNAL` map in the script |
+| Plugin kind | How identified | Description | Link | Skills |
+|-------------|----------------|-------------|------|--------|
+| Local | `.plugins[].source` is a string path `./plugins/<name>` | marketplace entry `.description` ?? `plugins/<name>/.claude-plugin/plugin.json` `.description` | `plugins/<name>` (its directory) | sorted dir names under `plugins/<name>/skills/`, `*-workspace` filtered |
+| Remote (git-subdir, etc.) | `.plugins[].source` is an object | marketplace entry `.description` (required) | repo URL from `source.url`, `.git` stripped | a `[see repo](url)` link |
 
-The `EXTERNAL` map is a small hardcoded table in the script keyed by plugin name,
-holding `{ description, skills, link }` for `cq` and `petri-dish` (links point at their
-own GitHub repos, since `plugins/<name>` does not exist locally).
+**Remote plugin descriptions live in their marketplace.json entry.** The marketplace
+schema explicitly allows any plugin-manifest field (including `description`) on a plugin
+entry, and the official docs show a `description` on a remote-source entry. This is the
+one place this repo controls for a remote plugin, it keeps CI deterministic (no network
+fetch at generate/check time), and it is where a maintainer naturally works when adding
+a remote plugin. So adding `cq` and `petri-dish` descriptions to their marketplace
+entries is part of this work.
+
+The generator never reaches across the network and has no hardcoded plugin table — it is
+fully driven by `marketplace.json` plus local `plugins/` contents. Remote plugins' skills
+are not enumerated (no local dir, no reliable manifest field); their Skills cell is a
+`[see repo](url)` pointer, which cannot drift, while their description stays current via
+the marketplace entry.
 
 ### Skills resolution
 
@@ -60,16 +71,16 @@ so regeneration only rewrites the table body and never the surrounding prose:
 <!-- BEGIN GENERATED PLUGINS (run scripts/generate-plugin-table.sh) -->
 | Plugin | Description | Skills |
 |--------|-------------|--------|
+| [cq](https://github.com/technicalpickles/cq) | Query past Claude Code sessions via the cq CLI (SQL over session transcripts) | [see repo](https://github.com/technicalpickles/cq) |
 | [git](plugins/git) | Git workflow tools: commits, PRs, review inbox, checkout, and work triage | checkout, commit, inbox, pull-feedback, pull-request, push, triage, update |
 | [sandbox-advisor](plugins/sandbox-advisor) | Turns Claude Code sandbox EPERMs into crisp re-run-unsandboxed guidance | – |
-| [cq](https://github.com/technicalpickles/cq) | ... | ... |
 <!-- END GENERATED PLUGINS -->
 ```
 
 The existing hand-written per-plugin prose subsections are removed and replaced by this
 table. The link target for a local plugin is `plugins/<name>` (its directory, which
-contains its own README); for an external plugin it is the repo URL from the `EXTERNAL`
-map.
+contains its own README); for a remote plugin it is the repo URL derived from
+`source.url`.
 
 ## The script: `scripts/generate-plugin-table.sh`
 
@@ -117,8 +128,8 @@ record that the README plugin table is generated and CI-gated.)
 
 - No versions in the table (they live in `marketplace.json` and would be a fresh drift
   source).
-- No auto-discovery of external plugins' skills/descriptions over the network — the small
-  `EXTERNAL` map is deliberate and only has two entries.
+- No network fetching at generate/check time. Remote plugin descriptions come from their
+  marketplace.json entry; remote skills are a `see repo` link, not an enumeration.
 - No restructuring of the rest of the README (Installation, Usage, Development sections
   are untouched beyond the Repository Structure tree).
 
@@ -128,5 +139,8 @@ record that the README plugin table is generated and CI-gated.)
 - Hand-edit the README table, run `--check`, confirm non-zero + diff.
 - Generated table contains all 17 marketplace plugins, excludes `debugging-tools` and
   `session-analyzer`, includes `cq`/`petri-dish`, omits `*-workspace` skills, shows `–`
-  for hook-only plugins.
+  for hook-only plugins, and shows a `see repo` link for remote plugins' skills.
+- A plugin that resolves no description (remote entry missing `description`, no local
+  fallback) is a hard error in the generator, so a remote plugin can't be added without
+  one.
 - `bump-version.sh --auto` leaves the README table regenerated and consistent.
