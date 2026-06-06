@@ -9,7 +9,7 @@
     {
       "name": "actually-lsp",
       "source": "./plugins/actually-lsp",
-      "version": "0.6.0"
+      "version": "0.7.0"
     },
     {
       "name": "working-in-monorepos",
@@ -69,7 +69,7 @@
         "path": "claude-plugin",
         "ref": "main"
       },
-      "version": "0.2.0"
+      "version": "0.3.0"
     },
     {
       "name": "taskwarrior",
