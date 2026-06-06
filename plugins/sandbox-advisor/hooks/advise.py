@@ -96,12 +96,79 @@ def classify_command(command: str):
     return None
 
 
+import json
+
+# Advisory, not directive. We acknowledge the command is a KNOWN sandbox
+# failure mode and that this is likely (not certainly) why it failed, then
+# offer the fix. This honesty is what makes the broad git fingerprints safe:
+# we never assert "definitely the sandbox," we say "known to fail this way."
+_ADVICE = {
+    "git-write": (
+        "Heads up: git writes inside pt worktrees are KNOWN to fail under the "
+        "Claude Code command sandbox (the blocked .claude/.vscode/.gitmodules "
+        "paths and .git/worktrees/.../index.lock, which allowWrite cannot "
+        "override). If that's why this failed, re-run with "
+        "dangerouslyDisableSandbox: true."
+    ),
+    "srb": (
+        "Heads up: srb (sorbet) is KNOWN to fail under the Claude Code command "
+        "sandbox -- it caches in LMDB, which uses SysV semaphores the sandbox "
+        "denies (semctl/semop EPERM); the cache dir is already writable so "
+        "allowWrite cannot fix it. If that's why this failed, re-run with "
+        "dangerouslyDisableSandbox: true."
+    ),
+    "ps-top": (
+        "Heads up: ps/top are KNOWN to fail under the Claude Code command "
+        "sandbox -- they are setuid-root binaries and the sandbox denies "
+        "executing setuid/setgid binaries. They are read-only and safe "
+        "unsandboxed. If that's why this failed, re-run with "
+        "dangerouslyDisableSandbox: true."
+    ),
+}
+
+
+def _payload_text(payload: dict) -> str:
+    """Serialize the whole payload so fingerprints match regardless of which
+    field carries the error text."""
+    return json.dumps(payload, default=str)
+
+
+def decide_advice(payload: dict):
+    """Return advisory text to inject, or None to stay silent."""
+    tool_input = payload.get("tool_input") or {}
+    command = tool_input.get("command") or ""
+    if not command:
+        return None
+    # Loop guard: if it already ran unsandboxed, "re-run unsandboxed" is wrong.
+    if tool_input.get("dangerouslyDisableSandbox"):
+        return None
+    mode = classify_command(command)
+    if mode is None:
+        return None
+    # Require one of THIS mode's fingerprints in the failure payload, so an
+    # srb type-error or a non-sandbox git error does not trigger advice.
+    if not matches_mode_fingerprints(_payload_text(payload), mode):
+        return None
+    return _ADVICE[mode]
+
+
 def main() -> None:
-    # Stub: consume stdin and stay silent. Real logic lands in later tasks.
     try:
-        sys.stdin.read()
+        payload = json.load(sys.stdin)
     except Exception:
-        pass
+        # Malformed stdin -> fail open, surface the raw failure unchanged.
+        sys.exit(0)
+    try:
+        reason = decide_advice(payload)
+    except Exception:
+        sys.exit(0)
+    if reason:
+        print(json.dumps({
+            "hookSpecificOutput": {
+                "hookEventName": "PostToolUseFailure",
+                "additionalContext": reason,
+            }
+        }))
     sys.exit(0)
 
 

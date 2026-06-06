@@ -95,3 +95,62 @@ class TestClassifyCommand:
 
     def test_env_prefix_stripped(self):
         assert advise.classify_command("FOO=bar srb tc") == "srb"
+
+
+class TestDecideAdvice:
+    def _payload(self, command, output, unsandboxed=False):
+        return {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": command,
+                "dangerouslyDisableSandbox": unsandboxed,
+            },
+            "tool_response": {"stderr": output},
+        }
+
+    def test_srb_sandbox_failure_advises(self):
+        reason = advise.decide_advice(
+            self._payload("bundle exec srb tc", "Operation not permitted")
+        )
+        assert reason is not None
+        assert "dangerouslyDisableSandbox" in reason
+        assert "sorbet" in reason.lower() or "lmdb" in reason.lower()
+
+    def test_git_write_in_worktree_advises(self):
+        reason = advise.decide_advice(
+            self._payload(
+                "cd repos/x/worktrees/y && git add .",
+                "Unable to create '.git/worktrees/y/index.lock': "
+                "Operation not permitted",
+            )
+        )
+        assert reason is not None
+        assert "git" in reason.lower()
+
+    def test_ps_advises(self):
+        reason = advise.decide_advice(
+            self._payload("ps aux", "Operation not permitted (os error 1)")
+        )
+        assert reason is not None
+        assert "setuid" in reason.lower()
+
+    def test_srb_non_sandbox_failure_silent(self):
+        # srb failed with type errors, not a sandbox EPERM -> no advice.
+        reason = advise.decide_advice(
+            self._payload("srb tc", "srb: typecheck found 3 errors")
+        )
+        assert reason is None
+
+    def test_unknown_command_with_eperm_silent(self):
+        reason = advise.decide_advice(
+            self._payload("some-tool --x", "Operation not permitted")
+        )
+        assert reason is None
+
+    def test_already_unsandboxed_silent(self):
+        reason = advise.decide_advice(
+            self._payload(
+                "srb tc", "Operation not permitted", unsandboxed=True
+            )
+        )
+        assert reason is None
