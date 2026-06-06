@@ -154,3 +154,12 @@ class TestDecideAdvice:
             )
         )
         assert reason is None
+
+    def test_fingerprint_in_command_text_only_stays_silent(self):
+        # The fingerprint appears only in the command (a commit message), not
+        # in the failure output -> must stay silent.
+        reason = advise.decide_advice(self._payload(
+            "git commit -m 'operation not permitted'",
+            "nothing to commit, working tree clean",
+        ))
+        assert reason is None

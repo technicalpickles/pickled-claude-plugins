@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """PostToolUseFailure:Bash hook (sandbox-advisor). See README.md."""
+import json
 import re
 import sys
 
@@ -96,8 +97,6 @@ def classify_command(command: str):
     return None
 
 
-import json
-
 # Advisory, not directive. We acknowledge the command is a KNOWN sandbox
 # failure mode and that this is likely (not certainly) why it failed, then
 # offer the fix. This honesty is what makes the broad git fingerprints safe:
@@ -127,10 +126,12 @@ _ADVICE = {
 }
 
 
-def _payload_text(payload: dict) -> str:
-    """Serialize the whole payload so fingerprints match regardless of which
-    field carries the error text."""
-    return json.dumps(payload, default=str)
+def _error_text(payload: dict) -> str:
+    """Serialize the payload EXCEPT tool_input, so fingerprints match the
+    failure output regardless of which field carries it, without
+    false-matching the command text (which lives in tool_input)."""
+    rest = {k: v for k, v in payload.items() if k != "tool_input"}
+    return json.dumps(rest, default=str)
 
 
 def decide_advice(payload: dict):
@@ -147,7 +148,7 @@ def decide_advice(payload: dict):
         return None
     # Require one of THIS mode's fingerprints in the failure payload, so an
     # srb type-error or a non-sandbox git error does not trigger advice.
-    if not matches_mode_fingerprints(_payload_text(payload), mode):
+    if not matches_mode_fingerprints(_error_text(payload), mode):
         return None
     return _ADVICE[mode]
 
@@ -158,6 +159,7 @@ def main() -> None:
     except Exception:
         # Malformed stdin -> fail open, surface the raw failure unchanged.
         sys.exit(0)
+    reason = None
     try:
         reason = decide_advice(payload)
     except Exception:
