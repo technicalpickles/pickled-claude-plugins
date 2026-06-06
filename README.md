@@ -44,58 +44,27 @@ See individual plugin READMEs for details on what each plugin provides.
 
 ## Plugins
 
-### working-in-monorepos
-
-Navigate and execute commands in monorepo subprojects with proper directory handling.
-
-**Features:**
-- Auto-detection of monorepo structure via SessionStart hook
-- `/monorepo-init` command for manual configuration
-- Subproject type detection (Node, Ruby, Go, Python, Rust, Java)
-
-**Skills:** working-in-monorepos
-
-### git
-
-Git workflow tools: commits, PRs, review inbox, checkout, and work triage.
-
-**Skills:** commit, pull-request, inbox, checkout, triage
-
-### ci-cd-tools
-
-CI/CD pipeline tools and integrations.
-
-**Skills:** buildkite-status
-
-### debugging-tools
-
-Tools for debugging and troubleshooting applications.
-
-**Skills:** scope, mcpproxy-debug
-
-### dev-tools
-
-Developer productivity tools and utilities.
-
-**Skills:** working-in-scratch-areas
-
-### second-brain
-
-Knowledge management for Obsidian vaults. Capture insights from conversations, process voice transcriptions, and connect repos to your vault.
-
-**Commands:** setup, insight, distill-conversation, process-daily, link-project
-
-**Skills:** obsidian (with PARA, Zettelkasten, note-patterns references)
-
-See [second-brain/README.md](plugins/second-brain/README.md) for full documentation.
-
-### tool-routing
-
-Intercepts tool calls and suggests better alternatives.
-
-**Commands:** validate
-
-See [tool-routing/README.md](plugins/tool-routing/README.md) for full documentation.
+<!-- BEGIN GENERATED PLUGINS (run scripts/generate-plugin-table.sh) -->
+| Plugin | Description | Skills |
+|--------|-------------|--------|
+| [actually-lsp](plugins/actually-lsp) | Closes the LSP activation gap end-to-end (detection, setup, activation, failure diagnosis) for Rust, TypeScript, and Ruby projects | actually-lsp-doctor, actually-lsp-ignore |
+| [agent-meta](plugins/agent-meta) | Meta-development tools for agentic workflows | park, snapshot, unpark |
+| [buildkite](plugins/buildkite) | Buildkite CI tools: build investigation, pipeline development, and tool preference enforcement | developing-pipelines, investigating-builds |
+| [ci-cd-tools](plugins/ci-cd-tools) | CI/CD pipeline tools and integrations | fixing-ci |
+| [cq](https://github.com/technicalpickles/cq) | Query past Claude Code sessions via the cq CLI (SQL over session transcripts) | [see repo](https://github.com/technicalpickles/cq) |
+| [dev-tools](plugins/dev-tools) | Developer productivity tools and utilities | colima, designing-clis, finding-api-docs, hk, working-in-scratch-areas, working-with-mise, working-with-scope |
+| [git](plugins/git) | Git workflow tools: commits, PRs, review inbox, checkout, and work triage | checkout, commit, inbox, pull-feedback, pull-request, push, triage, update |
+| [github-actions](plugins/github-actions) | GitHub Actions CI tools: investigate failing runs via gh + a structured snapshot helper | investigating-runs |
+| [mcpproxy](plugins/mcpproxy) | MCP server management and integration tools | working-with-mcp |
+| [petri-dish](https://github.com/technicalpickles/petri-dish) | Author Claude Code experiments (petri-dish cultures) with disciplined schema, baselines, and multi-run averaging | [see repo](https://github.com/technicalpickles/petri-dish) |
+| [sandbox-advisor](plugins/sandbox-advisor) | Turns Claude Code sandbox EPERMs into crisp re-run-unsandboxed guidance | – |
+| [second-brain](plugins/second-brain) | Knowledge management for Obsidian vaults and structured markdown repositories | connect, distill-rules, enrich, ingest, link-daily, obsidian, process-inbox, route |
+| [stay-on-target](plugins/stay-on-target) | Focused development mode - clarify, plan, verify, detect drift | – |
+| [taskwarrior](plugins/taskwarrior) | Token-dense recipes for taskwarrior CLI: dense listings, single-field lookups, batched exports, full-text search | taskwarrior |
+| [tool-routing](plugins/tool-routing) | Route tool calls to better alternatives (e.g., gh CLI instead of WebFetch for GitHub PRs) | – |
+| [working-in-monorepos](plugins/working-in-monorepos) | Navigate and execute commands in monorepo subprojects | working-in-monorepos |
+| [writing-tools](plugins/writing-tools) | Skills for structuring and formatting prose so it reads well | writing-for-scannability |
+<!-- END GENERATED PLUGINS -->
 
 ## Usage
 
