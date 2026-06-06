@@ -1,0 +1,5 @@
+{
+  "tool_name": "Bash",
+  "tool_input": {"command": "bundle exec srb tc", "dangerouslyDisableSandbox": false},
+  "tool_response": {"stderr": "srb: typecheck found 3 errors in 2 files", "exit_code": 1}
+}

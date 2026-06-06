@@ -1,0 +1,4 @@
+{
+  "name": "sandbox-advisor",
+  "description": "Turns Claude Code sandbox EPERMs into crisp re-run-unsandboxed guidance"
+}

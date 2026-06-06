@@ -1,0 +1,5 @@
+{
+  "tool_name": "Bash",
+  "tool_input": {"command": "ps aux", "dangerouslyDisableSandbox": false},
+  "tool_response": {"stderr": "ps: Operation not permitted (os error 1)", "exit_code": 1}
+}
