@@ -130,17 +130,21 @@ chore: update deps               # → no bump
 
 Scope must match `[a-z0-9-]+` (lowercase letters, numbers, hyphens only).
 
+**`feat`, `fix`, and `perf` REQUIRE a scope** (they change a specific plugin). The scope is a plugin name, or `repo` for repo-wide changes. `chore`, `ci`, `docs`, `style`, `test`, `refactor`, `build`, and `revert` may omit the scope. Enforced by `scripts/check-commit-scope.sh`.
+
 **Valid scopes:**
 - `feat(git): ...` - single plugin name
 - `fix(ci-cd-tools): ...` - plugin with hyphens
-- `fix: ...` - no scope (for cross-cutting changes)
+- `feat(repo): ...` - repo-wide change that isn't plugin-specific (tooling, CI, scripts)
+- `docs: ...` / `chore: ...` - no scope (non-functional types may omit it)
 
 **Invalid scopes:**
+- `fix: ...` - bare `feat`/`fix`/`perf` without a scope is rejected (use `fix(repo): ...`)
 - `fix(ci-cd-tools,dev-tools): ...` - commas not allowed
 - `fix(CI-CD): ...` - uppercase not allowed
 
 For changes touching multiple plugins, either:
-1. Use no scope: `fix: use markdown links in skills`
+1. Use the `repo` scope: `fix(repo): use markdown links in skills`
 2. Make separate commits per plugin
 
 **Bump versions in your PR.** Run `./scripts/bump-version.sh --auto` to apply the bumps that conventional commits imply, then commit the result as `chore(plugin): bump version to X.Y.Z`. The Version Check workflow blocks merge until pending bumps are applied.
