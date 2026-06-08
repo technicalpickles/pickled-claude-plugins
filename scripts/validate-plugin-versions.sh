@@ -4,7 +4,8 @@
 #
 # Rules:
 # 1. plugin.json files must NOT contain "version" field (marketplace.json is source of truth)
-# 2. All plugins in marketplace.json must have a corresponding plugin.json
+# 2. All LOCAL plugins in marketplace.json must have a corresponding plugin.json
+#    (remote plugins with an object source live in another repo and are skipped)
 # 3. All plugin directories must have a plugin.json file
 # 4. All plugins with plugin.json must be registered in marketplace.json
 #
@@ -46,21 +47,23 @@ if [[ $errors -eq 0 ]]; then
 fi
 echo
 
-# Check 2: All plugins in marketplace.json have corresponding plugin.json
-echo "Checking marketplace.json plugins have plugin.json files..."
+# Check 2: All LOCAL plugins in marketplace.json have a corresponding plugin.json.
+# Remote plugins (source is an object: git-subdir/github/url/npm) live in another
+# repo, so they have no local plugin.json here and are skipped.
+echo "Checking local marketplace.json plugins have plugin.json files..."
 if [[ -f "$MARKETPLACE_JSON" ]]; then
-    marketplace_plugins=$(jq -r '.plugins[].name' "$MARKETPLACE_JSON" 2>/dev/null || echo "")
-    for plugin in $marketplace_plugins; do
+    local_plugins=$(jq -r '.plugins[] | select(.source | type == "string") | .name' "$MARKETPLACE_JSON" 2>/dev/null || echo "")
+    for plugin in $local_plugins; do
         plugin_json_path="$PLUGINS_DIR/$plugin/.claude-plugin/plugin.json"
         if [[ ! -f "$plugin_json_path" ]]; then
-            echo "  ERROR: Plugin '$plugin' in marketplace.json but no plugin.json at:"
+            echo "  ERROR: Local plugin '$plugin' in marketplace.json but no plugin.json at:"
             echo "         $plugin_json_path"
             errors=$((errors + 1))
         fi
     done
 
     if [[ $errors -eq 0 ]]; then
-        echo "  OK: All marketplace plugins have plugin.json files"
+        echo "  OK: All local marketplace plugins have plugin.json files"
     fi
 else
     echo "  WARNING: marketplace.json not found at $MARKETPLACE_JSON"
