@@ -1,0 +1,24 @@
+name: Plugin List Check
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check-plugin-table:
+    name: Validate README plugin table
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Check README plugin table is up to date
+        run: |
+          chmod +x ./scripts/generate-plugin-table.sh
+          ./scripts/generate-plugin-table.sh --check

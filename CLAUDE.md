@@ -6,12 +6,7 @@ This repository contains Claude Code plugins for the `pickled-claude-plugins`.
 
 ```
 plugins/
-├── tool-routing/     # Intercepts tool calls and suggests better alternatives
-├── git/              # Git workflow tools (commits, PRs, inbox, checkout, triage)
-├── ci-cd-tools/      # Buildkite and CI/CD integrations
-├── dev-tools/        # Developer utilities (mise, scratch areas, etc.)
-├── mcpproxy/         # MCP server management
-└── working-in-monorepos/  # Monorepo command execution
+└── {name}/   # One directory per local plugin. Canonical list: README.md "## Plugins" (generated).
 ```
 
 ## Development vs Installation
@@ -152,6 +147,11 @@ For changes touching multiple plugins, either:
 
 → Full details: [`docs/versioning.md`](docs/versioning.md)
 
+The root README's `## Plugins` table is generated from `marketplace.json` by
+`scripts/generate-plugin-table.sh`. Adding, removing, or re-describing a plugin means
+regenerating it (`./scripts/generate-plugin-table.sh`, or `bump-version.sh --auto`).
+The `plugin-list-check.yml` workflow blocks merge until the committed table matches.
+
 ## Documentation
 
 - [`docs/versioning.md`](docs/versioning.md) - How plugin versions are managed
@@ -181,6 +181,6 @@ The `@path/to/file` import syntax is a CLAUDE.md-specific feature. In SKILL.md f
 2. Make changes to plugin source in `plugins/{name}/`
 3. Test locally with appropriate env vars
 4. Commit using conventional format: `feat(plugin): description`
-5. Run `./scripts/bump-version.sh --auto` and commit the bump as `chore(plugin): bump version to X.Y.Z`
+5. Run `./scripts/bump-version.sh --auto` (also regenerates the README plugin table) and commit as `chore(plugin): bump version to X.Y.Z`
 6. Create PR - CI validates commits and that pending bumps are applied
 7. Merge once green and approved
