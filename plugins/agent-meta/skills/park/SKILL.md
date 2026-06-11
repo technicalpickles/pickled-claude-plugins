@@ -1,7 +1,7 @@
 ---
 name: park
 description: Save current work context for later resumption
-allowed-tools: Bash(scripts/get-session-id.sh)
+allowed-tools: Bash(scripts/get-session-id.sh), Bash(scripts/commit-handoff.sh:*)
 ---
 
 # Park
@@ -111,6 +111,18 @@ Surface candidates for beans, but DO NOT auto-create them.]
 Filename: `[topic-slug]-wrapped.md`
 
 Close-out has no Resume Prompt and no Next Steps. If you find yourself wanting to write either, the work is probably a continuation: re-check the mode.
+
+## Commit the Handoff
+
+Applies to both modes. After the file is written, commit it at its source so the handoff doesn't sit as uncommitted noise in the work tree (and survives a hard kill of the session). Run:
+
+```
+scripts/commit-handoff.sh <handoff-path> "<commit-message>"
+```
+
+- Single file, commit only, **no push**. The script scopes the commit to just the handoff, so a dirty index around it is fine.
+- It is **fail soft**: if the path is gitignored (the default `.parkinglot/` is), not in a git work tree, or already committed, it skips silently and never breaks the park. Do not retry or treat a skip as an error.
+- Commit message: you have the narrative context, so pass a real one. Continuation → `docs: park handoff <topic-slug>`; close-out → `docs: wrap handoff <topic-slug>`. If you omit it, the script defaults to `docs: park handoff <filename>`. (`docs:` needs no scope and is safe across repos; if the target repo enforces a different convention, match it.)
 
 ## After Parking
 
