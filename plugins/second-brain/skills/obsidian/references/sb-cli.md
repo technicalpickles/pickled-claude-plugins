@@ -34,7 +34,7 @@ Or install globally for faster execution: npm i -g @techpickles/sb
 ### Vault
 - `npx @techpickles/sb vault info` - vault metadata
 - `npx @techpickles/sb vault obsidian` - parse .obsidian config as JSON
-- `npx @techpickles/sb vault structure` - discover PARA folders as JSON
+- `npx @techpickles/sb vault structure` - discover routable destinations (PARA and/or Johnny Decimal) as JSON, each tagged with a `type`
 
 ### Notes
 - `npx @techpickles/sb note create --source auto --title "..."` - create note scaffold in inbox (frontmatter + heading, returns path as JSON)

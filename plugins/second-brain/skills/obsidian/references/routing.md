@@ -10,16 +10,16 @@ Systematic algorithm for discovering vault structure and matching notes to desti
 
 Run `sb vault structure` (see [sb-cli.md](sb-cli.md) for invocation). It is the deterministic source of truth for which folders exist and what each one is. It returns destinations as JSON, each carrying a `type` and (for Johnny Decimal vaults) `code`/`area` metadata:
 
-- **PARA destinations** look like `{ type: 'para', path: 'Areas/health/' }`. See [para.md](para.md).
+- **PARA destinations** carry one of three types, `area`, `resource`, or `project`, e.g. `{ type: 'area', path: 'Areas/health/' }`. See [para.md](para.md).
 - **Johnny Decimal destinations** look like `{ type: 'jd', code: '67', area: '60-69 Software & Engineering', path: '60-69 Software & Engineering/67 Tools & developer experience/' }` for a category, or `code: '67.01'` for an ID. See [johnny-decimal.md](johnny-decimal.md).
 
 A vault mid-migration can return both types; route to whatever exists. Build a destination map from the output:
 
 ```
 Available Destinations:
-- Areas/AI/agentic development/            (para)
-- Areas/health/                            (para)
-- Resources/software engineering/          (para)
+- Areas/AI/agentic development/            (area)
+- Areas/health/                            (area)
+- Resources/software engineering/          (resource)
 - 60-69 Software & Engineering/67 Tools & developer experience/        (jd, code 67)
 - 60-69 Software & Engineering/67 Tools & developer experience/67.01 git/   (jd, code 67.01)
 ```
@@ -159,7 +159,7 @@ Apply baseline scoring to all destinations:
 This signal scores how well the note's topic matches the destination's containing group, using the `type` of each destination from `sb vault structure`:
 
 - **Johnny Decimal destinations** (`type: 'jd'`): does the note's topic match the destination's `area` and `code`? A note about developer tooling matches an `area` of `60-69 Software & Engineering`, so categories/IDs under that area score up. Within a matching category, prefer granularity by note specificity: a specific note (clearly about one thing) should score the matching **ID** destination (`code: 67.01`) above its parent **category** (`code: 67`); a loose/general note should score the **category** above its IDs. See [johnny-decimal.md](johnny-decimal.md).
-- **PARA destinations** (`type: 'para'`): is this ongoing (Area), reference (Resource), or active (Project)? See [para.md](para.md).
+- **PARA destinations** (`type: 'area'`, `'resource'`, or `'project'`): is this ongoing (Area), reference (Resource), or active (Project)? See [para.md](para.md).
 - **Mixed vaults:** score each destination by its own `type`. A note can match a JD category and a PARA Area at once; let the other signals and any disambiguation rules break the tie.
 
 ### 4c: Combine Scores
