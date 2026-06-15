@@ -16,6 +16,7 @@ Analyze an enriched note against routing memory, vault rules, and generic signal
 
 See `references/pipeline.md` for stage definitions and status flow.
 See `references/routing.md` for the scoring algorithm.
+See `references/para.md` and `references/johnny-decimal.md` for the two folder systems a vault may use (often both, mid-migration).
 See `references/routing-memory.md` for the correction and learning loop.
 
 ## Input
@@ -35,6 +36,8 @@ An enriched note in the inbox with `status: enriched`.
    b. Check `.routing-memory.md` learned patterns
    c. Apply vault CLAUDE.md disambiguation rules
    d. Apply generic signal scoring (per `references/routing.md`)
+
+   Each destination from `sb vault structure` carries a `type`. For Johnny Decimal destinations (`type: 'jd'`) also use `area` and `code` when scoring: match the note's topic to the `area`, and prefer an ID `code` (e.g. `67.01`) for a specific note or its parent category `code` (e.g. `67`) for a loose note. See `references/johnny-decimal.md`.
 
 3. Apply threshold:
    - Score >= `auto-route-threshold`: auto-route, move file, set `status: routed`
@@ -61,6 +64,7 @@ When the user picks a destination different from the top suggestion:
    - {YYYY-MM-DD}: "{note title}" routed to "{suggested}", corrected to "{chosen}"
      Reason: {user's reason}
    ```
+   For Johnny Decimal destinations, key the correction on the JD `code` (e.g. "corrected to 67.01") so the learning loop can match by number, not just folder name.
 
 ## Output
 
