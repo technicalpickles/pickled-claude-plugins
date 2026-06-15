@@ -8,28 +8,25 @@ Systematic algorithm for discovering vault structure and matching notes to desti
 
 **Never guess at paths.** Only suggest destinations that actually exist.
 
-```bash
-# List actual PARA folders (handle emoji prefixes)
-ls -d "{vault}"/*Projects*/*/  2>/dev/null
-ls -d "{vault}"/*Areas*/*/     2>/dev/null
-ls -d "{vault}"/*Resources*/*/ 2>/dev/null
-```
+Run `sb vault structure` (see [sb-cli.md](sb-cli.md) for invocation). It is the deterministic source of truth for which folders exist and what each one is. It returns destinations as JSON, each carrying a `type` and (for Johnny Decimal vaults) `code`/`area` metadata:
 
-Build a destination map from the output:
+- **PARA destinations** look like `{ type: 'para', path: 'Areas/health/' }`. See [para.md](para.md).
+- **Johnny Decimal destinations** look like `{ type: 'jd', code: '67', area: '60-69 Software & Engineering', path: '60-69 Software & Engineering/67 Tools & developer experience/' }` for a category, or `code: '67.01'` for an ID. See [johnny-decimal.md](johnny-decimal.md).
+
+A vault mid-migration can return both types; route to whatever exists. Build a destination map from the output:
 
 ```
 Available Destinations:
-- Areas/AI/agentic development/
-- Areas/gusto/
-- Areas/health/
-- Resources/software engineering/
-- Resources/tools/
-- Projects/home-renovation/
+- Areas/AI/agentic development/            (para)
+- Areas/health/                            (para)
+- Resources/software engineering/          (para)
+- 60-69 Software & Engineering/67 Tools & developer experience/        (jd, code 67)
+- 60-69 Software & Engineering/67 Tools & developer experience/67.01 git/   (jd, code 67.01)
 ```
 
 **Important:**
-- Use exact folder names from `ls` output (including emoji prefixes)
-- Only go two levels deep (Category/Subcategory/)
+- Use exact folder names and paths from the `sb vault structure` output (including emoji or number prefixes)
+- Respect each system's depth: PARA goes two levels (Category/Subcategory/); Johnny Decimal goes to the ID level (Area/Category/ID/, e.g. `60-69 .../67 .../67.01 git/`). Don't invent paths deeper than the JD ID level.
 - Include Inbox as always-available option
 
 ---
@@ -154,8 +151,16 @@ Apply baseline scoring to all destinations:
 |--------|--------|-------------|
 | Keyword in folder name | 40% | Direct match: "claude" in title → "AI/agentic development/" |
 | Related notes in folder | 30% | Grep for similar terms in destination folder |
-| PARA category fit | 20% | Is this ongoing (Area), reference (Resource), or active (Project)? |
+| Area/category fit | 20% | Does the note's topic match the destination's container? (see below) |
 | Recency | 10% | Recently modified files in folder suggest active use |
+
+#### Area/category fit
+
+This signal scores how well the note's topic matches the destination's containing group, using the `type` of each destination from `sb vault structure`:
+
+- **Johnny Decimal destinations** (`type: 'jd'`): does the note's topic match the destination's `area` and `code`? A note about developer tooling matches an `area` of `60-69 Software & Engineering`, so categories/IDs under that area score up. Within a matching category, prefer granularity by note specificity: a specific note (clearly about one thing) should score the matching **ID** destination (`code: 67.01`) above its parent **category** (`code: 67`); a loose/general note should score the **category** above its IDs. See [johnny-decimal.md](johnny-decimal.md).
+- **PARA destinations** (`type: 'para'`): is this ongoing (Area), reference (Resource), or active (Project)? See [para.md](para.md).
+- **Mixed vaults:** score each destination by its own `type`. A note can match a JD category and a PARA Area at once; let the other signals and any disambiguation rules break the tie.
 
 ### 4c: Combine Scores
 
@@ -181,6 +186,15 @@ Final score = Generic score + Disambiguation adjustments
 - Key question: "Is this about MY machine?" → Yes → +25%
 - Final: `Areas/tool sharpening/` → 120% (capped at 95%)
 - Final: `Resources/programming/` → 35% (disambiguation mismatch: -20%)
+
+**Johnny Decimal granularity:** `202602031300 git rebase onto vs merge.md`
+- Keywords: "git", "rebase", "merge"
+- Category: Tool configuration / specific tool
+- `sb vault structure` returns both `67 Tools & developer experience/` (code 67) and `67.01 git/` (code 67.01) under area `60-69 Software & Engineering`
+- This note is about one specific thing (git), so the ID scores above its parent category:
+  - `60-69 .../67 .../67.01 git/` → 90% (area/category fit + specific match)
+  - `60-69 .../67 Tools & developer experience/` → 60% (right drawer, but loose-note fit)
+- A looser note ("thoughts on developer tooling") would flip this: the category scores above its IDs.
 
 ---
 
@@ -247,12 +261,11 @@ When implementing routing in a command:
 ```markdown
 ## Routing Analysis
 
-1. Discover destinations:
+1. Discover destinations with `sb vault structure` (see [sb-cli.md](sb-cli.md)):
    ```bash
-   ls -d "{vault}"/*Areas*/*/
-   ls -d "{vault}"/*Resources*/*/
-   ls -d "{vault}"/*Projects*/*/
+   npx @techpickles/sb vault structure
    ```
+   Use the returned paths and their `type`/`code`/`area` metadata; never guess at paths.
 
 2. For each note, extract signals (keywords, category, source)
 
@@ -282,12 +295,12 @@ When implementing routing in a command:
 
 ## Constraints
 
-- **Never suggest non-existent paths** - Only paths from `ls` output
+- **Never suggest non-existent paths** - Only paths from `sb vault structure` output
 - **Always include inbox option** - Safe default for uncertain cases
 - **Show reasoning** - Users should understand why
-- **Two-level depth max** - Don't suggest `Area/Sub/Sub/Sub/`
+- **Respect each system's depth** - PARA goes two levels (`Area/Sub/`); Johnny Decimal goes to the ID level (`Area/Category/ID/`, e.g. `60-69 .../67 .../67.01 git/`). Don't suggest paths deeper than the JD ID level.
 - **Preserve filenames** - Don't rename when moving
-- **Respect emoji prefixes** - Use exact folder names from filesystem
+- **Respect prefixes** - Use exact folder names from `sb vault structure` (emoji prefixes for PARA, number prefixes for Johnny Decimal)
 
 ---
 
