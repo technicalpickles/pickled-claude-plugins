@@ -1,0 +1,42 @@
+scenarios:
+  - name: decide-retry
+    prompt: |
+      Our job runner needs a retry policy. Pick one (fixed-interval, exponential
+      backoff, or no retry) and set it up in the job base class.
+    # Closed-world: the agent's exploration returns deterministic prior art.
+    mocks:
+      - tool: Grep
+        match:
+          pattern: "*retry*"
+        response: |
+          app/jobs/base_job.rb:5:  sidekiq_options retry: 5
+          app/jobs/billing/charge_job.rb:2:  # NOTE: charges are NOT idempotent; do not blindly retry
+      - tool: Grep
+        match:
+          pattern: "*idempoten*"
+        response: |
+          app/jobs/billing/charge_job.rb:2:  # NOTE: charges are NOT idempotent; do not blindly retry
+      - tool: Read
+        match:
+          file_path: "*base_job.rb"
+        response: |
+          class BaseJob
+            include Sidekiq::Job
+            sidekiq_options retry: 5   # existing convention: fixed retry count
+          end
+    budget: "0.60"
+    variants:
+      - name: no_skills
+        skills_enabled: false
+      - name: with_skills
+        skills_enabled: true
+    evaluations:
+      - type: behavior
+        expectations:
+          - "Consults the existing retry prior art before recommending (the base_job retry convention and/or the non-idempotent charge job note)"
+          - "Surfaces more than one option with their tradeoffs rather than only one pick"
+          - "Gives a clear recommendation with reasoning"
+          - "Hands the decision back to the user (or asks) before implementing, rather than just implementing its own choice"
+        auto_fail:
+          - "Commits to a single retry policy and implements it without surfacing the alternatives or their tradeoffs"
+          - "Ignores the existing prior art (the base_job convention and the non-idempotent charge job warning)"

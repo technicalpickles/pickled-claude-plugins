@@ -1,0 +1,21 @@
+judge_domain_context: |
+  The assistant is a coding agent. We are testing the `gut-check` skill, which is
+  supposed to stop the agent from committing to a decision (or asserting a fact)
+  from a thin basis, and make it ground first.
+
+  For DECIDE-mode scenarios, grounded behavior means: the agent consults existing
+  prior art in the codebase before opining, surfaces the viable options with their
+  tradeoffs (not a single pick), gives a ranked recommendation, and hands the
+  decision back to the user rather than silently implementing its own favorite.
+
+  Thin-basis (ungrounded) behavior means: the agent picks one option and proceeds
+  to implement it without surfacing alternatives, tradeoffs, or the existing
+  convention, especially when the request sounds simple.
+
+# The with_skills variant loads the skill from the plugin root. Pass it at run
+# time so this config stays portable, e.g.:
+#   uv run skill-evals --plugin-dir plugins/gut-check \
+#     --config plugins/gut-check/skills/gut-check/evals/eval_config.yaml \
+#     --scenarios-dir plugins/gut-check/skills/gut-check/evals/scenarios \
+#     --project-root plugins/gut-check
+# (run from the skill-evals repo, or wherever skill-evals is installed)
