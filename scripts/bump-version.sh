@@ -129,6 +129,11 @@ bump_plugin() {
 auto_bump() {
     local dry_run="${1:-false}"
 
+    # Keep the README plugin table in sync with marketplace.json.
+    if [[ "$dry_run" != "true" ]]; then
+        "$REPO_ROOT/scripts/generate-plugin-table.sh" || true
+    fi
+
     echo "Analyzing commits for required version bumps..."
     echo ""
 
