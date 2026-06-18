@@ -102,6 +102,12 @@
       "name": "sandbox-advisor",
       "source": "./plugins/sandbox-advisor",
       "version": "0.1.0"
+    },
+    {
+      "name": "gut-check",
+      "source": "./plugins/gut-check",
+      "version": "0.1.0",
+      "description": "Ground before you act: catch decisions and factual claims made from a thin basis (memory, the handoff, an unexamined pick)"
     }
   ]
 }
