@@ -1,6 +1,6 @@
 ---
 name: harness-binary-spelunking
-description: Use when investigating the agent harness binary's internals - extracting the system prompt or tool descriptions, finding what code path produces a specific UI message, decoding minified function names, understanding undocumented config keys, or otherwise spelunking the binary to figure out how the harness actually behaves.
+description: Use when investigating the Claude Code CLI binary's internals (the agent harness): extracting the system prompt or tool descriptions, finding what code path produces a specific UI message, decoding minified function names, understanding undocumented config keys, or otherwise spelunking the binary to figure out how Claude Code actually behaves.
 ---
 
 # Harness Binary Spelunking
@@ -55,7 +55,7 @@ Each match is *one* line of the assembled prompt. The full prompt is composed at
 awk 'NR>=153955 && NR<=154100' $TMPDIR/claude-strings.txt
 ```
 
-Tool names (`Bash`, `Grep`, `Read`, `Glob`...) and their descriptions live as adjacent constants in the same region -- read forward until the strings stop being prose.
+Tool names (`Bash`, `Grep`, `Read`, `Glob`...) and their descriptions live as adjacent constants in the same region: read forward until the strings stop being prose.
 
 **Caveat:** the assembled prompt you see in a real session is the ground truth. The binary holds the *fragments*. If you want the exact concatenation, observe a session (e.g. via the conversation context); the binary tells you what fragments *exist*.
 
@@ -67,7 +67,7 @@ You see a specific message in the UI ("This command requires approval", "Auto-al
 grep -n "This command requires approval" $TMPDIR/claude-strings.txt
 ```
 
-If the string appears in *multiple* code paths (it usually does for generic messages), look for nearby **classification tags** or **telemetry event names** -- those are far more specific than the user-facing text:
+If the string appears in *multiple* code paths (it usually does for generic messages), look for nearby **classification tags** or **telemetry event names**, which are far more specific than the user-facing text:
 
 ```bash
 # classification tags - stable across releases
@@ -139,7 +139,7 @@ grep -ao '\.object({[^}]*})' "$CLAUDE_BIN" | grep -i sandbox | head
 - **First match for a UI string is rarely the one you want.** Generic messages like "This command requires approval" are emitted from multiple code paths. Disambiguate via nearby `bashMissKind:`, `kind:`, or `tengu_*` tags.
 - **BSD grep limit:** `grep -E '.{0,500}'` errors with "maximum repetition exceeds 255". Drop to 250 or chain.
 - **Minified names change every release.** Don't write down "the function is `Vu4`" and expect it to mean anything next week. Write down the *anchors* that lead you to the function.
-- **The system prompt is fragmented.** You can't grep one continuous blob -- the binary stores it as adjacent string constants assembled at runtime. `awk` a line range to see the neighbors.
+- **The system prompt is fragmented.** You can't grep one continuous blob: the binary stores it as adjacent string constants assembled at runtime. `awk` a line range to see the neighbors.
 - **`grep -i` over the raw binary is loud.** Match against `$TMPDIR/claude-strings.txt` for cleaner output, or use precise anchors with `grep -ao`.
 
 ## Real-world references
