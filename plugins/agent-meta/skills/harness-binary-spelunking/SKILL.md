@@ -31,6 +31,19 @@ ls -lh $TMPDIR/claude-strings.txt   # ~37MB typically
 
 Every recipe below assumes `$TMPDIR/claude-strings.txt` exists.
 
+## Shortcut: pre-extracted prompts by version
+
+If all you need is the system prompt, a tool/agent/skill prompt, or the tool descriptions (not arbitrary binary internals), someone already does the extraction for you: [Piebald-AI/claude-code-system-prompts](https://github.com/Piebald-AI/claude-code-system-prompts) tracks these as plain markdown, grouped by kind and tagged per Claude Code version. It's faster and far more readable than reassembling adjacent string fragments out of `strings`.
+
+```bash
+git clone https://github.com/Piebald-AI/claude-code-system-prompts /tmp/ccsp
+git -C /tmp/ccsp tag | sort -V | tail        # versions available, e.g. v2.1.190
+git -C /tmp/ccsp show v2.1.190:system-prompts/<file>.md   # a specific version's prompt
+ls /tmp/ccsp/system-prompts/                 # grouped: system- tool- agent- skill- data-
+```
+
+It is a third-party extraction, so two caveats: it can lag the newest release, and it is someone else's reading, not authoritative. The binary on your machine is ground truth. Drop to the recipes below to verify a fragment, to inspect a version not yet tagged there, or for anything past the prompts (config keys, code paths, minified function bodies).
+
 ## Recipes
 
 ### Recipe 1: Extract the system prompt
@@ -57,7 +70,7 @@ awk 'NR>=153955 && NR<=154100' $TMPDIR/claude-strings.txt
 
 Tool names (`Bash`, `Grep`, `Read`, `Glob`...) and their descriptions live as adjacent constants in the same region: read forward until the strings stop being prose.
 
-**Caveat:** the assembled prompt you see in a real session is the ground truth. The binary holds the *fragments*. If you want the exact concatenation, observe a session (e.g. via the conversation context); the binary tells you what fragments *exist*.
+**Caveat:** the assembled prompt you see in a real session is the ground truth. The binary holds the *fragments*. If you want the exact concatenation, observe a session (e.g. via the conversation context); the binary tells you what fragments *exist*. For a pre-assembled, version-tagged copy, see the [shortcut](#shortcut-pre-extracted-prompts-by-version) above.
 
 ### Recipe 2: UI message to code path
 
