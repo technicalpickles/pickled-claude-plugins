@@ -108,6 +108,12 @@
       "source": "./plugins/gut-check",
       "version": "0.1.0",
       "description": "Ground before you act: catch decisions and factual claims made from a thin basis (memory, the handoff, an unexamined pick)"
+    },
+    {
+      "name": "x-twitter-scraper",
+      "source": "./plugins/x-twitter-scraper",
+      "version": "0.1.0",
+      "description": "Plan Xquik X/Twitter data workflows with REST API routing, MCP setup, SDKs, webhooks, exports, monitoring, and confirmation-gated actions."
     }
   ]
 }

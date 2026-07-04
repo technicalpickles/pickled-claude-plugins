@@ -1,0 +1,21 @@
+{
+  "name": "x-twitter-scraper",
+  "description": "Plan Xquik X/Twitter data workflows with REST API routing, MCP setup, SDKs, webhooks, exports, monitoring, and confirmation-gated actions.",
+  "author": {
+    "name": "Xquik"
+  },
+  "homepage": "https://docs.xquik.com",
+  "repository": "https://github.com/Xquik-dev/x-twitter-scraper",
+  "license": "MIT",
+  "keywords": [
+    "x",
+    "twitter",
+    "xquik",
+    "api",
+    "mcp",
+    "sdk",
+    "webhooks",
+    "monitoring",
+    "exports"
+  ]
+}

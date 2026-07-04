@@ -60,6 +60,7 @@ See individual plugin READMEs for details on what each plugin provides.
 | [tool-routing](plugins/tool-routing) | Route tool calls to better alternatives (e.g., gh CLI instead of WebFetch for GitHub PRs) | – |
 | [working-in-monorepos](plugins/working-in-monorepos) | Navigate and execute commands in monorepo subprojects | working-in-monorepos |
 | [writing-tools](plugins/writing-tools) | Skills for structuring and formatting prose so it reads well | writing-for-scannability |
+| [x-twitter-scraper](plugins/x-twitter-scraper) | Plan Xquik X/Twitter data workflows with REST API routing, MCP setup, SDKs, webhooks, exports, monitoring, and confirmation-gated actions. | x-twitter-scraper |
 <!-- END GENERATED PLUGINS -->
 
 ## Usage
