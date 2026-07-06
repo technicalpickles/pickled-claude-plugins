@@ -54,7 +54,7 @@
     {
       "name": "agent-meta",
       "source": "./plugins/agent-meta",
-      "version": "2.1.0"
+      "version": "2.3.0"
     },
     {
       "name": "buildkite",
@@ -101,7 +101,7 @@
     {
       "name": "sandbox-advisor",
       "source": "./plugins/sandbox-advisor",
-      "version": "0.1.0"
+      "version": "0.2.0"
     },
     {
       "name": "gut-check",

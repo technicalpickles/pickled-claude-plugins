@@ -1,0 +1,5 @@
+{
+  "tool_name": "Bash",
+  "tool_input": {"command": "git push origin main", "dangerouslyDisableSandbox": false},
+  "tool_response": {"stderr": "ssh: connect to host github.com port 22: Operation not permitted", "exit_code": 255}
+}
