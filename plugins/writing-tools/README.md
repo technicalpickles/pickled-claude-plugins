@@ -20,7 +20,7 @@ A `PreToolUse` hook that blocks an em-dash (—) when it appears in a send-time 
 
 1. `$EMDASH_OUTBOUND_CONFIG` (explicit override)
 2. `${CLAUDE_PROJECT_DIR}/.claude/emdash-outbound.yaml` (per project)
-3. `$HOME/.claude/emdash-outbound.yaml` (personal, all projects)
+3. `<user config dir>/emdash-outbound.yaml` (personal, all projects), where the user config dir is `$CLAUDE_CONFIG_DIR` if set (a single dir or a `:`/`,`-separated list), otherwise `$HOME/.claude`
 
 ```yaml
 # ~/.claude/emdash-outbound.yaml

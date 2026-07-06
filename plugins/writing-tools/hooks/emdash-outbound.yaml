@@ -8,7 +8,9 @@
 # To enable it, copy this file to one of (first found wins):
 #   - $EMDASH_OUTBOUND_CONFIG           (explicit override)
 #   - ${CLAUDE_PROJECT_DIR}/.claude/emdash-outbound.yaml   (per project)
-#   - $HOME/.claude/emdash-outbound.yaml                   (personal, all projects)
+#   - <user config dir>/emdash-outbound.yaml               (personal, all projects)
+#       where <user config dir> is $CLAUDE_CONFIG_DIR if set (a single dir or a
+#       :/,-separated list), otherwise $HOME/.claude
 # and add the tools/commands you want enforced.
 
 # MCP tool names that send content authored as you. Exact-match.

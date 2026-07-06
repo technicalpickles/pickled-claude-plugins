@@ -7,6 +7,7 @@ outside the versioned plugin (see the discovery order in ``find_config_path``).
 """
 
 import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -35,13 +36,35 @@ def _shipped_config_path() -> Path:
     return Path(__file__).resolve().parent.parent.parent / "hooks" / "emdash-outbound.yaml"
 
 
+def _user_config_dirs() -> list[Path]:
+    """User-level Claude config directories, honoring ``CLAUDE_CONFIG_DIR``.
+
+    When ``CLAUDE_CONFIG_DIR`` is set it relocates Claude Code's ``~/.claude``
+    directory, so a personal config would live there instead. It accepts a
+    single path or a ``:``/``,``-separated list; when unset, ``$HOME/.claude``
+    is the default. Returned in precedence order.
+    """
+    config_dir = os.environ.get("CLAUDE_CONFIG_DIR", "").strip()
+    if config_dir:
+        dirs = [Path(p.strip()) for p in re.split(r"[:,]", config_dir) if p.strip()]
+        if dirs:
+            return dirs
+
+    home = os.environ.get("HOME", "")
+    if home:
+        return [Path(home) / ".claude"]
+
+    return []
+
+
 def find_config_path() -> Optional[Path]:
     """Locate the config file, first found wins.
 
     Discovery order:
       1. ``$EMDASH_OUTBOUND_CONFIG`` (env override, used by tests)
       2. ``${CLAUDE_PROJECT_DIR}/.claude/emdash-outbound.yaml``
-      3. ``$HOME/.claude/emdash-outbound.yaml``
+      3. ``<user config dir>/emdash-outbound.yaml`` for each user config dir
+         (``$CLAUDE_CONFIG_DIR`` if set, else ``$HOME/.claude``)
       4. the plugin's shipped ``hooks/emdash-outbound.yaml`` (inert default)
     """
     candidates: list[Path] = []
@@ -54,9 +77,8 @@ def find_config_path() -> Optional[Path]:
     if project_dir:
         candidates.append(Path(project_dir) / ".claude" / "emdash-outbound.yaml")
 
-    home = os.environ.get("HOME", "")
-    if home:
-        candidates.append(Path(home) / ".claude" / "emdash-outbound.yaml")
+    for config_dir in _user_config_dirs():
+        candidates.append(config_dir / "emdash-outbound.yaml")
 
     candidates.append(_shipped_config_path())
 
