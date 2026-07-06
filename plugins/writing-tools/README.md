@@ -1,6 +1,6 @@
 # writing-tools Plugin
 
-Skills for structuring and formatting prose so it reads well.
+Skills for structuring and formatting prose so it reads well, plus a send-time hook that keeps em-dashes out of content you author.
 
 ## Installation
 
@@ -9,6 +9,33 @@ Requires the [pickled-claude-plugins marketplace](../../README.md#installation).
 ```bash
 /plugin install writing-tools@pickled-claude-plugins
 ```
+
+The em-dash hook additionally needs [`uv`](https://docs.astral.sh/uv/) on your PATH (same runtime the `tool-routing` and `buildkite` hooks use). Without `uv` the hook simply doesn't run; the skills are unaffected.
+
+## Em-dash outbound enforcement (hook)
+
+A `PreToolUse` hook that blocks an em-dash (—) when it appears in a send-time call for a tool you've opted in: Slack sends, `gh pr`/`gh issue` authoring, and the like. It never touches `Write`/`Edit` or arbitrary Bash, so docs, code, and your own `grep "—"` / `perl 's/—/:/'` cleanup commands are never blocked.
+
+**Inert by default.** The shipped config (`hooks/emdash-outbound.yaml`) has empty lists, so a fresh install blocks nothing. Opt in by creating your own config at one of (first found wins):
+
+1. `$EMDASH_OUTBOUND_CONFIG` (explicit override)
+2. `${CLAUDE_PROJECT_DIR}/.claude/emdash-outbound.yaml` (per project)
+3. `$HOME/.claude/emdash-outbound.yaml` (personal, all projects)
+
+```yaml
+# ~/.claude/emdash-outbound.yaml
+mcpTools:
+  - mcp__slack__slack_send_message   # your Slack MCP server name will differ
+bashCommands:
+  - gh pr create
+  - gh pr edit
+  - gh pr comment
+  - gh issue comment
+```
+
+Bash commands are matched at the start of the command or after a shell separator (`;` `&&` `||` `|`). For gated `gh` commands, the hook also resolves `--body-file`/`-F` and scans that file. See `hooks/emdash-outbound.yaml` for the annotated default.
+
+Blog and draft-time prose stay with the `writing-voice` skill (which already covers em-dashes) rather than the hook, since there's no clean "publish" call to gate.
 
 ## Skills
 

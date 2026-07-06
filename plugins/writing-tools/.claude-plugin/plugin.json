@@ -1,6 +1,6 @@
 {
   "name": "writing-tools",
-  "description": "Skills for structuring and formatting prose so it reads well",
+  "description": "Prose skills plus a send-time hook that keeps em-dashes out of content you author",
   "author": {
     "name": "Josh Nichols",
     "email": "josh@technicalpickles.com"
