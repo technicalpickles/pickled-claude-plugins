@@ -78,10 +78,14 @@ compute_state() {
       IFS=$'\t' read -r langid sample probe_args <<< "$pinputs"
       # probe_args is unquoted on purpose: empty -> no extra args, "--no-stdio" -> one flag
       # shellcheck disable=SC2086
+      # `cmd; rc=$?` doesn't work under `set -e`: a nonzero exit from a bare
+      # statement (not part of if/&&/||) aborts the script before `rc=$?`
+      # ever runs, so the "fall through to heuristic" case below silently
+      # never happens -- the whole hook dies here with no output instead
+      # (gt-... session-start hook error, "No stderr output").
       timeout 5s node "$PLUGIN_ROOT/lib/probe-server.mjs" \
         --server "$server_binary" --root "$PROJECT_DIR" --sample "$sample" --langid "$langid" $probe_args \
-        >/dev/null 2>&1
-      probe_rc=$?
+        >/dev/null 2>&1 && probe_rc=0 || probe_rc=$?
       case "$probe_rc" in
         0) _verdict "ready" "probe"; return ;;
         1) _verdict "server-not-runnable" "probe"; return ;;
