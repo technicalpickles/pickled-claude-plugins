@@ -142,12 +142,13 @@ Scope must match `[a-z0-9-]+` (lowercase letters, numbers, hyphens only).
 - `fix: ...` - bare `feat`/`fix`/`perf` without a scope is rejected (use `fix(repo): ...`)
 - `fix(ci-cd-tools,dev-tools): ...` - commas not allowed
 - `fix(CI-CD): ...` - uppercase not allowed
+- `fix(plugin): ...` / `chore(plugin): ...` - literal `plugin` is not a scope; use the actual plugin name (e.g. `chore(actually-lsp): ...`)
 
 For changes touching multiple plugins, either:
 1. Use the `repo` scope: `fix(repo): use markdown links in skills`
 2. Make separate commits per plugin
 
-**Bump versions in your PR.** Run `./scripts/bump-version.sh --auto` to apply the bumps that conventional commits imply, then commit the result as `chore(plugin): bump version to X.Y.Z`. The Version Check workflow blocks merge until pending bumps are applied.
+**Bump versions in your PR.** Run `./scripts/bump-version.sh --auto` to apply the bumps that conventional commits imply, then commit the result as `chore({plugin}): bump version to X.Y.Z` — `{plugin}` is the actual plugin name being bumped (e.g. `chore(actually-lsp): bump version to 0.7.1`), not the literal word `plugin`. The Version Check workflow blocks merge until pending bumps are applied.
 
 → Full details: [`docs/versioning.md`](docs/versioning.md)
 
@@ -184,7 +185,7 @@ The `@path/to/file` import syntax is a CLAUDE.md-specific feature. In SKILL.md f
 1. Create a branch from `main`
 2. Make changes to plugin source in `plugins/{name}/`
 3. Test locally with appropriate env vars
-4. Commit using conventional format: `feat(plugin): description`
-5. Run `./scripts/bump-version.sh --auto` (also regenerates the README plugin table) and commit as `chore(plugin): bump version to X.Y.Z`
+4. Commit using conventional format: `feat({plugin}): description` — `{plugin}` is the actual plugin name, e.g. `feat(actually-lsp): description`
+5. Run `./scripts/bump-version.sh --auto` (also regenerates the README plugin table) and commit as `chore({plugin}): bump version to X.Y.Z`
 6. Create PR - CI validates commits and that pending bumps are applied
 7. Merge once green and approved
