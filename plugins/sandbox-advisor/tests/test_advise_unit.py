@@ -56,6 +56,52 @@ class TestMatchesModeFingerprints:
     def test_empty(self):
         assert not advise.matches_mode_fingerprints("", "git-write")
 
+    def test_git_ssh_port_22(self):
+        assert advise.matches_mode_fingerprints(
+            "ssh: connect to host github.com port 22: Operation not permitted",
+            "git-ssh",
+        )
+
+    def test_git_ssh_negotiation_failed(self):
+        assert advise.matches_mode_fingerprints(
+            "nc: authentication method negotiation failed\n"
+            "Connection closed by UNKNOWN port 65535\n"
+            "fatal: Could not read from remote repository.",
+            "git-ssh",
+        )
+
+    def test_git_ssh_gh_wrapped(self):
+        assert advise.matches_mode_fingerprints(
+            "fatal: Could not read from remote repository.\n\n"
+            "Please make sure you have the correct access rights\n"
+            "and the repository exists.\n"
+            "failed to run git: exit status 128",
+            "git-ssh",
+        )
+
+    def test_git_ssh_does_not_fire_on_bare_operation_not_permitted(self):
+        # The generic EPERM string alone must not trigger git-ssh -- it's
+        # excluded from this mode's fingerprints because the `gh` matcher is
+        # broad and would otherwise false-positive on unrelated gh failures.
+        assert not advise.matches_mode_fingerprints(
+            "Operation not permitted", "git-ssh"
+        )
+
+    def test_keychain_write_seckeychain_api_name(self):
+        assert advise.matches_mode_fingerprints(
+            "security: SecKeychainItemCreateFromContent (<default>): "
+            "UNIX[Operation not permitted]",
+            "keychain-write",
+        )
+
+    def test_keychain_write_bare_eperm(self):
+        # Safe here (unlike git-ssh) because the command matcher is narrow:
+        # only gh auth login/refresh/logout/setup-git and security add-/
+        # delete-*-password classify as keychain-write in the first place.
+        assert advise.matches_mode_fingerprints(
+            "Operation not permitted", "keychain-write"
+        )
+
 
 class TestClassifyCommand:
     def test_bare_git_write(self):
@@ -95,6 +141,70 @@ class TestClassifyCommand:
 
     def test_env_prefix_stripped(self):
         assert advise.classify_command("FOO=bar srb tc") == "srb"
+
+    def test_git_push_is_git_ssh_not_git_write(self):
+        assert advise.classify_command("git push origin main") == "git-ssh"
+
+    def test_git_fetch_is_git_ssh(self):
+        assert advise.classify_command("git fetch origin") == "git-ssh"
+
+    def test_git_pull_is_git_ssh(self):
+        assert advise.classify_command("git pull") == "git-ssh"
+
+    def test_git_clone_is_git_ssh(self):
+        assert advise.classify_command(
+            "git clone git@github.com:foo/bar.git"
+        ) == "git-ssh"
+
+    def test_git_ls_remote_is_git_ssh(self):
+        assert advise.classify_command("git ls-remote origin") == "git-ssh"
+
+    def test_gh_pr_checkout_is_git_ssh(self):
+        assert advise.classify_command("gh pr checkout 99") == "git-ssh"
+
+    def test_gh_pr_list_is_git_ssh(self):
+        # Broad on purpose -- fingerprint gating in decide_advice() keeps
+        # unrelated gh failures silent.
+        assert advise.classify_command("gh pr list") == "git-ssh"
+
+    def test_git_add_stays_git_write(self):
+        assert advise.classify_command("git add .") == "git-write"
+
+    def test_gh_auth_login_is_keychain_write(self):
+        assert advise.classify_command("gh auth login") == "keychain-write"
+
+    def test_gh_auth_refresh_is_keychain_write(self):
+        assert advise.classify_command(
+            "gh auth refresh -h github.com"
+        ) == "keychain-write"
+
+    def test_gh_auth_logout_is_keychain_write(self):
+        assert advise.classify_command("gh auth logout") == "keychain-write"
+
+    def test_gh_auth_setup_git_is_keychain_write(self):
+        assert advise.classify_command("gh auth setup-git") == "keychain-write"
+
+    def test_gh_auth_status_is_not_keychain_write(self):
+        # Read-only: must fall through to the broad gh (git-ssh) bucket, not
+        # keychain-write.
+        assert advise.classify_command("gh auth status") == "git-ssh"
+
+    def test_security_add_generic_password_is_keychain_write(self):
+        assert advise.classify_command(
+            "security add-generic-password -a foo -s bar -w baz"
+        ) == "keychain-write"
+
+    def test_security_delete_generic_password_is_keychain_write(self):
+        assert advise.classify_command(
+            "security delete-generic-password -a foo -s bar"
+        ) == "keychain-write"
+
+    def test_security_find_generic_password_is_not_keychain_write(self):
+        # Read-only: unaffected by the sandbox, so it must classify as None
+        # rather than trigger keychain-write advice.
+        assert advise.classify_command(
+            "security find-generic-password -a foo -s bar"
+        ) is None
 
 
 class TestDecideAdvice:
@@ -162,4 +272,74 @@ class TestDecideAdvice:
             "git commit -m 'operation not permitted'",
             "nothing to commit, working tree clean",
         ))
+        assert reason is None
+
+    def test_git_push_ssh_block_advises(self):
+        reason = advise.decide_advice(
+            self._payload(
+                "git push origin main",
+                "ssh: connect to host github.com port 22: "
+                "Operation not permitted",
+            )
+        )
+        assert reason is not None
+        assert "dangerouslyDisableSandbox" in reason
+        assert "https" in reason.lower()
+
+    def test_gh_pr_checkout_ssh_block_advises(self):
+        reason = advise.decide_advice(
+            self._payload(
+                "gh pr checkout 99",
+                "nc: authentication method negotiation failed\n"
+                "Connection closed by UNKNOWN port 65535\n"
+                "fatal: Could not read from remote repository.\n"
+                "failed to run git: exit status 128",
+            )
+        )
+        assert reason is not None
+        assert "ssh-agent" in reason.lower()
+
+    def test_gh_unrelated_failure_stays_silent(self):
+        # gh classifies broadly as git-ssh, but a validation error shares no
+        # fingerprint with the mode -> must stay silent.
+        reason = advise.decide_advice(
+            self._payload(
+                "gh issue create --title ''",
+                "validation failed: title can't be blank",
+            )
+        )
+        assert reason is None
+
+    def test_gh_auth_login_keychain_block_advises(self):
+        reason = advise.decide_advice(
+            self._payload(
+                "gh auth login",
+                "security: SecKeychainItemCreateFromContent (<default>): "
+                "UNIX[Operation not permitted]",
+            )
+        )
+        assert reason is not None
+        assert "dangerouslyDisableSandbox" in reason
+        assert "keychain" in reason.lower()
+
+    def test_security_add_password_keychain_block_advises(self):
+        reason = advise.decide_advice(
+            self._payload(
+                "security add-generic-password -a foo -s bar -w baz",
+                "security: SecKeychainItemCreateFromContent (<default>): "
+                "UNIX[Operation not permitted]",
+            )
+        )
+        assert reason is not None
+        assert "keychain" in reason.lower()
+
+    def test_security_find_password_success_stays_silent(self):
+        # Reads aren't classified at all, so this hook never even considers
+        # it -- included as a belt-and-suspenders check.
+        reason = advise.decide_advice(
+            self._payload(
+                "security find-generic-password -a foo -s bar",
+                "Operation not permitted",
+            )
+        )
         assert reason is None

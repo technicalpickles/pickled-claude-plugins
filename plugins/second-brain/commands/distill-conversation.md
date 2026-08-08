@@ -119,39 +119,40 @@ For each selected insight, write a clean prose bullet:
 - One short paragraph per insight
 - Format: `- **{name}**: {description}`
 
-Stage the full content (optional framing paragraph + bullets) in a temp file:
+**5c. Stage and create the note in one Bash call:**
+
+Stage the full content (optional framing paragraph + bullets) in a `mktemp`-generated file and immediately read it back for `sb note create`, **in the same Bash tool call**:
 
 ```bash
-cat > "$TMPDIR/distill-content.txt" <<'EOF'
+STAGE=$(mktemp)
+cat > "$STAGE" <<'EOF'
 {optional framing paragraph}
 
 - **{name}**: {description}
 - **{name}**: {description}
 EOF
-```
 
-A temp file is preferred over inlining `--content "..."` because heredoc-quoted content avoids shell escaping bugs on multi-line markdown.
-
-**5c. Create the note:**
-
-```bash
 npx @techpickles/sb note create \
   --title "Session: {topic}" \
   --source "{session-context-string}" \
-  --content "$(cat "$TMPDIR/distill-content.txt")"
+  --content "$(cat "$STAGE")"
+
+rm -f "$STAGE"
 ```
+
+A staged file is preferred over inlining `--content "..."` because heredoc-quoted content avoids shell escaping bugs on multi-line markdown. It must be a fresh `mktemp` path, not a fixed filename: `$TMPDIR` is shared across every Claude Code session on the machine, and a fixed-name file (e.g. `$TMPDIR/distill-content.txt`) can be overwritten or read by a stale write from a different session. The stage-then-read must also happen in one Bash call, not two — see 5d for why.
 
 Parse the returned JSON for the `path` field; show it in the confirmation.
 
 **5d. Sandbox EPERM on vault writes:**
 
-Vault paths like `~/.claude/vaults/primary` symlink into directories outside Claude Code's sandbox writeable allowlist. The first `sb note create` against the vault in a session will fail with:
+Vault paths like `~/.claude/vaults/primary` symlink into directories outside Claude Code's sandbox writeable allowlist. The `sb note create` call above will fail with:
 
 ```
 Error: EPERM: operation not permitted, open '/path/to/vault/📫 Inbox/...'
 ```
 
-This is not an sb bug — retry the same command with the Bash tool's `dangerouslyDisableSandbox: true` option. Subsequent vault writes in the same session usually succeed without retry.
+This is not an sb bug. But `$TMPDIR` resolves to a *different path* under `dangerouslyDisableSandbox: true` than under the normal sandbox, so a file staged in the sandboxed call is not visible to an unsandboxed retry (and vice versa). **Never retry just the `note create` half** — re-run the entire 5c block (mktemp + heredoc + note-create + rm) as one Bash call with `dangerouslyDisableSandbox: true`, so staging and reading happen under the same sandbox mode. Subsequent vault writes in the same session usually succeed without retry.
 
 **5e. Confirm:**
 

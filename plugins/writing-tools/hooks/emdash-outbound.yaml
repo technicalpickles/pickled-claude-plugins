@@ -1,0 +1,30 @@
+# Em-dash outbound enforcement config (shipped default: INERT).
+#
+# The writing-tools `check` hook blocks an em-dash (—) only when it appears in a
+# send-time call for a tool listed here. With both lists empty, the hook is a
+# no-op: nothing is ever blocked. This is deliberate, so installing the plugin
+# imposes no send-blocking until you opt in.
+#
+# To enable it, copy this file to one of (first found wins):
+#   - $EMDASH_OUTBOUND_CONFIG           (explicit override)
+#   - ${CLAUDE_PROJECT_DIR}/.claude/emdash-outbound.yaml   (per project)
+#   - <user config dir>/emdash-outbound.yaml               (personal, all projects)
+#       where <user config dir> is $CLAUDE_CONFIG_DIR if set (a single dir or a
+#       :/,-separated list), otherwise $HOME/.claude
+# and add the tools/commands you want enforced.
+
+# MCP tool names that send content authored as you. Exact-match.
+# Example (your Slack MCP server name will differ):
+#   mcpTools:
+#     - mcp__slack__slack_send_message
+mcpTools: []
+
+# Bash command prefixes to enforce (PR/issue authoring, not arbitrary bash).
+# Matched at the start of the command or after a shell separator (; && || |).
+# Example:
+#   bashCommands:
+#     - gh pr create
+#     - gh pr edit
+#     - gh pr comment
+#     - gh issue comment
+bashCommands: []

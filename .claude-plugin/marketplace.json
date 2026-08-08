@@ -9,7 +9,7 @@
     {
       "name": "actually-lsp",
       "source": "./plugins/actually-lsp",
-      "version": "0.7.0"
+      "version": "0.7.1"
     },
     {
       "name": "working-in-monorepos",
@@ -39,7 +39,7 @@
     {
       "name": "second-brain",
       "source": "./plugins/second-brain",
-      "version": "1.9.0"
+      "version": "1.9.1"
     },
     {
       "name": "tool-routing",
@@ -54,7 +54,7 @@
     {
       "name": "agent-meta",
       "source": "./plugins/agent-meta",
-      "version": "2.1.0"
+      "version": "2.3.0"
     },
     {
       "name": "buildkite",
@@ -96,12 +96,12 @@
     {
       "name": "writing-tools",
       "source": "./plugins/writing-tools",
-      "version": "0.1.0"
+      "version": "0.2.0"
     },
     {
       "name": "sandbox-advisor",
       "source": "./plugins/sandbox-advisor",
-      "version": "0.1.0"
+      "version": "0.2.0"
     },
     {
       "name": "gut-check",

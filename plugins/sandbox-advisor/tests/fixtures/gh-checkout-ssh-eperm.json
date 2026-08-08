@@ -1,0 +1,5 @@
+{
+  "tool_name": "Bash",
+  "tool_input": {"command": "gh pr checkout 99", "dangerouslyDisableSandbox": false},
+  "tool_response": {"stderr": "nc: authentication method negotiation failed\nConnection closed by UNKNOWN port 65535\nfatal: Could not read from remote repository.\n\nPlease make sure you have the correct access rights\nand the repository exists.\nfailed to run git: exit status 128", "exit_code": 1}
+}

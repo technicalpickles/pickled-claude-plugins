@@ -43,7 +43,7 @@ See individual plugin READMEs for details on what each plugin provides.
 | Plugin | Description | Skills |
 |--------|-------------|--------|
 | [actually-lsp](plugins/actually-lsp) | Closes the LSP activation gap end-to-end (detection, setup, activation, failure diagnosis) for Rust, TypeScript, and Ruby projects | actually-lsp-doctor, actually-lsp-ignore |
-| [agent-meta](plugins/agent-meta) | Meta-development tools for agentic workflows | park, snapshot, unpark |
+| [agent-meta](plugins/agent-meta) | Meta-development tools for agentic workflows | harness-binary-spelunking, park, snapshot, unpark |
 | [buildkite](plugins/buildkite) | Buildkite CI tools: build investigation, pipeline development, and tool preference enforcement | developing-pipelines, investigating-builds |
 | [ci-cd-tools](plugins/ci-cd-tools) | CI/CD pipeline tools and integrations | fixing-ci |
 | [cq](https://github.com/technicalpickles/cq) | Query past Claude Code sessions via the cq CLI (SQL over session transcripts) | [see repo](https://github.com/technicalpickles/cq) |
@@ -59,7 +59,7 @@ See individual plugin READMEs for details on what each plugin provides.
 | [taskwarrior](plugins/taskwarrior) | Token-dense recipes for taskwarrior CLI: dense listings, single-field lookups, batched exports, full-text search | taskwarrior |
 | [tool-routing](plugins/tool-routing) | Route tool calls to better alternatives (e.g., gh CLI instead of WebFetch for GitHub PRs) | – |
 | [working-in-monorepos](plugins/working-in-monorepos) | Navigate and execute commands in monorepo subprojects | working-in-monorepos |
-| [writing-tools](plugins/writing-tools) | Skills for structuring and formatting prose so it reads well | writing-for-scannability |
+| [writing-tools](plugins/writing-tools) | Prose skills plus a send-time hook that keeps em-dashes out of content you author | writing-for-scannability |
 <!-- END GENERATED PLUGINS -->
 
 ## Usage

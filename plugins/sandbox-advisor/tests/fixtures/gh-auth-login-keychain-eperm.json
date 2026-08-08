@@ -1,0 +1,5 @@
+{
+  "tool_name": "Bash",
+  "tool_input": {"command": "gh auth login", "dangerouslyDisableSandbox": false},
+  "tool_response": {"stderr": "security: SecKeychainItemCreateFromContent (<default>): UNIX[Operation not permitted]", "exit_code": 1}
+}

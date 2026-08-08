@@ -1,0 +1,5 @@
+{
+  "tool_name": "Bash",
+  "tool_input": {"command": "gh issue create --title ''", "dangerouslyDisableSandbox": false},
+  "tool_response": {"stderr": "validation failed: title can't be blank", "exit_code": 1}
+}

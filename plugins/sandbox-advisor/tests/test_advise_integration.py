@@ -51,6 +51,35 @@ def test_ps_eperm_advises_unsandbox():
     assert advice and "setuid" in advice.lower()
 
 
+def test_git_push_ssh_eperm_advises_unsandbox():
+    result = _run_fixture("git-push-ssh-eperm.json")
+    assert result.returncode == 0
+    advice = _advice(result)
+    assert advice and "dangerouslyDisableSandbox" in advice
+    assert "https" in advice.lower()
+
+
+def test_gh_checkout_ssh_eperm_advises_unsandbox():
+    result = _run_fixture("gh-checkout-ssh-eperm.json")
+    assert result.returncode == 0
+    advice = _advice(result)
+    assert advice and "ssh-agent" in advice.lower()
+
+
+def test_gh_unrelated_error_stays_silent():
+    result = _run_fixture("gh-unrelated-error.json")
+    assert result.returncode == 0
+    assert _advice(result) is None
+
+
+def test_gh_auth_login_keychain_eperm_advises_unsandbox():
+    result = _run_fixture("gh-auth-login-keychain-eperm.json")
+    assert result.returncode == 0
+    advice = _advice(result)
+    assert advice and "dangerouslyDisableSandbox" in advice
+    assert "keychain" in advice.lower()
+
+
 def test_srb_typecheck_error_stays_silent():
     result = _run_fixture("srb-typecheck-error.json")
     assert result.returncode == 0

@@ -4,7 +4,7 @@ Meta-development tools for agentic workflows.
 
 ## Philosophy
 
-Working with AI coding agents generates valuable artifacts beyond code: session patterns, failure modes, decision trails. This plugin helps capture and learn from that meta-layer.
+Working with AI coding agents generates valuable artifacts beyond code: session patterns, failure modes, decision trails. This plugin helps capture and learn from that meta-layer, including understanding the harness itself.
 
 ## Skills
 
@@ -13,6 +13,7 @@ Working with AI coding agents generates valuable artifacts beyond code: session 
 | `agent-meta:park` | Save current work context. Two modes: **continuation** (handoff to new session) and **close-out** (record of completed work). |
 | `agent-meta:unpark` | Resume work from a parked handoff, or read a wrapped close-out as reference. |
 | `agent-meta:snapshot` | Capture current session state (inline or with save). In-flow checkpoint, not a walking-away artifact. |
+| `agent-meta:harness-binary-spelunking` | Spelunk the Claude Code CLI binary to extract the system prompt, map UI messages to code paths, decode minified functions, and find undocumented config keys. |
 
 Invoke by asking naturally ("park this session", "wrap this up", "unpark docs/handoffs/foo.md") or with the fully qualified slash form (`/agent-meta:park`).
 
