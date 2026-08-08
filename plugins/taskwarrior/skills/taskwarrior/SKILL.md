@@ -92,6 +92,20 @@ task export | jq -r '.[] | select((.description // "") + " " + ((.annotations //
 
 The `"i"` flag makes the test case-insensitive. Drop it for case-sensitive matches.
 
+## Durable references: UUID, not numeric ID
+
+Numeric IDs are reused once a task completes — `task 197` today may be a completely different task next month. They're fine for same-session interactive use (`task 197 done`, or an `annotate` right after creating the task). They are **not** fine for anything that outlives the current shell: park/handoff files, commit messages, memory files, PR descriptions, beans. A numeric ID written into one of those will silently point at the wrong task later.
+
+Capture the UUID at creation time and cite that instead:
+
+```bash
+task add project:foo +bug "OAuth token refresh fails with 401 after 24h"
+# Output: "Created task 197."
+UUID=$(task entry.after:now-1m +bug export | jq -r '.[0].uuid[0:8]')
+```
+
+Short (8-char) UUIDs are fine everywhere a full UUID would go — `task <uuid> info`, `task <uuid> done`, and in prose (`task c9dca83f`).
+
 ## Description-length convention
 
 When creating tasks (`task add ...`), aim for descriptions ≤ 100 chars. Long context goes in annotations:
@@ -99,8 +113,9 @@ When creating tasks (`task add ...`), aim for descriptions ≤ 100 chars. Long c
 ```bash
 # Good: short title, then annotate context.
 task add project:foo +bug "OAuth token refresh fails with 401 after 24h"
-# Output: "Created task 197." Use that int ID for follow-up annotate in the same shell session,
-# or for scripting: NEW_UUID=$(task entry.after:now-1m +bug export | jq -r '.[0].uuid[0:8]')
+# Output: "Created task 197." That numeric ID is fine for a same-shell-session
+# follow-up like the annotate below. If this task will be cited anywhere durable
+# (handoff, commit, memory, PR), capture the UUID first — see above.
 task 197 annotate "Repro: lifecycle.test.ts:124. Happens only with refresh-token rotation enabled. Suspect cache key collision between user_id and session_id; see retro 2026-04-19."
 ```
 
@@ -131,3 +146,4 @@ Soft target. Existing bloated descriptions decay naturally as tasks are complete
 | "Find tasks mentioning 'oauth'" | `task export \| jq -r '.[] \| select(.description \| test("oauth"; "i")) \| ...'` |
 | "Add a task" | `task add project:X +tag "short title ≤100c"` then optionally `task <uuid> annotate "context"` |
 | "Mark done" | `task <uuid> done` |
+| "Citing a task in a handoff/commit/memory/PR" | Use the UUID (short form OK), never the numeric ID — see [Durable references](#durable-references-uuid-not-numeric-id) |
