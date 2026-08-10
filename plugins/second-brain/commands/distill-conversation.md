@@ -15,13 +15,13 @@ Review the current conversation and extract insights worth capturing.
 
 ## Step 1: Load Configuration
 
-Verify sb CLI is available and routing correctly:
+Verify sb CLI is available and routing correctly, and load configuration, in one round-trip:
 ```bash
-npx @techpickles/sb --version
-npm --version
+npx @techpickles/sb --version && npm --version
+npx @techpickles/sb config default && npx @techpickles/sb config vaults
 ```
 
-If both return the same version (e.g., both `11.9.0`), `npx` is misdispatching to `npm` itself — an upstream npx bin-dispatch quirk seen intermittently. Subcommands will then fail with `npm error enoent Could not read package.json`. Fall back to direct-node invocation:
+If the two `--version` outputs are identical (e.g., both `11.9.0`), `npx` is misdispatching to `npm` itself — an upstream npx bin-dispatch quirk seen intermittently. Subcommands will then fail with `npm error enoent Could not read package.json`. Fall back to direct-node invocation:
 
 ```bash
 SB=$(ls ~/.npm/_npx/*/node_modules/@techpickles/sb/dist/index.js 2>/dev/null | head -1)
@@ -32,12 +32,6 @@ If sb is not installed at all (`command not found` or hang):
 ```
 sb CLI is required but not available. Install Node.js and npm, then try again.
 Or install globally for faster execution: npm i -g @techpickles/sb
-```
-
-Load configuration via sb:
-```bash
-npx @techpickles/sb config default
-npx @techpickles/sb config vaults
 ```
 
 If no default vault configured:
@@ -100,7 +94,7 @@ Include "None - skip capture" option.
 
 ## Step 5: Capture Selected
 
-Build one session note containing all selected insights as bullets, then write it via `sb note create`. The CLI has no `note list` subcommand and `note create` has no `--type` flag, so don't try to "find or create" a per-session file by type — render the content first and create the note once.
+Build one session note containing all selected insights as bullets, then write it via `sb note create`. `note create` has no `--type` flag, so don't try to "find or create" a per-session file by type — render the content first and create the note once.
 
 **5a. Build session context:**
 
@@ -119,9 +113,9 @@ For each selected insight, write a clean prose bullet:
 - One short paragraph per insight
 - Format: `- **{name}**: {description}`
 
-**5c. Stage and create the note in one Bash call:**
+**5c. Stage and create the note in one Bash call, sandbox disabled from the start:**
 
-Stage the full content (optional framing paragraph + bullets) in a `mktemp`-generated file and immediately read it back for `sb note create`, **in the same Bash tool call**:
+Stage the full content (optional framing paragraph + bullets) in a `mktemp`-generated file and immediately read it back for `sb note create`, all in the same Bash tool call, with the Bash tool's `dangerouslyDisableSandbox: true` option set on that call from the start:
 
 ```bash
 STAGE=$(mktemp)
@@ -131,7 +125,6 @@ cat > "$STAGE" <<'EOF'
 - **{name}**: {description}
 - **{name}**: {description}
 EOF
-
 npx @techpickles/sb note create \
   --title "Session: {topic}" \
   --source "{session-context-string}" \
@@ -140,21 +133,16 @@ npx @techpickles/sb note create \
 rm -f "$STAGE"
 ```
 
-A staged file is preferred over inlining `--content "..."` because heredoc-quoted content avoids shell escaping bugs on multi-line markdown. It must be a fresh `mktemp` path, not a fixed filename: `$TMPDIR` is shared across every Claude Code session on the machine, and a fixed-name file (e.g. `$TMPDIR/distill-content.txt`) can be overwritten or read by a stale write from a different session. The stage-then-read must also happen in one Bash call, not two — see 5d for why.
+Run it unsandboxed from the start rather than trying sandboxed first and retrying on failure, for two reasons:
 
-Parse the returned JSON for the `path` field; show it in the confirmation.
+- Vault paths like `~/.claude/vaults/primary` symlink into directories outside Claude Code's sandbox writeable allowlist, so a sandboxed attempt always fails with `Error: EPERM: operation not permitted, open '/path/to/vault/📫 Inbox/...'` — not an sb bug, just a guaranteed wasted round-trip if you wait for it.
+- `$TMPDIR` resolves to a *different path* under `dangerouslyDisableSandbox: true` than under the normal sandbox. Staging and reading in the same call under the same sandbox mode keeps them pointed at the same directory — splitting them across calls or sandbox modes can read a stale file from a different session, or fail to find the one just written.
 
-**5d. Sandbox EPERM on vault writes:**
+A staged file is preferred over inlining `--content "..."` because heredoc-quoted content avoids shell escaping bugs on multi-line markdown. It must be a fresh `mktemp` path, not a fixed filename: `$TMPDIR` is shared across every Claude Code session on the machine, and a fixed-name file (e.g. `$TMPDIR/distill-content.txt`) can be overwritten or read by a stale write from a different session.
 
-Vault paths like `~/.claude/vaults/primary` symlink into directories outside Claude Code's sandbox writeable allowlist. The `sb note create` call above will fail with:
+Parse the returned JSON for the `path` field; show it in the confirmation. If stdout has anything before the `{` (e.g. an `npm warn ...` line from the caller's own `.npmrc`), extract the JSON substring starting at the first `{` rather than parsing the whole stdout blob.
 
-```
-Error: EPERM: operation not permitted, open '/path/to/vault/📫 Inbox/...'
-```
-
-This is not an sb bug. But `$TMPDIR` resolves to a *different path* under `dangerouslyDisableSandbox: true` than under the normal sandbox, so a file staged in the sandboxed call is not visible to an unsandboxed retry (and vice versa). **Never retry just the `note create` half** — re-run the entire 5c block (mktemp + heredoc + note-create + rm) as one Bash call with `dangerouslyDisableSandbox: true`, so staging and reading happen under the same sandbox mode. Subsequent vault writes in the same session usually succeed without retry.
-
-**5e. Confirm:**
+**5d. Confirm:**
 
 ```
 ✓ Captured {N} insights to {filename}
