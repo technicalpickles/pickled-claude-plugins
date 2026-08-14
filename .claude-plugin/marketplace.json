@@ -39,7 +39,7 @@
     {
       "name": "second-brain",
       "source": "./plugins/second-brain",
-      "version": "1.9.2"
+      "version": "1.10.0"
     },
     {
       "name": "tool-routing",
