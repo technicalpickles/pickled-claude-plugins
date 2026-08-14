@@ -1,0 +1,93 @@
+{
+  "summary": {
+    "label": "no-pointer",
+    "accuracy": 0.0,
+    "recall_on_should_trigger": 0.0,
+    "specificity_on_should_not": null,
+    "passed": 0,
+    "total": 10
+  },
+  "results": [
+    {
+      "query": "read https://zed.dev/blog/introducing-delta and make a note for it",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "pass": false
+    },
+    {
+      "query": "use lightpanda to read https://glide-browser.app/ and create a note for it",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "pass": false
+    },
+    {
+      "query": "read /Users/josh.nichols/Downloads/Build vs Buy Strategy.pdf to create a note for it",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "pass": false
+    },
+    {
+      "query": "do we have harbor ntoes already?",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "pass": false
+    },
+    {
+      "query": "create (or find) an atomic note for https://h5i.dev/ and look for related tools in the space to cross connect",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "pass": false
+    },
+    {
+      "query": "is there a note related to hiring an agent 'chef of staff'",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "pass": false
+    },
+    {
+      "query": "check if we have notes for caveman, ponytail, and/or rtk, cuz i want those",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "pass": false
+    },
+    {
+      "query": "use xtweet to load https://x.com/karpathy/status/1917920338492977296 and put together an atomic note",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "pass": false
+    },
+    {
+      "query": "what is pareto optimal? make a note",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "pass": false
+    },
+    {
+      "query": "i want to understand aws bedrock agentcore, and make atomic notes for it, and connect to it",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "pass": false
+    }
+  ],
+  "description": "(from SKILL.md)"
+}

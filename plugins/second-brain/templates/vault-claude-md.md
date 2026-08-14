@@ -2,6 +2,25 @@
 
 > See `second-brain:obsidian` skill for tool conventions.
 
+## When the user asks the agent to create or find a note
+
+**Use the `second-brain:capture` skill.** It is canonical for both halves of this:
+
+- **Finding an existing note** - "do we have a note about X?", "is there a note for Y?", "check if we have notes on Z already"
+- **Creating one from a source** - "read \<url/pdf/tweet\> and make a note for it", "make an atomic note for X"
+
+These are one skill because creating *starts* with finding: whether a note already exists decides
+whether to extend it or mint a new one. The procedure is search the vault first, read the primary
+source, create through `sb note create`, leave it in the inbox, offer connections. Don't
+reimplement it from memory.
+
+**Keep this section.** It is not decoration - it is the mechanism that makes the skill fire.
+Measured 2026-08-14 over 90 `claude -p` runs against real user phrasings: with this section
+present the skill triggers on 10/10 capture-and-lookup phrasings (and correctly stays out of the
+way on 10/10 near-miss phrasings that belong to `route`, `connect`, `process-inbox`, and friends).
+With the section deleted, it triggers on **0/10** - the skill description alone has no pull. If
+you trim this file, trim something else.
+
 ## Structure
 
 - {inbox_folder}/ - New captures before routing
