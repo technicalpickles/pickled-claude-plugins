@@ -119,13 +119,32 @@ Symlinks:
 
 ## Skills & References
 
-The plugin includes an `obsidian` skill with:
+### `capture` — read a source, write a note
+
+The front door for "read this and make a note for it." Runs the whole loop as one arc so no step
+gets silently skipped:
+
+1. **Search first** via the qmd MCP tools, showing what already exists before anything is written
+2. **Read the primary source** (lightpanda / WebFetch / xtweet / Read / Notion), never a snippet
+3. **Create through `sb note create`**, which owns the inbox path, timestamp, and filename slug
+4. **Leave it in the inbox** — routing is offered, not performed
+5. **Offer connections** plus a daily-note breadcrumb
+
+Also handles "do we have a note about X already?" lookups, including the recall fallbacks for when
+semantic search misses (basename search across the vault, checking both inbox folders).
+
+| Reference | Content |
+|-----------|---------|
+| `skills/capture/references/note-format.md` | Frontmatter and body shape for a fresh capture |
+
+### `obsidian` — vault mechanics
 
 | Reference | Content |
 |-----------|---------|
 | `references/para.md` | PARA methodology (Projects, Areas, Resources, Archive) |
 | `references/zettelkasten.md` | Timestamp naming convention |
 | `references/note-patterns.md` | Templates for person, meeting, insight, investigation notes |
+| `references/sb-cli.md` | The `sb` CLI command surface |
 
 ## Note Format
 
