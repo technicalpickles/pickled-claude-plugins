@@ -2,49 +2,37 @@
 
 Claude Code and opencode are both shipped as single Mach-O binaries compiled by **Bun**, with the application as minified JavaScript embedded as plain string constants. `strings` reads it back, `grep` queries it. No deobfuscation, no decompilation needed. The hard part is knowing what to grep for.
 
-The recipes below were developed against Claude Code and confirmed to transfer to opencode with two real differences, called out inline: the noise filter, and the anchor scheme for stable functions/providers. Everything else (splitting minified JS, chaining past braces, the BSD grep 255 cap) applies to both as written.
+The recipes below were developed against Claude Code and confirmed to transfer to opencode with two real differences, called out inline: the noise filter, and the anchor scheme for stable functions/providers. Everything else (splitting minified JS, context-window extraction) applies to both as written.
 
-## What you're working with
+## Setup
+
+Run the shared setup script first (see the main [SKILL.md](../SKILL.md)):
 
 ```bash
-which claude                                          # /Users/<you>/.local/bin/claude
-file $(readlink -f $(which claude))                   # Mach-O 64-bit executable arm64
-strings $(readlink -f $(which claude)) | grep -i bun   # confirms Bun build
+scripts/spelunk-init.sh claude     # or opencode
 ```
 
-For opencode, the same shape applies:
+This resolves the binary, confirms the Bun build, and dumps strings to `$TMPDIR/spelunk/<tool>/strings.txt`. The recipes below refer to that path as `$STRINGS`, and to the resolved binary (the `binary=` line in `manifest.txt`) as `$BIN`:
 
 ```bash
-which opencode
-file $(readlink -f $(which opencode))                 # Mach-O 64-bit executable arm64, ~114MB
+STRINGS=$TMPDIR/spelunk/claude/strings.txt   # or spelunk/opencode/...
+BIN=$(awk -F= '$1=="binary"{print $2}' $TMPDIR/spelunk/claude/manifest.txt)
 ```
 
-**Noise filter is tool-specific, don't assume it transfers.** Claude Code's strings include `/Users/runner/work/bun-internal/bun-internal/embedded/oniguruma/...`, Bun-runtime boilerplate you filter out or drown in. opencode's build has **none of it**:
+**Noise filter is tool-specific, don't assume it transfers.** Claude Code's strings include `oniguruma` and `tmp_modules/bun/*.ts` paths, Bun-runtime boilerplate you filter out or drown in. opencode's build has **none of the `bun-internal` variant**:
 
 ```bash
-strings $(readlink -f $(which opencode)) | grep -c bun-internal   # 0
+grep -c bun-internal $TMPDIR/spelunk/opencode/strings.txt   # 0
 ```
 
 Check what noise is actually present in the binary you're looking at before you build a filter; don't reuse another tool's list.
-
-## One-time setup per session
-
-Dump strings to a temp file once, grep it many times. The binary is 100-200MB+; `strings` over it takes a few seconds. Re-running for every grep is wasteful.
-
-```bash
-BIN=$(readlink -f $(which claude))       # or opencode
-strings "$BIN" > $TMPDIR/harness-strings.txt
-ls -lh $TMPDIR/harness-strings.txt       # ~37MB typically for Claude Code
-```
-
-Every recipe below assumes `$TMPDIR/harness-strings.txt` exists and `$BIN` points at the real artifact.
 
 ## Recipe 1: Extract the system prompt
 
 **Claude Code:** the system prompt is stored as a literal string starting with `You are Claude Code,`. Different invocations (CLI, Agent SDK, "explanatory mode") use different opener variants.
 
 ```bash
-grep -n "^You are Claude" $TMPDIR/harness-strings.txt
+grep -n "^You are Claude" $STRINGS
 ```
 
 You'll see something like:
@@ -58,7 +46,7 @@ You'll see something like:
 Each match is *one line* of the assembled prompt. The full prompt is composed at runtime from many adjacent string constants. To see the surrounding fragments:
 
 ```bash
-awk 'NR>=153955 && NR<=154100' $TMPDIR/harness-strings.txt
+awk 'NR>=153955 && NR<=154100' $STRINGS
 ```
 
 Tool names (`Bash`, `Grep`, `Read`, `Glob`...) and their descriptions live as adjacent constants in the same region: read forward until the strings stop being prose.
@@ -78,7 +66,7 @@ One grep on a distinctive opener phrase lands the (mostly) whole prompt in a sin
 You see a specific message in the UI ("This command requires approval", "Auto-allowed with sandbox", "Newline followed by `#` hides arguments"). You want the code that emits it.
 
 ```bash
-grep -n "This command requires approval" $TMPDIR/harness-strings.txt
+grep -n "This command requires approval" $STRINGS
 ```
 
 If the string appears in *multiple* code paths (it usually does for generic messages), look for nearby **classification tags** or **telemetry event names**, which are far more specific than the user-facing text.
@@ -114,11 +102,11 @@ The binary is one giant minified line per `;`-separated statement. Plain `grep` 
 strings "$BIN" | tr ';' '\n' | grep 'function Em_' | head -5
 ```
 
-Or capture a context window around a known anchor (works around BSD grep's `{0,255}` repetition cap by chaining):
+Or capture a context window around a known anchor with [scripts/extract-context.sh](../scripts/extract-context.sh) (avoids grep's bounded-repetition cap entirely, see the main SKILL.md pitfalls):
 
 ```bash
 # Anchor on a UI string, grab ~250 chars of surrounding minified JS
-grep -aoE '.{0,250}Auto-allowed with sandbox.{0,200}' "$BIN" | head -3
+scripts/extract-context.sh 'Auto-allowed with sandbox' $STRINGS 250
 ```
 
 For function bodies past one closing brace, chain `[^}]*}` as many times as you need:
@@ -134,11 +122,11 @@ strings "$BIN" | grep -oE 'async function Vu4[^}]*}[^}]*}[^}]*}' | head -1 | fol
 Settings keys live as quoted JSON-property strings, in both tools:
 
 ```bash
-grep -oE '"[a-zA-Z][a-zA-Z0-9]*Sandboxed?"' $TMPDIR/harness-strings.txt | sort -u
-grep -oE '"(allow|deny|hooks?|permission)[A-Z][a-zA-Z]*"' $TMPDIR/harness-strings.txt | sort -u
+grep -oE '"[a-zA-Z][a-zA-Z0-9]*Sandboxed?"' $STRINGS | sort -u
+grep -oE '"(allow|deny|hooks?|permission)[A-Z][a-zA-Z]*"' $STRINGS | sort -u
 
 # Or context-window around a known one
-grep -ao '.\{0,150\}autoAllowBashIfSandboxed.\{0,150\}' "$BIN" | head -3
+scripts/extract-context.sh 'autoAllowBashIfSandboxed' $STRINGS 150
 ```
 
 For the schema of a config object, find the validator (Zod schemas leave readable shape strings):
@@ -153,5 +141,5 @@ grep -ao '\.object({[^}]*})' "$BIN" | grep -i sandbox | head
 - **Assuming Claude Code's noise filter (`bun-internal`, `oniguruma`) applies to every Bun build.** opencode's build has zero `bun-internal` hits. Check with `grep -c` first.
 - **Assuming every Bun-compiled prompt is fragmented like Claude Code's.** opencode's is a near-whole template literal. Look at your first match before reaching for line-range reassembly.
 - **First match for a UI string is rarely the one you want.** Generic messages like "This command requires approval" are emitted from multiple code paths. Disambiguate via nearby `bashMissKind:`, `kind:`, `tengu_*`, or `l.fn(...)`/`bo.make(...)` tags.
-- **BSD grep limit:** `grep -E '.{0,500}'` errors with "maximum repetition exceeds 255". Drop to 250 or chain.
+- **Grep's bounded-repetition cap.** Hand-rolling `grep -aoE '.{0,500}anchor.{0,500}'` fails past a certain width, with different error text depending on which `grep` is actually running (BSD grep vs. a ugrep shim). Use `scripts/extract-context.sh` instead; see the main SKILL.md pitfalls for why.
 - **Minified names change every release.** Don't write down "the function is `Vu4`" and expect it to mean anything next week. Write down the *anchors* that lead you to the function.
