@@ -1,35 +1,39 @@
 # Rust builds: codex
 
-codex (`openai/codex`, 0.139.0 at the time of this recon) installs via npm but ships a **Rust** binary, not a JS bundle. `which codex` returns a Node launcher (`.../@openai/codex/bin/codex.js`) that spawns the real platform binary; follow the shim before you classify anything:
+codex (`openai/codex`, 0.139.0 at the time of this recon) installs via npm but ships a **Rust** binary, not a JS bundle. `which codex` returns a Node launcher (`.../@openai/codex/bin/codex.js`) that spawns the real platform binary; [scripts/spelunk-init.sh](../scripts/spelunk-init.sh) detects the shim and stops so you can chase it by hand:
 
 ```
-$ which codex
-/Users/<you>/.local/bin/codex                          # Node launcher
-
-$ cat $(which codex)                                    # spawns the real binary at:
+$ scripts/spelunk-init.sh codex
+'.../codex' looks like a launcher/shim, not the real binary:
+  a /usr/bin/env node script text executable
+Contents:
+...spawns the real binary at:
 /Users/<you>/.local/share/mise/installs/node/<v>/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex
 
-$ file .../codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex
-Mach-O 64-bit executable arm64                          # 203MB
+$ scripts/spelunk-init.sh codex .../codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex
+Workspace ready: $TMPDIR/spelunk/codex
+  build type:  rust (bun markers: 0, rust markers: 3565)
+  strings:     $TMPDIR/spelunk/codex/strings.txt
 ```
 
 **Lesson:** `which` may hand you a shim. Chase the spawn target to the real artifact before classifying it as a build type. An npm-installed CLI is not automatically a JS bundle.
 
 ## Confirming it's Rust
 
-Strings carry unmistakable Rust/cargo provenance:
+The script's classification already told you (`build type: rust`), driven by `.cargo/registry` hits in the dump. To see the provenance yourself, or to pull crate::module paths:
 
 ```bash
-CODEX=.../codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex
-strings "$CODEX" | grep -c '.cargo/registry'    # cargo-registry paths, nonzero
-strings "$CODEX" | grep -oE '[a-z_]+::[a-z_]+' | sort -u | head    # crate::module paths
+STRINGS=$TMPDIR/spelunk/codex/strings.txt
+BIN=$(awk -F= '$1=="binary"{print $2}' $TMPDIR/spelunk/codex/manifest.txt)
+grep -c '.cargo/registry' $STRINGS                          # cargo-registry paths, nonzero
+grep -oE '[a-z_]+::[a-z_]+' $STRINGS | sort -u | head        # crate::module paths
 ```
 
 You'll see things like `/Users/runner/.cargo/registry/...`, `.rs` file paths, and crate paths like `codex_models_manager::manager`.
 
 ## What transfers from the JS recipes, and what doesn't
 
-The general method (dump strings once, anchor on stable strings, walk outward) is the same. The concrete recipes are different because Rust doesn't minify or bundle the way a JS build does:
+The general method (dump strings once via `spelunk-init.sh`, anchor on stable strings, walk outward) is the same. Every recipe below reads from `$STRINGS` rather than re-running `strings "$BIN"` per grep, for the same reason as the JS recipes: the binary is 100-200MB+, and re-dumping per command is exactly the freelancing the shared workspace exists to avoid. The concrete recipes are different because Rust doesn't minify or bundle the way a JS build does:
 
 - **No `tr ';' '\n'` splitting.** That trick exists because minified JS is one giant `;`-joined statement; Rust binaries aren't shaped that way.
 - **No Zod `.object({...})` schema strings.** That's a JS-validator-library artifact. Rust's config schema shows up differently (see below).
@@ -40,7 +44,7 @@ The general method (dump strings once, anchor on stable strings, walk outward) i
 This is the biggest divergence from the JS recipes. Claude Code and opencode store prompts as string fragments or a near-whole template literal that still needs a grep to locate. codex's Rust build embeds each prompt as a **complete string constant**, so one grep on a distinctive opening clause returns the entire block:
 
 ```bash
-strings "$CODEX" | grep -iE 'you are (codex|a coding)'
+grep -iE 'you are (codex|a coding)' $STRINGS
 ```
 
 From codex 0.139.0, this yields entire prompt blocks in one match each, no reassembly:
@@ -56,7 +60,7 @@ Templating is visible too, as literal placeholder strings rather than assembled 
 Rust's serde-derived config structs serialize field names as plain snake_case strings, directly greppable with no JSON-quote or camelCase guessing:
 
 ```bash
-strings "$CODEX" | grep -iE 'approval_policy|sandbox_mode|model_reasoning_effort'
+grep -iE 'approval_policy|sandbox_mode|model_reasoning_effort' $STRINGS
 ```
 
 From codex 0.139.0, this also surfaces `personality_default`, `personality_pragmatic`, `context_window`, `auto_compact_token_limit`, and serde struct summaries like:
@@ -72,7 +76,7 @@ followed by a run of the struct's field names as adjacent strings. That struct-s
 Rust's panic and debug-assertion machinery embeds source file:line pairs as strings. These are semantically stable (they name the actual source location) and, unlike minified JS identifiers, don't rotate on every release the same way, though line numbers shift as the file changes:
 
 ```bash
-strings "$CODEX" | grep -oE '[a-z_/-]+\.rs:[0-9]+' | sort -u | head -20
+grep -oE '[a-z_/-]+\.rs:[0-9]+' $STRINGS | sort -u | head -20
 ```
 
 From this recon: `models-manager/src/manager.rs:231`, `models-manager/src/model_info.rs:67`. These double as a map of the crate layout: the path segment before `src/` is usually the crate name (`models-manager`), which you can cross-reference against the cloned source (see [source-clone.md](source-clone.md)) to jump straight to the relevant file.
