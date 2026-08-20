@@ -10,19 +10,23 @@ npx @techpickles/sb <command> [options]
 
 All sb commands output JSON for structured parsing.
 
-## Prerequisite Check
+## Don't Preflight-Check Availability
 
-Before the first sb call in any command flow, verify availability:
+Don't run `sb --version` (or similar) before the "real" sb call in a flow just to
+confirm sb is there. Call the command you actually need; sb is reliably available via
+npx. Spending a turn on a speculative availability check on every flow, on the
+overwhelming-common happy path, is wasted work.
+
+If an sb call does fail, run the bundled diagnostic in one shot instead of re-deriving
+the checks by hand:
 
 ```bash
-npx @techpickles/sb --version
+${CLAUDE_PLUGIN_ROOT}/scripts/diagnose-sb.sh
 ```
 
-If this fails:
-```
-sb CLI is required but not available. Install Node.js and npm, then try again.
-Or install globally for faster execution: npm i -g @techpickles/sb
-```
+It reports whether sb is missing, whether npx is misdispatching to npm (a known but
+long-dormant bin-dispatch quirk), and the working fallback invocation if so. Show its
+output to the user rather than re-implementing the same checks inline.
 
 ## Commands
 
