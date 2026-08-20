@@ -119,7 +119,7 @@ request → inbox, stop.**
 
 The exception is an explicit destination from the user ("put it in 66"). Then write it there.
 
-## Step 5: Offer connections, then the daily breadcrumb
+## Step 5: Offer connections, append the daily breadcrumb
 
 Connection discovery does not fire on its own, and the user should not have to notice it was
 skipped. **Offer it every time**, using the step 1 results plus a fresh search from the finished
@@ -129,11 +129,31 @@ note's content.
   you have not verified, and never create side notes on your own initiative. Surface those as
   suggestions ("want me to make a note for X too?") and let the user decide.
 - Add links under `## Related` with a few words on *why* each one relates. A bare link list decays.
-- Then offer the daily-note breadcrumb:
-  ```bash
-  npx @techpickles/sb daily append --section "Notes" --content "- [[<note>]] - <one-line why>"
-  ```
-  Keep it to links unless asked for more. Do not restructure or rewrite the daily note.
+
+Then append the daily-note breadcrumb yourself - this is no longer a yes/no:
+
+1. **Ensure today's daily note exists.** `sb daily append` ENOENTs on a missing daily note instead
+   of creating one. Run `npx @techpickles/sb daily path` to get today's path, then check it with
+   `Read`/`Glob`:
+   - If missing, read `.obsidian/daily-notes.json` for the `template` path, `Read` that template,
+     and `Write` it verbatim to today's path before appending. If no template is configured, say so
+     and stop rather than guessing a daily-note shape.
+   - If the append still fails for any other reason, say so out loud. A dropped breadcrumb must
+     never be silent now that no one is asked before it happens.
+2. **Append:**
+   ```bash
+   npx @techpickles/sb daily append --section "Notes" --content "- [[<note>]] - <one-line why>"
+   ```
+   Keep it to links unless asked for more. Do not restructure or rewrite the daily note.
+3. **Verify it landed under `## Notes`, with a temporary fallback.** `sb daily append` has a live
+   bug where `--section` fails to match an existing H2 and dumps the line as a stray plain-text
+   block elsewhere in the file instead of under the target section. Read the daily note back and
+   confirm the new line sits under the real `## Notes` heading. If it landed somewhere else, remove
+   the stray block and `Edit` the line into the correct `## Notes` section yourself.
+   **Delete this verification step once the CLI's section matcher is fixed** - it exists only to
+   paper over that bug, not because this is the intended design.
+4. **Report it in one line**, e.g. `Added breadcrumb to today's daily note.` No ceremony - just
+   enough for Josh to see it and undo or adjust.
 
 For deeper backlink weaving, hand off to the `connect` skill rather than reimplementing it.
 
@@ -154,6 +174,9 @@ yourself once all notes exist, since connections need the whole set in view.
 - **Never fabricate.** No invented URLs, no unverified `[[links]]`, no filled-in details. Stop and
   report the gap instead.
 - **sb owns paths.** No hand-rolled destinations.
-- **Inbox by default.** Routing and connecting are offered, not performed.
+- **Inbox by default.** Routing is offered, not performed.
+- **Connecting is offered; the breadcrumb is not.** Suggest related links and let the user decide,
+  but the daily-note breadcrumb append happens automatically every time - it no longer waits for a
+  yes.
 - **One note, one idea.** If the source carries several distinct ideas, say so and offer to split
   rather than writing one sprawling note.
