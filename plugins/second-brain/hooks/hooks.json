@@ -1,0 +1,16 @@
+{
+  "description": "Silently check sb CLI availability when a sb-dependent second-brain skill activates. Only speaks up if diagnose-sb.sh actually finds a problem - a healthy sb costs zero extra context.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/check-sb-availability.py"
+          }
+        ]
+      }
+    ]
+  }
+}
