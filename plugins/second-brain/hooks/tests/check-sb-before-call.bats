@@ -1,8 +1,9 @@
 #!/usr/bin/env bats
-# Tests for the PostToolUse:Skill hook - stubs npx on PATH via a fake
-# CLAUDE_PLUGIN_ROOT/scripts/diagnose-sb.sh so no real sb install is needed.
+# Tests for the skill-scoped PreToolUse:Bash hook - stubs npx on PATH via a
+# fake CLAUDE_PLUGIN_ROOT/scripts/diagnose-sb.sh so no real sb install is
+# needed.
 
-HOOK="$BATS_TEST_DIRNAME/../check-sb-availability.py"
+HOOK="$BATS_TEST_DIRNAME/../check-sb-before-call.py"
 
 setup() {
   FAKE_ROOT="$(mktemp -d)"
@@ -23,30 +24,31 @@ SCRIPT_EOF
   chmod +x "$FAKE_ROOT/scripts/diagnose-sb.sh"
 }
 
-@test "ignores skills outside the sb-dependent set" {
+@test "ignores Bash calls that aren't sb invocations" {
   write_fake_diagnose 1 "should never run"
 
-  run bash -c "echo '{\"tool_input\": {\"skill\": \"second-brain:connect\"}}' | CLAUDE_PLUGIN_ROOT='$FAKE_ROOT' python3 '$HOOK'"
+  run bash -c "echo '{\"tool_input\": {\"command\": \"ls -la\"}}' | CLAUDE_PLUGIN_ROOT='$FAKE_ROOT' python3 '$HOOK'"
 
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }
 
-@test "stays silent when sb is healthy" {
+@test "allows silently when sb is healthy" {
   write_fake_diagnose 0 "sb CLI looks fine (version: 0.4.1)."
 
-  run bash -c "echo '{\"tool_input\": {\"skill\": \"second-brain:setup\"}}' | CLAUDE_PLUGIN_ROOT='$FAKE_ROOT' python3 '$HOOK'"
+  run bash -c "echo '{\"tool_input\": {\"command\": \"npx @techpickles/sb config vaults\"}}' | CLAUDE_PLUGIN_ROOT='$FAKE_ROOT' python3 '$HOOK'"
 
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }
 
-@test "injects additionalContext when sb is broken" {
+@test "allows with additionalContext when sb is broken" {
   write_fake_diagnose 1 "sb CLI is not available (npx exited 1)."
 
-  run bash -c "echo '{\"tool_input\": {\"skill\": \"second-brain:route\"}}' | CLAUDE_PLUGIN_ROOT='$FAKE_ROOT' python3 '$HOOK'"
+  run bash -c "echo '{\"tool_input\": {\"command\": \"npx @techpickles/sb config default\"}}' | CLAUDE_PLUGIN_ROOT='$FAKE_ROOT' python3 '$HOOK'"
 
   [ "$status" -eq 0 ]
+  [[ "$output" == *'"permissionDecision": "allow"'* ]]
   [[ "$output" == *"additionalContext"* ]]
   [[ "$output" == *"sb CLI is not available"* ]]
 }

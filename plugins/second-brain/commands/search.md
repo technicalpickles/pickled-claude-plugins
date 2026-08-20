@@ -8,6 +8,12 @@ allowed-tools:
   - Bash(qmd:query *)
   - Bash(qmd:collection list)
   - Bash(qmd:get *)
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/check-sb-before-call.py"
 ---
 
 # Search Second Brain

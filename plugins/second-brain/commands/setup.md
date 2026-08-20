@@ -9,6 +9,12 @@ allowed-tools:
   - Bash(ls:*)
   - Bash(mkdir:*)
   - Bash(ln:*)
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/check-sb-before-call.py"
 ---
 
 # Second Brain Setup

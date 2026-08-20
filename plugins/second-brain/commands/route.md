@@ -8,6 +8,12 @@ allowed-tools:
   - Edit(~/.claude/vaults/**/.routing-memory.md)
   - Bash(npx @techpickles/sb:*)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/diagnose-sb.sh)
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/check-sb-before-call.py"
 ---
 
 # Route Notes

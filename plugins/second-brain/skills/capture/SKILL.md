@@ -12,6 +12,12 @@ allowed-tools:
   - mcp__qmd__get
   - mcp__qmd__multi_get
   - mcp__qmd__status
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/check-sb-before-call.py"
 ---
 
 # Capture
