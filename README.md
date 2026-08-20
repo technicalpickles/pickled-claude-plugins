@@ -56,6 +56,7 @@ See individual plugin READMEs for details on what each plugin provides.
 | [sandbox-advisor](plugins/sandbox-advisor) | Turns Claude Code sandbox EPERMs into crisp re-run-unsandboxed guidance | – |
 | [second-brain](plugins/second-brain) | Knowledge management for Obsidian vaults and structured markdown repositories | capture, connect, distill-rules, enrich, ingest, link-daily, obsidian, process-inbox, route |
 | [stay-on-target](plugins/stay-on-target) | Focused development mode - clarify, plan, verify, detect drift | – |
+| [stay-principled](plugins/stay-principled) | Anchor design conversations to project principles via depth-first grilling before brainstorming generates options. Reads docs/principles.md (or docs/agents/principles.md), surfaces relevant principles for the topic, asks one question at a time with recommended answers, and outputs a brief that downstream planning can consume. | grill, setup |
 | [taskwarrior](plugins/taskwarrior) | Token-dense recipes for taskwarrior CLI: dense listings, single-field lookups, batched exports, full-text search | taskwarrior |
 | [tool-routing](plugins/tool-routing) | Route tool calls to better alternatives (e.g., gh CLI instead of WebFetch for GitHub PRs) | – |
 | [working-in-monorepos](plugins/working-in-monorepos) | Navigate and execute commands in monorepo subprojects | working-in-monorepos |
