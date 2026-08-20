@@ -19,7 +19,7 @@ source: https://glide-browser.app/
 | Field | Value |
 |-------|-------|
 | `status` | `seedling` for a fresh capture. This is the **zettelkasten maturity** axis (`seedling` → `budding` → `evergreen`), not the lifecycle axis. |
-| `tags` | Inline list, lowercase, hyphenated. Topic tags for a concept note; a type tag (`#person`, `#meeting`, `#idea`) where one applies. |
+| `tags` | Inline list, lowercase, hyphenated, **no leading `#`** (e.g. `[person, meeting]` not `[#person, #meeting]` - an unquoted `#` at the start of a flow-sequence item or scalar value is a YAML comment and silently breaks or truncates the frontmatter). Topic tags for a concept note; a type tag (`person`, `meeting`, `idea`) where one applies. |
 | `created` | `YYYY-MM-DD`. |
 | `source` | The URL, file path, or origin. Omit only when there genuinely isn't one. |
 
