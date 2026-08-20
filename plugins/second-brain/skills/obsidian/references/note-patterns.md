@@ -8,7 +8,7 @@ For tracking people - colleagues, contacts, authors, etc.
 
 ```markdown
 ---
-tags: #person
+tags: [person]
 ---
 
 # [Full Name]
@@ -39,7 +39,7 @@ For capturing meeting discussions and outcomes.
 
 ```markdown
 ---
-tags: #meeting
+tags: [meeting]
 ---
 
 # [Meeting Title]
@@ -85,7 +85,7 @@ For capturing ideas worth developing.
 
 ```markdown
 ---
-tags: #idea
+tags: [idea]
 ---
 
 # [Idea Title]
@@ -123,7 +123,7 @@ For debugging, research, or analysis work.
 
 ```markdown
 ---
-tags: #investigation
+tags: [investigation]
 ---
 
 # [Investigation Title]
@@ -175,7 +175,7 @@ For tracking a project with deliverables.
 
 ```markdown
 ---
-tags: #project
+tags: [project]
 ---
 
 # [Project Name]
@@ -218,7 +218,7 @@ See vault's `Fleeting/CLAUDE.md` or use this default:
 
 ```markdown
 ---
-tags: #daily
+tags: [daily]
 ---
 
 ## Action Items
