@@ -8,6 +8,12 @@ allowed-tools:
   - Write(~/.claude/vaults/**/*.md)
   - Edit(~/.claude/vaults/**/*.md)
   - Bash(npx @techpickles/sb:*)
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/check-sb-before-call.py"
 ---
 
 # Capture Insight

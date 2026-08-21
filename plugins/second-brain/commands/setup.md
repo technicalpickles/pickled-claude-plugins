@@ -5,9 +5,16 @@ allowed-tools:
   - Read(~/.claude/vaults/**/CLAUDE.md)
   - Write(~/.claude/vaults/**/CLAUDE.md)
   - Bash(npx @techpickles/sb:*)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/diagnose-sb.sh)
   - Bash(ls:*)
   - Bash(mkdir:*)
   - Bash(ln:*)
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/check-sb-before-call.py"
 ---
 
 # Second Brain Setup
@@ -16,21 +23,7 @@ Configure vault paths and scaffold vault CLAUDE.md.
 
 For sb CLI details, see [references/sb-cli.md](../skills/obsidian/references/sb-cli.md).
 
-## Step 1: Check Prerequisites
-
-Verify sb CLI is available:
-
-```bash
-npx @techpickles/sb --version
-```
-
-If this fails:
-```
-sb CLI is required but not available. Install Node.js and npm, then try again.
-Or install globally for faster execution: npm i -g @techpickles/sb
-```
-
-## Step 2: Check Existing Config
+## Step 1: Check Existing Config
 
 Check if vaults are already configured:
 
@@ -40,18 +33,21 @@ npx @techpickles/sb config vaults
 
 This returns JSON with configured vaults.
 
+If this fails, run `${CLAUDE_PLUGIN_ROOT}/scripts/diagnose-sb.sh` for a one-shot
+diagnosis rather than re-deriving the checks by hand.
+
 If vaults exist, show current and ask:
 - Add another vault?
 - Reconfigure existing vault?
 - Cancel
 
-## Step 3: Get Vault Path
+## Step 2: Get Vault Path
 
 Ask user for vault path. No assumed locations, just ask directly:
 
 "Where is your Obsidian vault located? (full path)"
 
-## Step 4: Validate Vault
+## Step 3: Validate Vault
 
 Check the path exists:
 
@@ -76,7 +72,7 @@ If `.obsidian/` missing, sb will indicate this in the output:
 - Offer to continue anyway (for plain markdown repos)
 - Or user can open folder in Obsidian first to initialize
 
-## Step 5: Confirm Settings
+## Step 4: Confirm Settings
 
 Show detected settings from the sb output:
 
@@ -90,7 +86,7 @@ Detected from .obsidian/:
 Does this look right? [Yes] [Adjust]
 ```
 
-## Step 6: Name the Vault
+## Step 5: Name the Vault
 
 Ask for short identifier:
 
@@ -98,7 +94,7 @@ Ask for short identifier:
 
 Suggest "primary" if this is the first vault.
 
-## Step 7: Initialize Configuration
+## Step 6: Initialize Configuration
 
 Create or update `~/.claude/second-brain.md`:
 
@@ -116,7 +112,7 @@ This command:
 - Writes the vault configuration to `~/.claude/second-brain.md`
 - Optionally creates `{vault}/CLAUDE.md` with detected settings
 
-## Step 8: Create Vault Symlink
+## Step 7: Create Vault Symlink
 
 Create a symlink at `~/.claude/vaults/{name}` pointing to the actual vault:
 
@@ -133,7 +129,7 @@ ls -la ~/.claude/vaults/{name}
 
 This symlink provides a well-known path for permissions and access.
 
-## Step 9: Show Permissions
+## Step 8: Show Permissions
 
 Generate permission entries for Claude Code settings:
 
@@ -146,7 +142,7 @@ This outputs the exact permission strings needed for:
 - Read/Write on CLAUDE.md
 - Read on .obsidian config
 
-## Step 10: Confirm Complete
+## Step 9: Confirm Complete
 
 ```
 ✓ Second brain configured!
@@ -166,12 +162,12 @@ Next steps:
 
 ## Adding Additional Vaults
 
-If vaults already exist (shown in Step 2):
+If vaults already exist (shown in Step 1):
 
 1. Show current vaults from `npx @techpickles/sb config vaults`
 2. Ask for new vault path
-3. Follow same validation/detection flow (Steps 3-5)
+3. Follow same validation/detection flow (Steps 2-4)
 4. Run `npx @techpickles/sb init --name "{name}" --path "{path}"` (appends to config)
-5. Create symlink for new vault (Step 8)
-6. Generate and show permissions (Step 9)
+5. Create symlink for new vault (Step 7)
+6. Generate and show permissions (Step 8)
 7. Ask if this should be the new default

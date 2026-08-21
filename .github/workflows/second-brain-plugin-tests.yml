@@ -1,0 +1,28 @@
+name: second-brain plugin tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'plugins/second-brain/scripts/**'
+      - 'plugins/second-brain/hooks/**'
+      - '.github/workflows/second-brain-plugin-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  bats:
+    name: bats
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugins/second-brain
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bats
+        run: sudo apt-get update && sudo apt-get install -y bats
+
+      - name: Run bats
+        run: bats scripts/tests/ hooks/tests/

@@ -10,19 +10,33 @@ npx @techpickles/sb <command> [options]
 
 All sb commands output JSON for structured parsing.
 
-## Prerequisite Check
+## Don't Preflight-Check Availability
 
-Before the first sb call in any command flow, verify availability:
+Don't run `sb --version` (or similar) before the "real" sb call in a flow just to
+confirm sb is there. Call the command you actually need; sb is reliably available via
+npx. Spending a turn on a speculative availability check on every flow, on the
+overwhelming-common happy path, is wasted work.
+
+The sb-dependent skills/commands in this plugin declare a `PreToolUse:Bash`
+hook in their own frontmatter (`hooks/check-sb-before-call.py`) that runs
+automatically in front of the first `npx @techpickles/sb` call and stays
+silent when sb is healthy - no model turn spent either way. It only speaks up
+(via `additionalContext`, still allowing the call through) when
+`scripts/diagnose-sb.sh` actually finds a problem. New sb-dependent
+skills/commands should copy that same `hooks:` frontmatter block rather than
+adding a manual preflight step.
+
+If an sb call fails anyway (e.g. something broke between the hook's check and
+the call), run the bundled diagnostic in one shot instead of re-deriving the
+checks by hand:
 
 ```bash
-npx @techpickles/sb --version
+${CLAUDE_PLUGIN_ROOT}/scripts/diagnose-sb.sh
 ```
 
-If this fails:
-```
-sb CLI is required but not available. Install Node.js and npm, then try again.
-Or install globally for faster execution: npm i -g @techpickles/sb
-```
+It reports whether sb is missing, whether npx is misdispatching to npm (a known but
+long-dormant bin-dispatch quirk), and the working fallback invocation if so. Show its
+output to the user rather than re-implementing the same checks inline.
 
 ## Commands
 

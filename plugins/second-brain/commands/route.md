@@ -7,6 +7,13 @@ allowed-tools:
   - Write(~/.claude/vaults/**/.routing-memory.md)
   - Edit(~/.claude/vaults/**/.routing-memory.md)
   - Bash(npx @techpickles/sb:*)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/diagnose-sb.sh)
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/check-sb-before-call.py"
 ---
 
 # Route Notes
@@ -15,24 +22,15 @@ Route notes from inbox to appropriate destinations in your vault.
 
 ## Step 1: Load Configuration
 
-Verify sb CLI availability:
-
-```bash
-npx @techpickles/sb --version
-```
-
-If this fails:
-```
-sb CLI is required but not available. Install Node.js and npm, then try again.
-Or install globally for faster execution: npm i -g @techpickles/sb
-```
-
-Load configuration:
+Load configuration directly - don't preflight-check sb availability first:
 
 ```bash
 npx @techpickles/sb config default
 npx @techpickles/sb config vaults
 ```
+
+If this fails, run `${CLAUDE_PLUGIN_ROOT}/scripts/diagnose-sb.sh` for a one-shot
+diagnosis rather than re-deriving the checks by hand.
 
 If no vault configured:
 ```

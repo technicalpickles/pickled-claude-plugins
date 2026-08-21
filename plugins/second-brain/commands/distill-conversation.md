@@ -7,6 +7,13 @@ allowed-tools:
   - Write(~/.claude/vaults/**/*.md)
   - Edit(~/.claude/vaults/**/*.md)
   - Bash(npx @techpickles/sb:*)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/diagnose-sb.sh)
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/check-sb-before-call.py"
 ---
 
 # Distill Conversation
@@ -15,24 +22,15 @@ Review the current conversation and extract insights worth capturing.
 
 ## Step 1: Load Configuration
 
-Verify sb CLI is available and routing correctly, and load configuration, in one round-trip:
+Load configuration directly - don't preflight-check sb availability first, just run it:
 ```bash
-npx @techpickles/sb --version && npm --version
 npx @techpickles/sb config default && npx @techpickles/sb config vaults
 ```
 
-If the two `--version` outputs are identical (e.g., both `11.9.0`), `npx` is misdispatching to `npm` itself — an upstream npx bin-dispatch quirk seen intermittently. Subcommands will then fail with `npm error enoent Could not read package.json`. Fall back to direct-node invocation:
-
-```bash
-SB=$(ls ~/.npm/_npx/*/node_modules/@techpickles/sb/dist/index.js 2>/dev/null | head -1)
-node "$SB" <subcommand>
-```
-
-If sb is not installed at all (`command not found` or hang):
-```
-sb CLI is required but not available. Install Node.js and npm, then try again.
-Or install globally for faster execution: npm i -g @techpickles/sb
-```
+If this fails, run the bundled diagnostic in one shot rather than re-deriving the checks
+by hand: `${CLAUDE_PLUGIN_ROOT}/scripts/diagnose-sb.sh`. It covers both "sb isn't
+installed" and the npx-misdispatching-to-npm quirk (with the direct-node fallback
+invocation) and reports which one applies.
 
 If no default vault configured:
 ```

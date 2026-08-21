@@ -16,6 +16,12 @@ allowed-tools:
   - Bash(qmd:collection list)
   - Bash(qmd:get *)
   - Bash(qmd:status)
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/check-sb-before-call.py"
 ---
 
 # Process Inbox
