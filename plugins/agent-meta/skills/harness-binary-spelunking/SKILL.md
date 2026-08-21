@@ -17,48 +17,54 @@ Before grepping anything, figure out which situation you're in:
 
 Most investigations start at one of these two ends and only cross over if the first approach runs dry (source doesn't explain the behavior you're seeing; binary strings are too fragmented to be sure).
 
-## Identify the build
+## Identify the build and set up your workspace
 
-If you're spelunking a binary (not reading source), figure out what you're actually holding before you pick a recipe set.
-
-```bash
-which <tool>                          # may be a shim, not the real binary
-file $(readlink -f $(which <tool>))   # classify the artifact
-```
-
-`which` often hands you a **launcher, not the artifact**. npm-installed CLIs are frequently a thin Node script that execs a platform-specific binary elsewhere. Follow the shim:
+If you're spelunking a binary (not reading source), run [scripts/spelunk-init.sh](scripts/spelunk-init.sh) before anything else. It resolves the binary, classifies the build, dumps `strings` once, and writes a manifest, all into a workspace shared by every recipe in this skill:
 
 ```bash
-$ which codex
-/Users/<you>/.local/bin/codex          # a Node launcher: bin/codex.js
-
-$ cat $(which codex)                   # spawns the real binary, e.g.:
-# .../@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex
-
-$ file .../codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex
-Mach-O 64-bit executable arm64        # 203MB, this is the real target
+scripts/spelunk-init.sh claude
+# Workspace ready: $TMPDIR/spelunk/claude
+#   binary:      /path/to/the/real/binary
+#   build type:  bun-js (bun markers: 7, rust markers: 118)
+#   strings:     $TMPDIR/spelunk/claude/strings.txt
+#   manifest:    $TMPDIR/spelunk/claude/manifest.txt
 ```
 
-Once you have the real artifact, classify it:
+This exists because freelancing this step drifts fast: past investigations dumped to `claude-strings.txt`, then `harness-strings.txt`, with no per-tool suffix (so a second harness in the same session clobbers the first), and one reference file skipped the dump/reuse discipline entirely and re-ran `strings` on every recipe. One workspace shape, one script, no more re-deriving the path or the classification logic per investigation.
 
-| Tells | Build | Recipes |
-|-------|-------|---------|
-| `strings <bin> \| grep -i bun` hits; paths like `bun-internal/`, `tmp_modules/bun/ffi.ts` | Bun-compiled JS (Claude Code, opencode) | [references/bun-js.md](references/bun-js.md) |
-| `strings <bin>` shows `.rs` paths, `.cargo/registry/`, `crate_name::module` paths | Rust | [references/rust.md](references/rust.md) |
-| `file` says plain script / small size, `node_modules/` alongside it | Unbundled Node, or thin wrapper over readable source | Just read the source; see the pi note in [references/source-clone.md](references/source-clone.md) |
+`which <tool>` often hands you a **launcher, not the artifact** (npm-installed CLIs are frequently a thin Node script that execs a platform-specific binary elsewhere). The script detects this and stops, printing the shim's contents so you can find the real spawn target by hand:
 
-Don't assume a binary is a Node bundle just because the CLI is npm-installed. Bun and Rust both ship as single Mach-O executables that npm happily distributes as "the binary."
+```bash
+$ scripts/spelunk-init.sh codex
+'/Users/<you>/.local/bin/codex' looks like a launcher/shim, not the real binary:
+  a /usr/bin/env node script text executable
+...
+Find the spawn target above, then rerun: scripts/spelunk-init.sh codex <spawn-target-path>
+
+$ scripts/spelunk-init.sh codex .../codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex
+Workspace ready: $TMPDIR/spelunk/codex
+  build type:  rust (bun markers: 0, rust markers: 3565)
+```
+
+Chasing an arbitrary spawn chain is a judgment call (it varies per tool, per platform); classifying what you're holding once you have it is not, so that part is scripted. If the build type comes back `unknown`, `file $BIN` and check whether it's unbundled Node or readable source instead; see the pi note in [references/source-clone.md](references/source-clone.md).
+
+Don't assume a binary is a Node bundle just because the CLI is npm-installed. Bun and Rust both ship as single Mach-O executables that npm happily distributes as "the binary." And don't assume bun/rust markers are mutually exclusive: a Bun-compiled JS bundle can embed a native Rust addon (Claude Code ships a napi/tokio one), so the script treats any Bun signal as decisive even when rust markers are also present.
 
 ## General method
 
-Once you know the build, the loop is the same for every harness:
+Once your workspace is set up, the loop is the same for every harness:
 
-1. **Dump once, grep many times.** These binaries run 100MB-200MB+; `strings` over them takes a few seconds but you'll grep dozens of times. Dump to a temp file once and reuse it.
+1. **Reuse the dump.** `spelunk-init.sh` skips re-dumping if the binary hasn't changed size; every recipe below reads from its `strings.txt`, not a fresh `strings` call.
 2. **Anchor on stable strings, not derived names.** System-prompt openers, UI-facing error text, telemetry/event names, config-key names, `.rs:line` debug locations: these survive releases. Minified JS identifiers and even some struct layouts do not.
-3. **Walk outward from the anchor.** Grep the anchor, then read the surrounding region (`awk` a line range, or grab a character window with `grep -aoE '.{0,N}anchor.{0,N}'`) to find the code, config, or prompt fragments next to it.
+3. **Walk outward from the anchor.** Grep the anchor, then read the surrounding region: `awk` a line range for a known window, or [scripts/extract-context.sh](scripts/extract-context.sh) `<anchor> <file> [width]` for a character window around a match anywhere in the file. Reach for the script over hand-rolling `grep -aoE '.{0,N}anchor.{0,N}'`; see the pitfall below for why.
 4. **Filter noise, but derive the noise list per tool.** Every runtime bakes in its own boilerplate (Bun's `bun-internal`/`oniguruma`, cargo's registry paths, etc.). Don't assume one tool's noise list applies to another; a quick `grep -c` of the suspected noise string tells you whether it's even present.
 
 The per-build reference files below give you the concrete grep recipes for each anchor type (prompts, UI messages, function bodies, config keys). Read the one matching your build classification above.
+
+## Scripts
+
+- [scripts/spelunk-init.sh](scripts/spelunk-init.sh): resolve, classify, and dump a harness binary into `$TMPDIR/spelunk/<tool>/` (`strings.txt` + `manifest.txt`). Run this first.
+- [scripts/extract-context.sh](scripts/extract-context.sh): print the context window around every match of an anchor, using perl instead of grep's bounded-repetition engine so it works past the widths where grep itself breaks (see Pitfalls).
 
 ## Reference files
 
@@ -84,19 +90,21 @@ It's a third-party extraction: it can lag the newest release, and it's someone e
 | Pattern | Why |
 |---------|-----|
 | Anchor on UI strings, telemetry events, config keys, `.rs:line` locations | Stable across releases; minified names and even struct shapes are not |
-| Dump `strings` to a temp file once, reuse it | Binaries run 100-200MB+; re-running `strings` per grep is slow |
+| Run `scripts/spelunk-init.sh <tool>` once per investigation, reuse its workspace | Binaries run 100-200MB+; re-running `strings` per grep is slow, and a shared path means every recipe agrees on where things are |
 | Follow `which` through shims to the real artifact before classifying | npm/pip installs often distribute a launcher script, not the binary |
 | Derive the noise filter per tool instead of reusing another tool's | Bun/Rust/Node each bake in different runtime boilerplate; presence isn't guaranteed |
 | Prefer cloning tagged source over spelunking when the tool is open source and tagged | Faster, more readable, no guessing at derived names |
+| Use `scripts/extract-context.sh` for context windows instead of hand-rolled `grep -aoE '.{0,N}...'` | Sidesteps the grep repetition-cap class of failure entirely (see Pitfalls) |
 
 ## Pitfalls
 
-- **Assuming build type from install method.** npm-installed does not mean JS bundle; codex installs via npm but ships a Rust binary. Always `file` the real artifact.
+- **Assuming build type from install method.** npm-installed does not mean JS bundle; codex installs via npm but ships a Rust binary. Always `file` the real artifact (`spelunk-init.sh` does this for you).
 - **Trusting `which` at face value.** It frequently returns a launcher/shim, not the artifact you want to classify.
+- **Assuming bun and rust markers are mutually exclusive.** A Bun-compiled JS bundle can embed a native Rust addon (Claude Code ships one via napi/tokio), so `.cargo/registry` hits alone don't mean the binary is a standalone Rust build. `spelunk-init.sh` treats any Bun-specific marker (`tmp_modules/bun`, `oniguruma`, `bun-internal`) as decisive over rust markers for exactly this reason.
 - **Reusing one tool's noise filter on another.** `bun-internal` noise present in Claude Code is entirely absent from opencode's Bun build; check before you filter.
 - **First match for a generic UI string is rarely the only code path.** Disambiguate with nearby classification tags, telemetry event names, or (in Rust) `.rs:line` locations.
 - **Baking derived/minified names into a plan.** Minified JS identifiers rotate every release. Rust struct/function names are more stable but crate-internal ones can still shift. Write down the anchor that leads you there, not the name itself.
-- **BSD grep's `{0,N}` cap at 255.** `grep -E '.{0,500}'` errors with "maximum repetition exceeds 255" on macOS. Drop below 255 or chain `[^}]*}` segments.
+- **Grep's bounded-repetition cap, in whichever error string your `grep` happens to produce.** `grep -aoE '.{0,500}anchor.{0,500}'` fails past a certain width, but the message depends on what's actually running as `grep`: BSD grep says "repetition-operator operand invalid" / "maximum repetition count exceeds 255"; ugrep (a common `grep` shim, including via Claude Code's own file-scoped grep wrapper) says "exceeds complexity limits" at a threshold that depends on the pattern, not just the width. Same root cause, different text, so grepping the docs for one message won't surface the other. Use `scripts/extract-context.sh` instead of hand-rolling this grep; it does the extraction in perl, which has no such cap, and sidesteps the whole class of failure rather than tuning the width to dodge it.
 - **Assuming source and shipped binary agree.** Source is what was committed; the binary is what's running. When behavior doesn't match source, or the version isn't tagged yet, spelunk the binary even for open-source tools.
 
 ## Real-world references
