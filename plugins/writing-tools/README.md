@@ -45,6 +45,10 @@ Use when structuring prose so readers can skim it - drafting or restructuring RE
 
 The full background, history, and worked examples live in the skill's [reference docs](skills/writing-for-scannability/references/).
 
+### checking-for-undisclosed-context
+
+Use when reviewing or drafting a doc, PR/issue description, design doc, code-review prompt, or subagent persona that's supposed to stand on its own. Does a cold read as the specific intended reader to find spots where following the text secretly depends on vocabulary, acronyms, or structure pulled from other documentation or conversation that reader hasn't seen. Distinct from `writing-for-scannability` (structure) and `writing-voice` (tone) - this is about audience access.
+
 ## Resources
 
 The skill is built on the scannable-writing research tradition. The sources it draws from:
