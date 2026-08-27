@@ -24,11 +24,11 @@ Requires the [pickled-claude-plugins marketplace](../../README.md#installation).
    ```
    Writes to your vault's inbox with provenance (repo, branch, commit).
 
-3. **End-of-session extraction:**
-   ```
-   /second-brain:distill-conversation
-   ```
-   Reviews the conversation and offers to capture multiple insights.
+3. **Devlog runs on its own:**
+   No command to run. `devlog` writes a point-in-time entry to the
+   current session's note whenever you finish something notable — a
+   feature, a bug fix, a gotcha worth remembering. Nothing to remember,
+   nothing to invoke.
 
 ## Commands
 
@@ -36,7 +36,6 @@ Requires the [pickled-claude-plugins marketplace](../../README.md#installation).
 |---------|-------------|------------|
 | `/second-brain:setup` | Configure vault path, detect settings | Anywhere |
 | `/second-brain:insight` | Capture single insight to inbox | Anywhere |
-| `/second-brain:distill-conversation` | Extract multiple insights from conversation | Anywhere |
 | `/second-brain:process-daily` | Clean voice transcriptions in daily note | Vault only |
 | `/second-brain:link-project` | Symlink repo folder to vault | Any repo |
 
@@ -52,11 +51,11 @@ Requires the [pickled-claude-plugins marketplace](../../README.md#installation).
 │  ↓                                                          │
 │  Writes to vault inbox with repo/branch/commit context      │
 │                                                             │
-│  End of session...                                          │
+│  Finished something notable...                              │
 │  ↓                                                          │
-│  /second-brain:distill-conversation                         │
+│  devlog writes an entry automatically, no command needed    │
 │  ↓                                                          │
-│  Extracts all valuable insights, routes to proper locations │
+│  Later: /second-brain:process-inbox routes, connects, links │
 └─────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────┐

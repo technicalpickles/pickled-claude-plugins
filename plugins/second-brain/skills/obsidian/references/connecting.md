@@ -296,7 +296,7 @@ This step is best-effort: don't fail capture if connection discovery fails.
 
 ## Batch Connection Discovery
 
-When connecting multiple notes at once (e.g., `/distill-conversation`):
+When connecting multiple notes at once:
 
 1. Run discovery for each note independently
 2. Collect all suggestions

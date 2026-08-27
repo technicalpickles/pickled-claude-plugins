@@ -54,7 +54,7 @@ See individual plugin READMEs for details on what each plugin provides.
 | [mcpproxy](plugins/mcpproxy) | MCP server management and integration tools | working-with-mcp |
 | [petri-dish](https://github.com/technicalpickles/petri-dish) | Author Claude Code experiments (petri-dish cultures) with disciplined schema, baselines, and multi-run averaging | [see repo](https://github.com/technicalpickles/petri-dish) |
 | [sandbox-advisor](plugins/sandbox-advisor) | Turns Claude Code sandbox EPERMs into crisp re-run-unsandboxed guidance | – |
-| [second-brain](plugins/second-brain) | Knowledge management for Obsidian vaults and structured markdown repositories | capture, connect, distill-rules, enrich, ingest, link-daily, obsidian, process-inbox, route |
+| [second-brain](plugins/second-brain) | Knowledge management for Obsidian vaults and structured markdown repositories | capture, connect, devlog, distill-rules, enrich, ingest, link-daily, obsidian, process-inbox, route |
 | [stay-on-target](plugins/stay-on-target) | Focused development mode - clarify, plan, verify, detect drift | – |
 | [taskwarrior](plugins/taskwarrior) | Token-dense recipes for taskwarrior CLI: dense listings, single-field lookups, batched exports, full-text search | taskwarrior |
 | [tool-routing](plugins/tool-routing) | Route tool calls to better alternatives (e.g., gh CLI instead of WebFetch for GitHub PRs) | – |

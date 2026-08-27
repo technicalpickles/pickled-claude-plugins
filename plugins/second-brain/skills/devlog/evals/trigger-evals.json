@@ -1,0 +1,52 @@
+[
+  {
+    "query": "alright, that fixes the auth timeout bug. on to the next thing",
+    "should_trigger": true,
+    "note": "synthetic: notable bug fix just landed"
+  },
+  {
+    "query": "okay that's the feature done, tests passing, let's wrap up here",
+    "should_trigger": true,
+    "note": "synthetic: session wrap-up"
+  },
+  {
+    "query": "huh, TIL that Stop hooks can't inject additionalContext, only PreToolUse can",
+    "should_trigger": true,
+    "note": "synthetic: non-obvious discovery, explicit TIL framing"
+  },
+  {
+    "query": "that took way longer than expected, turned out to be a caching bug that only showed up under concurrent load",
+    "should_trigger": true,
+    "note": "synthetic: notable bug + surprising root cause"
+  },
+  {
+    "query": "good, committed. that's this branch done",
+    "should_trigger": true,
+    "note": "synthetic: commit + session wrap-up framing together"
+  },
+  {
+    "query": "read this article and make a note for it",
+    "should_trigger": false,
+    "note": "near-miss: belongs to second-brain:capture, external source not conversation"
+  },
+  {
+    "query": "drain the inbox, there's a bunch of stale notes in there",
+    "should_trigger": false,
+    "note": "near-miss: belongs to process-inbox"
+  },
+  {
+    "query": "let's think through the design before writing any code",
+    "should_trigger": false,
+    "note": "near-miss: nothing has happened yet to log"
+  },
+  {
+    "query": "can you check if we have notes on X already",
+    "should_trigger": false,
+    "note": "near-miss: lookup, belongs to second-brain:capture or search"
+  },
+  {
+    "query": "what time is it",
+    "should_trigger": false,
+    "note": "clear non-trigger, no work event of any kind"
+  }
+]
