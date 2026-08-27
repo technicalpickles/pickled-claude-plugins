@@ -1,11 +1,11 @@
 # Daily Note Linking Reference
 
-When capturing notes via `/insight` or `/distill-conversation`, link them back to today's daily note so there's a record of "what was captured today."
+When a note captured via `/insight` or `devlog` is processed, link it back to today's daily note so there's a record of "what was captured today."
 
 ## When to Link
 
 Link to daily note when:
-- A new note is captured via `/insight` or `/distill-conversation`
+- A new note is captured via `/insight` or `devlog`
 - The daily note exists and has a `## Links` section (or can have one added)
 
 Do NOT link when:
@@ -162,7 +162,7 @@ This step is best-effort - don't fail capture if linking fails.
 
 ## Batch Linking
 
-When capturing multiple notes (e.g., `/distill-conversation`), link them all in a single batch:
+When multiple notes finish processing together, link them all in a single batch:
 
 ```markdown
 ## Links

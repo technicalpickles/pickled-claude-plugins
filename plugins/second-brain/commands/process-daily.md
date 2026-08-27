@@ -36,7 +36,7 @@ You're currently in: {cwd}
 Options:
 1. Open your vault via symlink: ~/.claude/vaults/{name}
 2. Use /second-brain:insight to capture from here
-3. Use /second-brain:distill-conversation for end-of-session extraction
+3. devlog captures notable moments automatically — nothing to invoke
 ```
 
 Stop execution - do not continue.

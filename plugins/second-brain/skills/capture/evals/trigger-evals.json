@@ -73,7 +73,7 @@
   {
     "query": "distill this conversation into insights and put them in my vault",
     "should_trigger": false,
-    "note": "near-miss: belongs to distill-conversation. Source is the conversation, not an external thing."
+    "note": "near-miss: belongs to devlog. Source is the conversation, not an external thing."
   },
   {
     "query": "read src/auth/session.ts and tell me how the token refresh works",

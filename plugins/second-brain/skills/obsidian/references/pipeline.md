@@ -19,7 +19,7 @@ Each note carries its pipeline state in frontmatter:
 | Status | Meaning |
 |--------|---------|
 | `raw` | Just landed in inbox. Session notes file with bullet points. |
-| `ingested` | Individual insights extracted from session note into separate files. |
+| `ingested` | Kept as one note (default), or split into individual insight notes when bullets genuinely diverge in provenance. |
 | `enriched` | Proper zettelkasten note with clean prose and title. |
 | `routed` | Moved to destination folder. |
 | `connected` | Related notes linked via `## Related` section. |
@@ -41,10 +41,13 @@ After human resolves `pending-review` (picks a destination), status moves to `ro
 
 | Type | Frontmatter `type` | Created By | Processed By |
 |------|-------------------|------------|--------------|
-| Session notes | `session-notes` | `/insight`, `/distill-conversation` | `ingest` stage |
+| Session notes | `session-notes` | `/insight`, `devlog` | `ingest` stage |
 | Insight | `insight` | `ingest` stage | `enrich` through `link-daily` |
 
-Session notes files contain multiple bullet points from a working session. The `ingest` stage splits them into individual insight notes.
+Session notes files contain bullet points from a working session, sharing
+one provenance (repo/branch/bean). The `ingest` stage keeps them as one
+note by default, only splitting when bullets genuinely diverge in
+provenance.
 
 ## Confidence Model
 

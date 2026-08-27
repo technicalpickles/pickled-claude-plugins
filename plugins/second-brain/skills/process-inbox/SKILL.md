@@ -88,8 +88,10 @@ Work through notes in pipeline order. Each stage picks up notes at its expected 
 ### 3a: Ingest raw session notes
 
 For each note with `status: raw` and `type: session-notes`:
-- Follow the `ingest` skill to split into individual insight notes
-- Report: `Ingested: {session filename} -> {n} insights`
+- Follow the `ingest` skill (keeps the note whole by default, only splits
+  on a real cross-topic signal)
+- Report: `Ingested: {session filename}` (default case), or
+  `Ingested: {session filename} -> {n} insights (split)` (exception case)
 
 ### 3b: Enrich ingested insights
 
@@ -129,7 +131,7 @@ For each note with `status: connected`:
 
 ```
 Pipeline complete:
-  {n} session notes ingested -> {m} insights extracted
+  {n} session notes ingested ({s} kept whole, {m} insights extracted from splits)
   {n} insights enriched
   {n} notes routed ({auto} auto, {manual} manual)
   {n} notes connected ({links} links added)
