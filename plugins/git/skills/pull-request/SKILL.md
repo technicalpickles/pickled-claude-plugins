@@ -5,7 +5,7 @@ description: Invoke this skill BEFORE running any gh pr create, gh pr edit, or g
 
 ## Overview
 
-Authoring PR communication that respects busy reviewers. All bodies and comments are drafted to `.scratch/pr-bodies/` for human review before posting. Anti-patterns (metrics, diff-noise, H1 headings) are avoided. Manual edits are detected before overwriting.
+Authoring PR communication that respects busy reviewers. All bodies and comments are drafted to `.scratch/pr-bodies/` first — for creation the draft is the audit record, written then used immediately; for updates and comments it's also a review checkpoint. Anti-patterns (metrics, diff-noise, H1 headings) are avoided. Manual edits are detected before overwriting.
 
 ## Operations
 
@@ -76,8 +76,8 @@ Three to five sentences, conversational, professional. Acknowledge reviewer inpu
 
 1. Check for existing PR: `gh pr view --json number 2>/dev/null`. If one exists, error or route to update.
 2. Gather: `git log <base>..HEAD`, PR template, `CONTRIBUTING.md`.
-3. Draft body to `.scratch/pr-bodies/drafts/<slug>.md`. Show the draft to the user and allow edits.
-4. Create: `gh pr create --title "..." --body-file <draft-path>` (add `--draft` if the user asked for a draft).
+3. Draft body to `.scratch/pr-bodies/drafts/<slug>.md`.
+4. Create: `gh pr create --title "..." --body-file <draft-path>` (add `--draft` if the user asked for a draft). No approval pause on the routine case — being asked to create a PR is itself the go-ahead; the draft file is the record, not a checkpoint. Do stop and confirm first if something's off the routine path: no commits ahead of base, an open PR already exists for this branch, or the title/scope is genuinely ambiguous.
 5. Archive: move the draft to `.scratch/pr-bodies/<number>/<timestamp>-body.md` and write `metadata.json` with the body hash.
 
 ## Workflow: Update body
@@ -97,9 +97,9 @@ Three to five sentences, conversational, professional. Acknowledge reviewer inpu
 
 ## Safety checks
 
-Always: current branch is not `main`/`master`; `gh` is installed and authenticated; the user has seen and approved the draft.
+Always: current branch is not `main`/`master`; `gh` is installed and authenticated.
 
-Create: branch has commits ahead of base. Update: PR exists and is open. Comment: comment is not empty.
+Create: branch has commits ahead of base. No approval gate for the routine case (see Workflow: Create PR above). Update: PR exists and is open; user has seen and approved the draft. Comment: comment is not empty; user has seen and approved the draft.
 
 If `gh` is missing, fall back with `brew install gh`. If not authenticated, `gh auth login`.
 
@@ -149,7 +149,8 @@ fi
 
 ## Common mistakes
 
-- Posting the first draft without user review. Always confirm before running `gh pr create/edit/comment`.
+- Posting an update or comment without user review. Always confirm before running `gh pr edit`/`gh pr comment` — unlike create, these can overwrite manual edits or ping reviewers unexpectedly.
+- Adding a confirmation pause back into the create path "to be safe." That's the exact round-trip this skill exists to skip; the draft file already gives an audit trail.
 - Overwriting manual edits silently. Always compare hashes and show the diff first.
 - Updating body when nothing material changed. Skip with "description still accurate".
 - Using raw `gh pr create` without `--body-file`. Shell-escaping issues and no draft review step.
