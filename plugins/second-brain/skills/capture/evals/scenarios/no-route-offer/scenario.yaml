@@ -1,0 +1,162 @@
+# Known quirk (confirmed across 3 real runs, 2026-08-28): the model's final
+# report sometimes claims Write/Edit to the vault path were "denied," even
+# though this scenario's own results JSON shows those calls matched a mock
+# and returned success. This looks like a skill-evals limitation - Write/Edit
+# against a real absolute path apparently hit a permission layer the
+# closed-world PreToolUse mock doesn't fully override - not a capture-skill
+# bug. It does not affect this scenario's actual assertions: the behavior and
+# tool_calls checks below are scoped to routing language and `sb note move`
+# calls specifically, both of which are absent regardless of whether the
+# capture narrative reports full success or a self-reported block. Filed
+# separately against skill-evals as its own harness bug, tracked outside
+# this repo.
+scenarios:
+  - name: no-route-offer
+    prompt: |
+      Make a note for this article about the Roc pathfinding algorithm:
+      https://example.com/roc-pathfinding
+    # Closed-world: every tool call capture is expected to make, end to end,
+    # so the run reaches Step 4/5 without hitting a rejected-tool error.
+    mocks:
+      # Deliberately returns the ~/.claude/vaults/<name> symlink convention,
+      # not a real vault path - capture's allowed-tools frontmatter scopes
+      # Write/Edit to ~/.claude/vaults/**/*.md. In practice the model still
+      # ends up operating on the real vault path regardless (see the "known
+      # quirk" note at the top of this file), so this doesn't fully steer
+      # it, but it's the theoretically-correct value to return here and
+      # costs nothing to keep.
+      - tool: Bash
+        match:
+          command: "*sb vault info*"
+        response: |
+          {"vault": "test-vault", "path": "/Users/josh.nichols/.claude/vaults/test-vault", "inbox": "10-19 System & Capture/11 Inbox & triage"}
+      - tool: Bash
+        match:
+          command: "*sb config qmd-collection*"
+        response: "pickled-knowledge"
+      # Non-empty but obviously irrelevant, so the model doesn't treat this as
+      # "search came up empty" and go run the basename/both-inboxes fallback
+      # (raw `grep`/`find` over the vault) - those are real Bash commands the
+      # model phrases freely, which a static mock can't reliably intercept.
+      - tool: mcp__qmd__query
+        match:
+          intent: "*"
+        response: '{"results": [{"path": "50-59 Personal/54 Groceries/202601010000 grocery-list.md", "score": 0.12, "snippet": "milk, eggs, bread"}]}'
+      - tool: Read
+        match:
+          file_path: "*note-format.md"
+        response: |
+          # Capture Note Format
+
+          ## Frontmatter
+
+          ```yaml
+          ---
+          status: seedling
+          tags: [example]
+          created: 2026-08-28
+          source: https://example.com/roc-pathfinding
+          ---
+          ```
+
+          ## Filenames
+
+          sb generates these. Don't construct them by hand - use the exact
+          path returned by `sb note create`.
+      - tool: mcp__lightpanda__markdown
+        match:
+          url: "*roc-pathfinding*"
+        response: |
+          # Roc: a fast pathfinding algorithm
+
+          Roc trades a small amount of preprocessing time for large runtime
+          speedups on repeated pathfinding queries over the same map, using a
+          hierarchical decomposition of the search space.
+      - tool: WebFetch
+        match:
+          url: "*roc-pathfinding*"
+        response: |
+          # Roc: a fast pathfinding algorithm
+
+          Roc trades a small amount of preprocessing time for large runtime
+          speedups on repeated pathfinding queries over the same map, using a
+          hierarchical decomposition of the search space.
+      - tool: Bash
+        match:
+          command: "*sb note create*"
+        response: |
+          {"path": "10-19 System & Capture/11 Inbox & triage/202608281204 roc-pathfinding.md"}
+      # Broad match on the inbox directory, not a guessed filename - the
+      # model derives its own timestamp/slug for the note, which a mock
+      # can't predict in advance.
+      - tool: Read
+        match:
+          file_path: "*11 Inbox*.md"
+        response: |
+          ---
+          captured: 2026-08-28T12:15:00Z
+          source: manual
+          repo: none
+          branch: none
+          commit: none
+          ---
+
+          # Roc: a fast pathfinding algorithm
+      - tool: Write
+        match:
+          file_path: "*11 Inbox*.md"
+        response: "wrote note body"
+      - tool: Edit
+        match:
+          file_path: "*11 Inbox*.md"
+        response: "edited note body"
+      - tool: Bash
+        match:
+          command: "*sb daily path*"
+        response: "10-19 System & Capture/12 Daily notes/2026-08-28.md"
+      - tool: Glob
+        match:
+          pattern: "*2026-08-28.md"
+        response: "10-19 System & Capture/12 Daily notes/2026-08-28.md"
+      # Same fixture content on every read: pretends the append already
+      # landed, so both the pre-append existence check and the post-append
+      # placement-verification read see one consistent, already-correct
+      # state. Static mocks can't distinguish call order, and inventing a
+      # second variant risks the model hitting the "sb daily append
+      # --section bug" fallback path (an Edit call), which isn't mocked here
+      # and is out of scope for this scenario.
+      - tool: Read
+        match:
+          file_path: "*2026-08-28.md"
+        response: |
+          # 2026-08-28
+
+          ## Notes
+          - [[202608281204 roc-pathfinding]] - Roc's hierarchical pathfinding decomposition
+      - tool: Bash
+        match:
+          command: "*sb daily append*"
+        response: "appended"
+    budget: "1.00"
+    variants:
+      - name: with_skills
+        skills_enabled: true
+    evaluations:
+      - type: behavior
+        expectations:
+          - "Reports that the note was created and left in the inbox"
+          - "Does not ask the user any question about whether, where, or if they want the note routed, moved, or filed"
+        auto_fail:
+          - "Asks the user a question about routing, moving, or filing the note anywhere (e.g. 'want me to route it?', 'should I move this to X?', 'let me know if you want it filed elsewhere')"
+          - "Mentions, as a reminder or FYI, that the note still needs to be routed or filed, even without phrasing it as a question"
+      - type: tool_calls
+        expected:
+          - tool: Bash
+            match:
+              command: "*sb note create*"
+            label: "creates the note via sb"
+        not_expected:
+          - tool: Bash
+            match:
+              command: "*sb note move*"
+            label: "does not move/route the note (no destination was named in this scenario)"
