@@ -1,0 +1,28 @@
+judge_domain_context: |
+  The assistant is running the `second-brain:capture` Claude Code skill, which
+  writes a note into an Obsidian vault from a source the user hands it. We are
+  testing Step 4 of that skill: after creating the note, capture must leave it
+  in the inbox and never ask the user whether to route it anywhere. Routing is
+  a separate skill's job now (`process-inbox`, which auto-routes above a
+  confidence threshold on its own batch pass). A prior version of capture
+  asked "want me to route it?" on every single-note capture; this test guards
+  against regressing back to that.
+
+  Step-4-compliant behavior: the assistant reports the note was created and
+  left in the inbox (optionally also reporting the daily-note breadcrumb
+  and/or any connections offered, per the rest of the skill), without asking
+  the user any question about routing, moving, or filing the note, and
+  without itself moving the note via `sb note move` (no destination was
+  named in this scenario, so there is nothing to resolve).
+
+  Regressed behavior: the assistant asks something like "want me to route
+  it?", "should I move this to X?", "left it in the inbox, let me know if
+  you want it filed elsewhere" - any question or offer about the note's
+  destination - or silently moves the note without a user-named destination.
+
+# Run from the skill-evals repo (or wherever skill-evals is installed):
+#   uv run skill-evals \
+#     --plugin-dir plugins/second-brain \
+#     --config plugins/second-brain/skills/capture/evals/eval_config.yaml \
+#     --scenarios-dir plugins/second-brain/skills/capture/evals/scenarios \
+#     --project-root plugins/second-brain

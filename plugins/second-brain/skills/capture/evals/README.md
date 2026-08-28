@@ -1,3 +1,32 @@
+# Evals for `capture`
+
+## Behavior eval: `no-route-offer`
+
+Permanent regression fixture for Step 4 ("leave it in the inbox for
+`process-inbox` to route" - capture must never ask about routing per note).
+Lives at `scenarios/no-route-offer/scenario.yaml`, run via the `skill-evals`
+harness (a separate tool, not `trigger_eval.py`):
+
+```bash
+cd /path/to/skill-evals
+uv run skill-evals \
+  --plugin-dir /path/to/pickled-claude-plugins/plugins/second-brain \
+  --config /path/to/pickled-claude-plugins/plugins/second-brain/skills/capture/evals/eval_config.yaml \
+  --scenarios-dir /path/to/pickled-claude-plugins/plugins/second-brain/skills/capture/evals/scenarios \
+  --project-root /path/to/pickled-claude-plugins/plugins/second-brain \
+  --scenario no-route-offer --trials 1
+```
+
+Confirmed 2026-08-28: passes 100% (behavior + tool_calls checks) against the
+current (fixed) `capture/SKILL.md` across 3 real runs. Read the "known quirk"
+comment at the top of `scenario.yaml` before trusting the transcript's own
+narrative of success/failure - the model sometimes reports Write/Edit as
+"denied" even when the harness's own results JSON shows the mock matched and
+returned success. That's a separate, filed `skill-evals` harness issue, not a
+`capture` bug, and doesn't affect this scenario's actual pass/fail (the checks
+are scoped to routing language and the absence of a `sb note move` call,
+neither of which the denial narrative touches either way).
+
 # Trigger evals for `capture`
 
 Measures whether the skill actually fires on real user phrasings. Queries in

@@ -112,18 +112,25 @@ as of 2026-08-14 that had orphaned 46 notes, and untangling it took a single 211
 For a title, prefer the source's own framing over a topic label. `# Glide browser` beats
 `# Notes on a keyboard-driven browser`.
 
-## Step 4: Leave it in the inbox - routing is opt-in
+## Step 4: Leave it in the inbox for `process-inbox` to route
 
-The note stays where sb put it. **Offer** to route it; do not route it.
+The note stays where sb put it. Routing is `process-inbox`'s job, not capture's —
+don't ask, don't route it, and don't mention that it still needs routing.
 
-This overrides the vault's general "capture: file rough, move on / a wrong-but-close home beats the
-global inbox" guidance, which governs notes *the user* files by hand. Notes *the agent* writes on
-request stay in the inbox until the user says otherwise. Both rules coexist in the vault CLAUDE.md
-and the scope of the override has historically been read as ambiguous, which produced a roughly
-50/50 split between inbox and direct-to-area filing. It is not ambiguous: **agent-written note on
-request → inbox, stop.**
+This overrides the vault's general "capture: file rough, move on / a wrong-but-close
+home beats the global inbox" guidance, which governs notes *the user* files by hand.
+Notes *the agent* writes on request stay in the inbox until `process-inbox` picks them
+up. Both rules coexist in the vault CLAUDE.md; the scope of the override has
+historically been read as ambiguous — first producing a roughly 50/50 split between
+inbox and direct-to-area filing, later a per-note routing question duplicating
+process-inbox's own batch routing. It is not ambiguous: **agent-written note on
+request → inbox, no offer, no mention.**
 
-The exception is an explicit destination from the user ("put it in 66"). Then write it there.
+The exception is an explicit destination named in the same conversation ("put it in
+66"). Resolve it the way `route` would rather than hand-rolling a path: run
+`sb vault structure`, match the user's phrase against a real destination (JD `area`/
+`code` or PARA folder), then `sb note move --from "{note-path}" --to "{destination}/"`.
+Never construct the destination path from the user's words alone.
 
 ## Step 5: Offer connections, append the daily breadcrumb
 
@@ -180,7 +187,9 @@ yourself once all notes exist, since connections need the whole set in view.
 - **Never fabricate.** No invented URLs, no unverified `[[links]]`, no filled-in details. Stop and
   report the gap instead.
 - **sb owns paths.** No hand-rolled destinations.
-- **Inbox by default.** Routing is offered, not performed.
+- **Inbox by default.** Routing is `process-inbox`'s job — capture never asks or
+  routes, except an explicit user-named destination, resolved via `sb vault
+  structure` like `route` does, never hand-rolled.
 - **Connecting is offered; the breadcrumb is not.** Suggest related links and let the user decide,
   but the daily-note breadcrumb append happens automatically every time - it no longer waits for a
   yes.
