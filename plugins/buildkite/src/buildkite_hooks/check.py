@@ -47,6 +47,7 @@ def build_message(command, config):
         f"\n"
         f"The command `{command}` was intercepted. Your preferred tool is {preferred}.\n"
         f"Use `npx bktide@latest snapshot <buildkite-url>` for build investigation,\n"
+        f"`npx bktide@latest build create` / `build rebuild` to trigger or retrigger a build,\n"
         f"or `npx bktide@latest --help` for other commands.\n"
         f"\n"
         f"To allow bk commands, set `strict: false` in "
