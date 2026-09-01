@@ -24,6 +24,8 @@ Three tool categories exist with different strengths and limitations:
 | List artifacts        | ❌                  | ❌                  | ✅ `buildkite:list_artifacts`   |                                |
 | Wait for build        | ❌                  | ❌                  | ✅ `buildkite:wait_for_build`   |                                |
 | Unblock jobs          | ❌                  | ❌                  | ✅ `buildkite:unblock_job`      |                                |
+| **Create a build**    | ❌                  | **✅** `build create` | ❌                            | Auto-detects pipeline/commit/branch from git |
+| **Rebuild a build**   | ❌                  | **✅** `build rebuild` | ❌                           | Re-runs with original params   |
 | Human-readable output | ✅                  | ✅                  | ❌ (JSON)                       |                                |
 
 ## Detailed Tool Information
@@ -119,7 +121,11 @@ npx bktide@latest pipelines <org>                    # List pipelines
 npx bktide@latest builds <org>/<pipeline>            # List recent builds
 npx bktide@latest build <org>/<pipeline>#<number>    # Build details
 npx bktide@latest annotations <org>/<pipeline>#<number>    # Show annotations
+npx bktide@latest build create [<org>/<pipeline>]    # Trigger a new build (auto-detects from git if omitted)
+npx bktide@latest build rebuild <build-ref>          # Re-run an existing build with its original params
 ```
+
+Both `build create` and `build rebuild` accept `--watch` to poll the new build until it reaches a terminal state, same as `wait_for_build`.
 
 ### Bundled Scripts (Tertiary)
 
@@ -206,6 +212,7 @@ Features:
 - Listing pipelines or builds
 - Getting quick status overview
 - Interactive terminal work
+- Triggering a new build or retriggering an existing one (`build create` / `build rebuild`) — this is the one write capability bktide has; don't fall back to `bk build create`/`bk build retry` or a throwaway empty-commit push
 
 ### Use MCP Tools When:
 

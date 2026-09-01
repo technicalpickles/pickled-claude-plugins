@@ -23,6 +23,7 @@ Use this skill when:
 - Waiting for builds to complete
 - Checking build status across multiple repos/PRs
 - Understanding what "broken" or other Buildkite states mean
+- Triggering a fresh build or retriggering an existing one (e.g. an event like undrafting a PR doesn't start a new build — you need to trigger one directly)
 
 ## Tool Hierarchy and Selection
 
@@ -81,7 +82,11 @@ npx bktide@latest pipelines <org>                    # List pipelines
 npx bktide@latest builds <org>/<pipeline>            # List builds
 npx bktide@latest build <org>/<pipeline>#<build>     # Get build details
 npx bktide@latest annotations <org>/<pipeline>#<build>  # Show annotations
+npx bktide@latest build create [<org>/<pipeline>]    # Trigger a new build (auto-detects from git if omitted)
+npx bktide@latest build rebuild <build-ref>          # Re-run an existing build with its original params
 ```
+
+`build create` and `build rebuild` are bktide's one write capability — use `--watch` to poll until the build reaches a terminal state instead of a separate `wait_for_build` call.
 
 ### Tertiary: MCP Tools (Fallback)
 
@@ -110,6 +115,7 @@ Available MCP tools:
 | Save to files     | ✅              | ❌         | ❌        |
 | Wait for build    | ❌              | ❌         | ✅        |
 | Unblock jobs      | ❌              | ❌         | ✅        |
+| **Create/rebuild a build** | ❌    | **✅**     | ❌        |
 
 > This tool preference order can be overridden via `~/.config/pickled-claude-plugins/buildkite.yml`. A PreToolUse hook enforces your preference by intercepting `bk` CLI commands that overlap with bktide capabilities.
 
@@ -593,6 +599,24 @@ Look for:
 **Alternative 3: Analyze the failure in place**
 
 Sometimes reproduction isn't needed - the logs plus artifacts contain enough information to understand and fix the issue without running it locally.
+
+### 8. Triggering or Rebuilding a Build
+
+Some events that feel like they should start a new build don't. GitHub's "ready for review" event, for example, does not trigger a new Buildkite build — only pushes do. If you need a build for the current state without a new commit, don't push an empty commit as a workaround; trigger one directly:
+
+```bash
+# Start a new build (auto-detects org/pipeline/commit/branch from the current git checkout)
+npx bktide@latest build create
+
+# Watch it through to completion
+npx bktide@latest build create --watch
+
+# Re-run an existing build with its original commit/branch/message
+npx bktide@latest build rebuild <org>/<pipeline>/<build-number>
+npx bktide@latest build rebuild <buildkite-build-url>
+```
+
+Flags (`--commit`, `--branch`, `--message`, `--env`) override git auto-detection; run `bktide build create --help` for the full list. This is the one write operation bktide supports — it's the direct replacement for `bk build create`/`bk build retry`, which the buildkite tool-preference hook blocks in favor of this command.
 
 ## Understanding Buildkite States
 
