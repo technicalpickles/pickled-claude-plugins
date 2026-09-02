@@ -60,6 +60,19 @@ Location: ~/Vaults/my-vault/handoffs/
 
 Default location: `.parkinglot/` in project root (gitignored).
 
+Optionally, also send the parked file to an external destination (e.g. filing it into a second-brain vault) via env vars:
+
+```bash
+# Literal destination command template
+export AGENT_PARK_DESTINATION='npx @techpickles/sb note create --source auto --title "{title}" --content-file {file}'
+
+# Or: a no-arg command whose stdout produces the template dynamically. Wins over
+# AGENT_PARK_DESTINATION if both are set.
+export AGENT_PARK_DESTINATION_HELPER='~/.claude/bin/pick-park-destination.sh'
+```
+
+Both accept `{file}`, `{title}`, and `{mode}` (`continuation` or `close-out`) placeholders. Neither var set means park behaves exactly as it does without one — this is purely additive, never a replacement for the local file.
+
 ## Installation
 
 Requires the [pickled-claude-plugins marketplace](../../README.md#installation). Then:
