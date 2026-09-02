@@ -194,6 +194,20 @@ chore: ...       # scope optional for chore
 2. Check your scope - scopeless commits don't bump plugins
 3. Run `./scripts/analyze-version-bumps.sh` to see what's detected
 
+### A `docs()` commit that's really a feature
+
+`bump-version.sh --auto` bumps by conventional commit type (`feat` → minor, `docs` → no bump), not by intent. For plugins, documentation often IS the deliverable (skills are markdown content), so a `docs()` commit that adds a new reference file under `skills/<skill>/references/` or otherwise expands what a skill teaches Claude is a feature in plugin terms even though the commit type is `docs`.
+
+Before pushing a `docs(<plugin>):` commit, ask: does this change what the skill teaches Claude? If yes, bump by hand:
+
+```bash
+./scripts/bump-version.sh <plugin> minor
+git add .claude-plugin/marketplace.json
+git commit -m "chore(<plugin>): bump version to X.Y.0"
+```
+
+If it's a typo fix, internal note, or commentary on existing content with no behavior change, no bump needed.
+
 ### Hook not running
 
 Ensure hk is installed:
