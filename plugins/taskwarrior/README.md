@@ -12,6 +12,10 @@ Provides a skill that activates when you query or modify tasks. Captures dense r
 - **Full-text search:** `task export | jq -r '.[] | select(.annotations[]?.description | test("..."))'`
 - **Description-length convention:** ≤ 100 chars; long context goes in annotations.
 
+## Hooks
+
+A `PostToolUse:Skill` hook nudges taskwarrior UUID-safety whenever a skill that writes a durable, resumed-later artifact is invoked (currently: agent-meta's `park`). It injects a reminder to verify a cited UUID resolves before it goes into a handoff, and never cite the bare integer ID. See `hooks/nudge-uuid-on-handoff.py`.
+
 ## Companion config
 
 This skill assumes `~/.taskrc` has been configured with a named `dense` report. See the design doc at `docs/superpowers/specs/2026-05-08-taskwarrior-token-density-design.md` for the exact `.taskrc` block.

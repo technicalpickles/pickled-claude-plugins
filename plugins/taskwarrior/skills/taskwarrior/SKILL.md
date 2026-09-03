@@ -94,7 +94,12 @@ The `"i"` flag makes the test case-insensitive. Drop it for case-sensitive match
 
 ## Durable references: UUID, not numeric ID
 
-Numeric IDs are reused once a task completes — `task 197` today may be a completely different task next month. They're fine for same-session interactive use (`task 197 done`, or an `annotate` right after creating the task). They are **not** fine for anything that outlives the current shell: park/handoff files, commit messages, memory files, PR descriptions, beans. A numeric ID written into one of those will silently point at the wrong task later.
+Numeric IDs are reused once a task completes, or whenever the pending list otherwise reorders — `task 197` today may be a completely different task next month, or even a few tool calls from now if other tasks completed or unrelated background work touched taskwarrior in between. They're fine for same-session interactive use (`task 197 done`, or an `annotate` right after creating the task, with nothing in between). They are **not** fine for anything that outlives the current shell: park/handoff files, commit messages, memory files, PR descriptions, beans. A numeric ID written into one of those will silently point at the wrong task later.
+
+**Verify before you cite, and re-resolve before you act.** This has caused real, repeated damage — annotate/done calls landing on unrelated tasks in other projects, needing `task <uuid> denotate -- <text>` cleanup afterward:
+
+- Before writing a UUID into a durable artifact, confirm it actually resolves to the task you mean (`task <uuid> info`, read the description back). A UUID is only as trustworthy as the citation that produced it — hand-typed from memory, copied from an earlier message, or captured before the task was edited elsewhere can all silently point at the wrong task despite being correctly formatted.
+- Before acting on a cached integer ID (`done`, `annotate`, `modify`, `depends`), re-resolve it if it was captured more than a few commands ago in the same session. Don't trust that the number still means what it meant earlier.
 
 Capture the UUID at creation time and cite that instead:
 
