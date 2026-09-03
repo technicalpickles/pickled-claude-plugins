@@ -1,0 +1,16 @@
+{
+  "description": "Nudge taskwarrior UUID-safety when a skill that writes durable, resumed-later artifacts is invoked",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/nudge-uuid-on-handoff.py"
+          }
+        ]
+      }
+    ]
+  }
+}
