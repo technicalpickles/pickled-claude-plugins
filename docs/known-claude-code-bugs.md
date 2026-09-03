@@ -47,6 +47,16 @@ json.loads(Path(tmp_path).read_text())  # OK
 }
 ```
 
+## PreToolUse `subagent_type` Namespacing
+
+**Issue:** not yet filed upstream.
+
+A `PreToolUse` hook on the `Agent` tool receives `tool_input.subagent_type` plugin-namespaced (e.g. `gusto-agent-arcade:arcade-acceptance-verifier`), not the bare form (`arcade-acceptance-verifier`), even when the invoking prompt used the bare name. The harness resolves it to the namespaced canonical id before the hook sees it. The tool name itself is still `Agent`, so `matcher: "Agent"` is correct.
+
+**Impact:** a hook that filters subagent spawns by name prefix (`case "$subagent_type" in arcade-*)`) matches nothing in a real session, since the value is always `plugin:arcade-*`. Unit tests that hand-build the PreToolUse payload with a bare `subagent_type` pass anyway, hiding the bug; only a live `claude --plugin-dir` run catches it.
+
+**Workaround:** match both forms, scoped to your plugin: `arcade-* | your-plugin-name:arcade-*`. Alternatively, skip the prefix filter and fire for all spawns if that's acceptable for the hook's purpose.
+
 ## Debugging Checklist
 
 When hooks aren't firing, check in this order:

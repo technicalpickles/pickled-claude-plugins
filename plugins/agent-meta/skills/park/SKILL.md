@@ -39,6 +39,7 @@ Pick once and commit. Do not switch modes mid-write.
    1. Project `CLAUDE.md` → `## Handoffs` or `## Parking` → `Location:`
    2. User `~/.claude/CLAUDE.md` → same lookup
    3. Default: `.parkinglot/` in project root (verify it is gitignored)
+4. Check the injected context for a `Park destination:` line. This is separate from the CLAUDE.md location above and always optional — it names a command to also send the file to once it's written, e.g. filing it into a second brain vault. Not present unless the user configured `AGENT_PARK_DESTINATION` or `AGENT_PARK_DESTINATION_HELPER`. Note the template if present; it's used in "After Parking" below.
 
 ## Continuation Template
 
@@ -112,6 +113,16 @@ Filename: `[topic-slug]-wrapped.md`
 
 Close-out has no Resume Prompt and no Next Steps. If you find yourself wanting to write either, the work is probably a continuation: re-check the mode.
 
+## Sending to a Destination
+
+If step 4 above found a `Park destination:` template, run it now, after the file is written:
+
+1. Substitute placeholders in the template: `{file}` → the full path just written, `{title}` → the topic slug/heading, `{mode}` → `continuation` or `close-out`.
+2. Run the substituted command via Bash. This happens as a normal, visible tool call — never assume it succeeded without checking the result.
+3. Report the outcome to the user alongside the local path (see "After Parking" below). If the command fails, say so plainly and still report the local file as parked — the local write is the source of truth; the destination is a best-effort extra.
+
+If no `Park destination:` line was present, skip this section entirely — park behaves exactly as it does without one.
+
 ## After Parking
 
 For continuation:
@@ -130,3 +141,5 @@ Wrapped to `[path]`.
 
 This is a close-out record. To start fresh work that builds on it, reference the file in your next session.
 ```
+
+If a destination command ran, append one line noting the result either way, e.g. `Also sent to [destination]` or `Destination command failed: [short reason]`.

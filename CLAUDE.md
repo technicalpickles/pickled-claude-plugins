@@ -96,6 +96,8 @@ rm -rf ~/.claude/plugins/cache/pickled-claude-plugins/{plugin}/
 
 **Note:** `CLAUDE_PLUGIN_ROOT` is NOT set for global hooks in `~/.claude/settings.json`.
 
+**Hooks/plugins reading user-level config must honor `CLAUDE_CONFIG_DIR`.** It's undocumented (not in Claude Code's env-vars/settings docs as of 2026-07) but honored in practice, and it *replaces* `~/.claude` rather than adding to it; it accepts a single dir or a `:`/`,`-separated list to search in order. Resolve as `$CLAUDE_CONFIG_DIR` (split on `[:,]`) or `[$HOME/.claude]`; don't hardcode `$HOME/.claude`, or config lookup silently breaks the day a user relocates their config dir. See `plugins/writing-tools/src/writing_tools/config.py`'s `_user_config_dirs()` for a working implementation (PR #102).
+
 ## Plugin Internal Structure
 
 Each plugin follows this structure:
@@ -113,6 +115,11 @@ plugins/{name}/
 ```
 
 **User-invocable actions go in `skills/{name}/SKILL.md`.** Claude Code surfaces skills for `/plugin:skill` invocation; plugin `commands/{name}.md` files are not surfaced and should not be used. If you find `commands/` directories in existing plugins, they are dead code: convert to skills. The `description:` field in SKILL.md frontmatter is what triggers the skill, so write it as a "use when X" sentence.
+
+### Naming Gotchas
+
+- **Skill names are globally unique across all installed plugins** (Claude Code surfaces skills by their bare `name:` slug, not `plugin:name`). Two plugins shipping a skill called `doctor` collide. Prefix the directory and `name:` field with the plugin name: `plugins/actually-lsp/skills/actually-lsp-doctor/SKILL.md` with `name: actually-lsp-doctor`, not `skills/doctor/SKILL.md` with `name: doctor`. Some existing plugins (agent-meta, sandbox-first) ship generic-named skills and got away with it only because the names happened to be unique; don't rely on that for new plugins.
+- **Don't ship a `commands/{name}.md` with the same name as a `skills/{name}/SKILL.md`.** Beyond commands simply not being surfaced (see above), a same-name collision specifically suppresses the SKILL.md content injection that normally follows a Skill tool invocation, forcing the model to grep/read the file manually or hallucinate its contents. If a skill already exists at `skills/{name}/`, either give any slash-command wrapper a different name or drop it entirely: direct Skill invocation via keyword match or `/plugin:skill-name` is sufficient. Slash-command wrappers pointing at skills are a legacy pattern from before skills were directly slash-callable.
 
 ## Versioning
 
@@ -179,6 +186,19 @@ See `@references/index.md` for complete list.
 ```
 
 The `@path/to/file` import syntax is a CLAUDE.md-specific feature. In SKILL.md files, Claude reads linked files on demand using progressive disclosure.
+
+### Description Tuning Has a Structural Ceiling
+
+A skill's description controls whether Claude invokes it, but for some skills no amount of description tuning closes the gap: skills wrapping a CLI Claude already knows (`gh`, `kubectl`, `git`, `npm`), and even some skills wrapping nothing built-in, can sit at or near 0% recall on eval sets regardless of description quality. Claude defaults to handling the query with its own tools rather than reaching for the skill.
+
+If recall stays low across description revisions with no precision regression, the gap is structural, not a description bug. Cheapest fix first:
+
+1. **Name the skill in always-loaded context.** Measured 2026-08-14 on `second-brain:capture` (a novel workflow, not a wrapped CLI): with a pointer section in CLAUDE.md naming the skill, 70-100% recall; with that section removed and nothing else changed, 0/10, zero triggers, on direct prompts. The description may contribute close to nothing; the pointer can be the whole mechanism. For a plugin, put the pointer in the scaffolded CLAUDE.md template so it ships with the plugin rather than being hand-written per project. Caveat: the pointer only catches intents it names explicitly.
+2. **Hook-based intercept** (e.g. `PreToolUse` on the CLI command the skill wraps), reach for this only after the pointer, since it's new surface to maintain.
+3. **Real-use data.** Eval prompts may not match how users actually phrase requests; ship and watch.
+4. **Stop tuning the description** past this point; diminishing or zero returns.
+
+See `plugins/buildkite/skills/investigating-builds/evals/README.md` for the eval-loop mechanics this is layered on top of.
 
 ## Contributing
 
