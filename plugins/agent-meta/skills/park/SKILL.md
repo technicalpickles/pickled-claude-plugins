@@ -35,8 +35,7 @@ Pick once and commit. Do not switch modes mid-write.
    - **Preferred:** Look for a `Session ID:` line in the PostToolUse hook context that this plugin injects when `agent-meta:park` is invoked. Use that value. A `Transcript:` line may also be present.
    - **Fallback:** Run [scripts/get-session-id.sh](scripts/get-session-id.sh) via Bash. If empty, use `unknown`.
 2. Gather git branch, worktree path, files touched.
-3. If the handoff cites a taskwarrior task, cite it by UUID and verify the UUID resolves to the intended task first (`task <uuid> info`) — a wrong-but-correctly-formatted UUID has landed in a handoff before. Never cite the bare integer ID; it can be reassigned to a different task by the time the handoff is resumed.
-4. Resolve output location, in order:
+3. Resolve output location, in order:
    1. Project `CLAUDE.md` → `## Handoffs` or `## Parking` → `Location:`
    2. User `~/.claude/CLAUDE.md` → same lookup
    3. Default: `.parkinglot/` in project root (verify it is gitignored)
