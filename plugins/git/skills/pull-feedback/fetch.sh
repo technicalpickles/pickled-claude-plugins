@@ -39,6 +39,16 @@ render() {
   local pr
   pr="$(jq '.data.repository.pullRequest' "$graphql")"
 
+  # Derive "latest review per author" ourselves: GitHub's own latestReviews
+  # field drops a reviewer's review entirely once they've been re-requested
+  # for another pass, silently losing exactly the feedback this doc exists
+  # to surface.
+  pr="$(echo "$pr" | jq '
+    .latestReviews = {
+      nodes: (.reviews.nodes | group_by(.author.login) | map(sort_by(.submittedAt) | last))
+    }
+  ')"
+
   local number title url state
   number="$(echo "$pr" | jq -r '.number')"
   title="$(echo "$pr" | jq -r '.title')"
@@ -245,7 +255,8 @@ live_fetch() {
 
   local reviewers
   reviewers="$(jq -r '
-    .data.repository.pullRequest.latestReviews.nodes
+    (.data.repository.pullRequest.reviews.nodes | group_by(.author.login) | map(sort_by(.submittedAt) | last)) as $latest
+    | $latest
     | if length == 0 then "(none)"
       else map("@\(.author.login) (\(.state))") | join(", ")
       end

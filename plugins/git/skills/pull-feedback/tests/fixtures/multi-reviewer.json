@@ -32,7 +32,7 @@
             }
           ]
         },
-        "latestReviews": {
+        "reviews": {
           "nodes": [
             {
               "author": { "login": "alice" },

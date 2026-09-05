@@ -1,0 +1,33 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "number": 300,
+        "title": "Rework the docs",
+        "url": "https://github.com/owner/repo/pull/300",
+        "state": "OPEN",
+        "reviewDecision": "CHANGES_REQUESTED",
+        "author": { "login": "me" },
+        "baseRefName": "main",
+        "headRefName": "rework-docs",
+        "reviewThreads": { "nodes": [] },
+        "reviews": {
+          "nodes": [
+            {
+              "author": { "login": "dana" },
+              "state": "CHANGES_REQUESTED",
+              "submittedAt": "2026-05-01T09:00:00Z",
+              "body": "First pass: fix the typos in section 2."
+            },
+            {
+              "author": { "login": "dana" },
+              "state": "CHANGES_REQUESTED",
+              "submittedAt": "2026-05-02T09:00:00Z",
+              "body": "Second pass: still one issue left in section 3."
+            }
+          ]
+        }
+      }
+    }
+  }
+}

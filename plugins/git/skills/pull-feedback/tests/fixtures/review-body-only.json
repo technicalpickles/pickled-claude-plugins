@@ -11,7 +11,7 @@
         "baseRefName": "main",
         "headRefName": "add-caching-layer",
         "reviewThreads": { "nodes": [] },
-        "latestReviews": {
+        "reviews": {
           "nodes": [
             {
               "author": { "login": "carol" },

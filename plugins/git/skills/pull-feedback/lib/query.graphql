@@ -27,7 +27,11 @@ query ($owner: String!, $repo: String!, $number: Int!) {
           }
         }
       }
-      latestReviews(first: 20) {
+      # latestReviews omits a reviewer's review entirely once they've been
+      # re-requested for another pass (a common "addressed, please look
+      # again" workflow) - fetch all reviews and derive "latest per author"
+      # ourselves instead.
+      reviews(first: 100) {
         nodes {
           author { login }
           state
