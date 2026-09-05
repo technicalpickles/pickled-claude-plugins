@@ -32,6 +32,7 @@ query ($owner: String!, $repo: String!, $number: Int!) {
           author { login }
           state
           submittedAt
+          body
         }
       }
     }

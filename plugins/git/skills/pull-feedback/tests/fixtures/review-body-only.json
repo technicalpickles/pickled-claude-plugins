@@ -1,0 +1,27 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "number": 257,
+        "title": "Add caching layer",
+        "url": "https://github.com/owner/repo/pull/257",
+        "state": "OPEN",
+        "reviewDecision": "CHANGES_REQUESTED",
+        "author": { "login": "me" },
+        "baseRefName": "main",
+        "headRefName": "add-caching-layer",
+        "reviewThreads": { "nodes": [] },
+        "latestReviews": {
+          "nodes": [
+            {
+              "author": { "login": "carol" },
+              "state": "CHANGES_REQUESTED",
+              "submittedAt": "2026-04-19T11:00:00Z",
+              "body": "1. Cache keys need a namespace prefix.\n2. TTL should be configurable."
+            }
+          ]
+        }
+      }
+    }
+  }
+}
