@@ -108,6 +108,12 @@
       "source": "./plugins/gut-check",
       "version": "0.1.0",
       "description": "Ground before you act: catch decisions and factual claims made from a thin basis (memory, the handoff, an unexamined pick)"
+    },
+    {
+      "name": "tailscale",
+      "source": "./plugins/tailscale",
+      "version": "0.1.0",
+      "description": "Tailscale CLI reference and safe patterns for exposing local services over a tailnet"
     }
   ]
 }
