@@ -27,46 +27,17 @@ For binding/exposure architecture (loopback vs. tailnet-interface binding, ident
 
 Symptom of getting this wrong: `sudo tailscale status --json` hangs asking for a password ("a terminal is required to read the password") on a host where plain `tailscale status` works fine and `sudo tailscale serve status` also works fine (because sudo is scoped to `serve *`, not `status`). Fix: drop the unneeded `sudo`, or check what the sudoers rule actually covers (`sudo -n -l`) before assuming Tailscale itself is broken.
 
-## Services (`svc:`) vs. node-level `serve`
+## Services vs. node-level serve
 
-Two different Tailscale features look similar but have separate config and separate status output:
+Two different features that look similar but have separate config and status output — a Service's config is invisible to bare `tailscale serve status` (it prints `No serve config` even when fully configured), and a serve command against an undefined Service reports success but does nothing. Full explanation and the fix (`serve status --json`, `.Services`): [references/services.md](references/services.md).
 
-- **Node-level serve**: `tailscale serve --https=443 http://127.0.0.1:8080` — attaches to *this node's* own identity (`<hostname>.<tailnet>.ts.net`).
-- **Services**: `tailscale serve --service=svc:myapp --https=443 http://127.0.0.1:8080` — proxies for a named **Service** with its own virtual IP/hostname (`myapp.<tailnet>.ts.net`), independent of which node is currently serving it (enables failover/migration later).
+## Setting up a brand-new Service
 
-**The gotcha that eats debugging time:** `tailscale serve status` **with no flags only shows node-level routes.** A Service's config is invisible to it — it prints `No serve config` even when the Service is fully configured and traffic is flowing. This looks exactly like "the serve command silently failed" and will send you down a rabbit hole of restarting `tailscaled`, running `tailscale down`/`up`, and re-issuing the serve command, all for nothing.
+Has a specific required order (define in admin console → `serve --service=` → restart `tailscaled` → approve → validate from a different node) that's easy to get wrong on a first deploy: [references/new-service-setup.md](references/new-service-setup.md).
 
-**Fix:** always check `tailscale serve status --json` and look under `.Services["svc:<name>"]`. That's the real source of truth for Service-based proxies.
+## `ping` and self-curl gotchas
 
-```bash
-tailscale serve status --json | jq '.Services'
-```
-
-**Prerequisite gotcha:** `tailscale serve --service=svc:X ...` does **not** create the Service. A Service must already be defined in the tailnet admin console (Services page, name + port) before the CLI has anything to attach a pending-host-approval to. Running the serve command against an undefined Service reports success ("Serve started and running in the background") but nothing ever shows up as pending, and the hostname never resolves to anything real. Define the Service first, then run `serve --service=`.
-
-## Setting up a brand-new Service (the reliable order)
-
-Getting the order wrong is the single most common source of "why won't this approve" on a first deploy. Follow it in this order, not the order a deploy script's automated steps happen to run in:
-
-1. **Define the Service in the admin console first**, before running anything else: `https://login.tailscale.com/admin/services` → "Define Service" → name + port. A `tailscale serve --service=` call against an undefined Service can report success with nothing to actually show for it.
-2. **Run `tailscale serve --service=svc:X --https=443 <target>`** on the host that will proxy it.
-3. **Restart `tailscaled` on that host**: `sudo systemctl restart tailscaled` (Linux). Confirmed required, not optional — until the daemon restarts, the pending-proxy registration from step 2 does not get pushed up to Tailscale's Services backend, and nothing shows up as approvable in step 4. Just re-toggling `serve ... off` / `serve ... on` is **not** a substitute for this restart.
-4. **Approve the pending host** in the admin console (Services page, next to the Service you defined in step 1).
-5. **Validate** from a different node: `curl -fsS https://<name>.<tailnet>.ts.net/<health-path>` (never from the serving host itself — see below).
-
-This restart is a deliberate, expected part of standing up a new Service — it's a different situation from the "don't restart tailscaled reflexively" troubleshooting advice further below, which is about an *already-working* Service whose `serve status` output merely looks wrong.
-
-## `tailscale ping` doesn't work on Service virtual IPs
-
-`tailscale ping <service-hostname-or-vip>` returns `no matching peer` even when the Service is healthy — a Service's virtual IP isn't a real WireGuard peer, so ping has nothing to reach. This is expected, not a failure signal. To test a Service, `curl` the HTTPS hostname instead:
-
-```bash
-curl -fsS --max-time 8 https://myapp.<tailnet>.ts.net/healthz -o /dev/null -w 'HTTP %{http_code}\n'
-```
-
-## Self-curl from the serving host can hang
-
-Curling a Service's own hostname *from the same host that's proxying it* can time out or hang (hairpin/self-connect issue) even when the Service works fine for every other node. Don't conclude a Service is broken from a failed self-test on the host — verify from a different tailnet node (e.g. your Mac, or another peer) before troubleshooting further.
+`tailscale ping` doesn't work against Service virtual IPs (`no matching peer` is expected, not a failure), and curling a Service's own hostname from the host that's proxying it can hang even when the Service is healthy for everyone else: [references/ping-and-curl-gotchas.md](references/ping-and-curl-gotchas.md).
 
 ## Quick troubleshooting checklist: "serve status looks wrong"
 
@@ -77,7 +48,7 @@ Curling a Service's own hostname *from the same host that's proxying it* can tim
 5. Are you testing from the same host that's serving the proxy? Test from a different node.
 6. Only after 1-5 are ruled out: check `tailscaled` itself (`systemctl status tailscaled`, `tailscale status`, node's `BackendState`).
 
-**Restarting `tailscaled` on a shared host is a real action, not a diagnostic one** — it affects connectivity for every service that host proxies. Don't do it reflexively while chasing a status-display confusion on an *already-working* Service; confirm with whoever owns the host first, and reach for it only after ruling out the display gotchas above. (This is different from standing up a brand-new Service, where the restart is an expected, required step — see above.)
+**Restarting `tailscaled` on a shared host is a real action, not a diagnostic one** — it affects connectivity for every service that host proxies. Don't do it reflexively while chasing a status-display confusion on an *already-working* Service; confirm with whoever owns the host first, and reach for it only after ruling out the gotchas above. (Standing up a *new* Service is different — there the restart is an expected, required step: [references/new-service-setup.md](references/new-service-setup.md).)
 
 ## Useful commands
 
@@ -85,7 +56,7 @@ Curling a Service's own hostname *from the same host that's proxying it* can tim
 |---|---|
 | `tailscale status` | Peer list + this node's connection state (no sudo needed normally) |
 | `tailscale status --json` | Same, machine-readable — `.Self`, `.Peer[]`, `.CurrentTailnet`, `.Health` |
-| `tailscale serve status --json` | Real Services + node-serve config — see Services section above |
+| `tailscale serve status --json` | Real Services + node-serve config — see [references/services.md](references/services.md) |
 | `tailscale ping <peer>` | WireGuard-level reachability to a real node (not Services) |
 | `tailscale version` | Compare versions across nodes when behavior differs between hosts |
 | `tailscale serve --service=svc:X ... off` | Disable a Service's proxy config (keeps the Service definition) |
