@@ -6,7 +6,7 @@ allowed-tools: Bash(scripts/get-session-id.sh)
 
 # Park
 
-Save the current work session. Park has two modes. Pick one, write that shape, do not mix.
+Save the current work session. Park has three modes. Pick one, write that shape, do not mix.
 
 ## Modes
 
@@ -14,11 +14,13 @@ Save the current work session. Park has two modes. Pick one, write that shape, d
 |------|----------|---------|----------|
 | **Continuation** | Bouncing to a new session, work continues | `Parked:` | `[topic-slug].md` |
 | **Close-out** | Work is done, capturing a record before walking away | `Wrapped:` | `[topic-slug]-wrapped.md` |
+| **Idle checkpoint** | Automated park triggered by inactivity/cache-expiry, not a user request | `Checkpoint:` | `[topic-slug]-checkpoint.md` |
 
 ## Mode Detection
 
-Pick one mode by checking three signals in order. Stop at the first one that resolves.
+Pick one mode by checking these signals in order. Stop at the first one that resolves.
 
+0. **Automated trigger.** If the invoking prompt explicitly identifies itself as an automated/idle-triggered park (e.g. names a watchdog, cron, or "idle-triggered" rather than a person asking) → idle checkpoint. Skip every other signal below — this must resolve without asking, since automated callers run headless and cannot answer a question.
 1. **Explicit user hint.**
    - "park, I'm done" / "wrap this up" / "park to close it out" / "park as record" → close-out
    - "park, switching sessions" / "park to continue" / "park, picking back up later" → continuation
@@ -26,6 +28,8 @@ Pick one mode by checking three signals in order. Stop at the first one that res
 3. **Ambiguity fallback.** Use the AskUserQuestion tool with one A/B question:
    - Question: "Is this a close-out (work is done, archiving) or a continuation (planning to pick this up in a new session)?"
    - Options: "Close-out (record)" / "Continuation (handoff)"
+
+Signal 3 requires an interactive caller. Never reach it for a headless/automated invocation — signal 0 must have already resolved those.
 
 Pick once and commit. Do not switch modes mid-write.
 
@@ -113,11 +117,54 @@ Filename: `[topic-slug]-wrapped.md`
 
 Close-out has no Resume Prompt and no Next Steps. If you find yourself wanting to write either, the work is probably a continuation: re-check the mode.
 
+## Idle Checkpoint Template
+
+Use when this park was triggered automatically because the session went idle (e.g. a watchdog parking a session near its prompt-cache expiry), not because a person asked. Same shape as continuation — the person may still be about to resume, in this session or a new one — but labeled so it reads as a machine-triggered snapshot rather than a deliberate handoff, and so the next `park` call in this same session doesn't get confused about what already happened here.
+
+~~~markdown
+# Checkpoint: [Topic]
+
+**Checkpointed:** [Date/time]
+**Session:** [session ID]
+**Branch:** [branch-name]
+**Worktree:** [path if applicable]
+**Trigger:** automated (idle)
+
+## Resume Prompt
+
+```
+unpark [path]
+
+[Tight, specific next-action paragraph. Names files, names skill to invoke,
+names the open question to resolve. Copy-paste ready.]
+```
+
+## Current State
+[What's done, what's in progress, what's blocked. Present tense.]
+
+## Key Decisions
+- [Decision + brief rationale]
+
+## Relevant Files
+- path/to/file.ts (new|modified|read)
+
+## Next Steps
+1. [Concrete next action]
+2. [Concrete next action]
+
+## Open Questions
+[Optional. Things the next session needs to resolve.]
+~~~
+
+Same Resume Prompt requirement as continuation: mandatory, specific, no filler.
+
+Filename: `[topic-slug]-checkpoint.md`
+
 ## Sending to a Destination
 
 If step 4 above found a `Park destination:` template, run it now, after the file is written:
 
-1. Substitute placeholders in the template: `{file}` → the full path just written, `{title}` → the topic slug/heading, `{mode}` → `continuation` or `close-out`.
+1. Substitute placeholders in the template: `{file}` → the full path just written, `{title}` → the topic slug/heading, `{mode}` → `continuation`, `close-out`, or `idle-checkpoint`.
 2. Run the substituted command via Bash. This happens as a normal, visible tool call — never assume it succeeded without checking the result.
 3. Report the outcome to the user alongside the local path (see "After Parking" below). If the command fails, say so plainly and still report the local file as parked — the local write is the source of truth; the destination is a best-effort extra.
 
@@ -140,6 +187,15 @@ For close-out:
 Wrapped to `[path]`.
 
 This is a close-out record. To start fresh work that builds on it, reference the file in your next session.
+```
+
+For idle checkpoint:
+
+```
+Checkpointed to `[path]` (automated — this session went idle).
+
+If you're still working in this session, ignore this. To resume elsewhere:
+> unpark [path]
 ```
 
 If a destination command ran, append one line noting the result either way, e.g. `Also sent to [destination]` or `Destination command failed: [short reason]`.
