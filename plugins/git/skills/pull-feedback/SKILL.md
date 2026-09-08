@@ -27,7 +27,7 @@ Add a `## Summary` section (1-2 sentences on what the PR does + state of the rev
 
 ### 3. Triage each unresolved thread (shallow pass)
 
-Each thread has a unique `<!-- thread: N -->` anchor. Use targeted `Edit` calls to fill three slots per thread:
+Each thread has a unique `<!-- thread: N -->` anchor. If a reviewer left feedback as a review body instead of (or in addition to) inline comments, it appears in its own `## Review comments` section with a `<!-- review: N -->` anchor per review — triage those the same way. Use targeted `Edit` calls to fill three slots per thread or review:
 
 - **Verdict (tentative):** pick one, based on whether the reviewer is *right*:
   - ✅ **Valid** — reviewer has a point, code needs to change
