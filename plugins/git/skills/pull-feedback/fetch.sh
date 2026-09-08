@@ -39,6 +39,16 @@ render() {
   local pr
   pr="$(jq '.data.repository.pullRequest' "$graphql")"
 
+  # Derive "latest review per author" ourselves: GitHub's own latestReviews
+  # field drops a reviewer's review entirely once they've been re-requested
+  # for another pass, silently losing exactly the feedback this doc exists
+  # to surface.
+  pr="$(echo "$pr" | jq '
+    .latestReviews = {
+      nodes: (.reviews.nodes | group_by(.author.login) | map(sort_by(.submittedAt) | last))
+    }
+  ')"
+
   local number title url state
   number="$(echo "$pr" | jq -r '.number')"
   title="$(echo "$pr" | jq -r '.title')"
@@ -75,43 +85,78 @@ EOF
   if [[ "$thread_count" -eq 0 ]]; then
     echo
     echo "_No unresolved threads._"
-    return
+  else
+    echo "$pr" | jq -r '
+      [.reviewThreads.nodes[] | select(.isResolved == false)]
+      | sort_by(.path, (.line // .originalLine))
+      | to_entries[]
+      | "\(.key + 1)\t\(.value.id)\t\(.value.path)\t\(.value.line // .value.originalLine)\t\(.value.comments.nodes[0].author.login)\t\(.value.isOutdated)"
+    ' | while IFS=$'\t' read -r idx thread_id path line first_author outdated; do
+      echo
+      local suffix=""
+      [[ "$outdated" == "true" ]] && suffix=" ⚠️ outdated"
+      echo "### \`$path:$line\` — @$first_author$suffix"
+      echo "<!-- thread: $idx, id: $thread_id -->"
+      echo "**Verdict (tentative):** _pending triage_"
+      echo
+
+      # Render the comment chain as a single blockquote
+      echo "$pr" | jq -r \
+        --arg tid "$thread_id" \
+        '
+          .reviewThreads.nodes[]
+          | select(.id == $tid)
+          | .comments.nodes
+          | map("> @\(.author.login): \(.body)")
+          | join("\n>\n")
+        '
+
+      echo
+      echo "**Reasoning:** _pending triage_"
+      echo "**Plan:** _pending triage_"
+
+      if [[ "$idx" -lt "$thread_count" ]]; then
+        echo
+        echo "---"
+      fi
+    done
   fi
 
-  echo "$pr" | jq -r '
-    [.reviewThreads.nodes[] | select(.isResolved == false)]
-    | sort_by(.path, (.line // .originalLine))
-    | to_entries[]
-    | "\(.key + 1)\t\(.value.id)\t\(.value.path)\t\(.value.line // .value.originalLine)\t\(.value.comments.nodes[0].author.login)\t\(.value.isOutdated)"
-  ' | while IFS=$'\t' read -r idx thread_id path line first_author outdated; do
-    echo
-    local suffix=""
-    [[ "$outdated" == "true" ]] && suffix=" ⚠️ outdated"
-    echo "### \`$path:$line\` — @$first_author$suffix"
-    echo "<!-- thread: $idx, id: $thread_id -->"
-    echo "**Verdict (tentative):** _pending triage_"
-    echo
+  local review_body_count
+  review_body_count="$(echo "$pr" | jq '[.latestReviews.nodes[] | select(.body != null and .body != "")] | length')"
 
-    # Render the comment chain as a single blockquote
-    echo "$pr" | jq -r \
-      --arg tid "$thread_id" \
-      '
-        .reviewThreads.nodes[]
-        | select(.id == $tid)
-        | .comments.nodes
-        | map("> @\(.author.login): \(.body)")
-        | join("\n>\n")
-      '
-
+  if [[ "$review_body_count" -gt 0 ]]; then
     echo
-    echo "**Reasoning:** _pending triage_"
-    echo "**Plan:** _pending triage_"
+    echo "## Review comments ($review_body_count)"
 
-    if [[ "$idx" -lt "$thread_count" ]]; then
+    echo "$pr" | jq -r '
+      [.latestReviews.nodes[] | select(.body != null and .body != "")]
+      | to_entries[]
+      | "\(.key + 1)\t\(.value.author.login)\t\(.value.state)"
+    ' | while IFS=$'\t' read -r idx author state; do
       echo
-      echo "---"
-    fi
-  done
+      local label
+      label="$(echo "$state" | tr '[:upper:]' '[:lower:]' | tr '_' ' ')"
+      echo "### Review by @$author ($label)"
+      echo "<!-- review: $idx -->"
+      echo "**Verdict (tentative):** _pending triage_"
+      echo
+
+      echo "$pr" | jq -r --argjson i "$idx" '
+        [.latestReviews.nodes[] | select(.body != null and .body != "")][$i - 1]
+        | "> " + .body
+      '
+
+      echo
+      echo "**Reasoning:** _pending triage_"
+      echo "**Plan:** _pending triage_"
+
+      if [[ "$idx" -lt "$review_body_count" ]]; then
+        echo
+        echo "---"
+      fi
+    done
+  fi
 
   local comment_count
   comment_count="$(jq 'length' "$comments")"
@@ -128,7 +173,7 @@ resolve_pr() {
 
   if [[ -z "$ref" ]]; then
     # Auto-detect from current branch
-    if ! gh pr view --json number,url,headRepositoryOwner,headRepository 2>/dev/null; then
+    if ! gh pr view --json number,url 2>/dev/null; then
       echo "error: no PR found for current branch" >&2
       echo "pass a PR ref explicitly (e.g., 123, #123, owner/repo#123, or a PR URL)" >&2
       exit 1
@@ -139,18 +184,18 @@ resolve_pr() {
   # Strip URL prefix, handle org/repo#N, #N, bare number
   case "$ref" in
     https://github.com/*/pull/*)
-      gh pr view "$ref" --json number,url,headRepositoryOwner,headRepository
+      gh pr view "$ref" --json number,url
       ;;
     *#*)
       local repo="${ref%#*}"
       local number="${ref#*#}"
-      gh pr view "$number" --repo "$repo" --json number,url,headRepositoryOwner,headRepository
+      gh pr view "$number" --repo "$repo" --json number,url
       ;;
     '#'*)
-      gh pr view "${ref#\#}" --json number,url,headRepositoryOwner,headRepository
+      gh pr view "${ref#\#}" --json number,url
       ;;
     *)
-      gh pr view "$ref" --json number,url,headRepositoryOwner,headRepository
+      gh pr view "$ref" --json number,url
       ;;
   esac
 }
@@ -163,10 +208,19 @@ live_fetch() {
   pr_json="$(resolve_pr "$ref")"
 
   local owner repo number url
-  owner="$(echo "$pr_json" | jq -r '.headRepositoryOwner.login')"
-  repo="$(echo "$pr_json" | jq -r '.headRepository.name')"
   number="$(echo "$pr_json" | jq -r '.number')"
   url="$(echo "$pr_json" | jq -r '.url')"
+
+  # PR numbers are scoped to the base repo, not the head repo (which may be
+  # a fork). Derive owner/repo from the resolved PR's URL, which always
+  # points at the base repo, rather than headRepositoryOwner/headRepository.
+  if [[ "$url" =~ ^https://github\.com/([^/]+)/([^/]+)/pull/[0-9]+$ ]]; then
+    owner="${BASH_REMATCH[1]}"
+    repo="${BASH_REMATCH[2]}"
+  else
+    echo "error: could not parse owner/repo from PR url: $url" >&2
+    exit 1
+  fi
 
   local graphql_file comments_file
   graphql_file="$(mktemp)"
@@ -201,7 +255,8 @@ live_fetch() {
 
   local reviewers
   reviewers="$(jq -r '
-    .data.repository.pullRequest.latestReviews.nodes
+    (.data.repository.pullRequest.reviews.nodes | group_by(.author.login) | map(sort_by(.submittedAt) | last)) as $latest
+    | $latest
     | if length == 0 then "(none)"
       else map("@\(.author.login) (\(.state))") | join(", ")
       end

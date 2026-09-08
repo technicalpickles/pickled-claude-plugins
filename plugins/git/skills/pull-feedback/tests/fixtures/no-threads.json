@@ -11,7 +11,7 @@
         "baseRefName": "main",
         "headRefName": "feature",
         "reviewThreads": { "nodes": [] },
-        "latestReviews": { "nodes": [] }
+        "reviews": { "nodes": [] }
       }
     }
   }
