@@ -145,28 +145,25 @@ note's content.
 
 Then append the daily-note breadcrumb yourself - this is no longer a yes/no:
 
-1. **Ensure today's daily note exists.** `sb daily append` ENOENTs on a missing daily note instead
-   of creating one. Run `npx @techpickles/sb daily path` to get today's path, then check it with
-   `Read`/`Glob`:
-   - If missing, read `.obsidian/daily-notes.json` for the `template` path, `Read` that template,
-     and `Write` it verbatim to today's path before appending. If no template is configured, say so
-     and stop rather than guessing a daily-note shape.
-   - If the append still fails for any other reason, say so out loud. A dropped breadcrumb must
-     never be silent now that no one is asked before it happens.
-2. **Append:**
+1. **Append:**
    ```bash
    npx @techpickles/sb daily append --section "Notes" --content "- [[<note>]] - <one-line why>"
    ```
-   Keep it to links unless asked for more. Do not restructure or rewrite the daily note.
-3. **Verify it landed under `## Notes`, with a temporary fallback.** `sb daily append` has a live
-   bug where `--section` fails to match an existing H2 and dumps the line as a stray plain-text
-   block elsewhere in the file instead of under the target section. Read the daily note back and
-   confirm the new line sits under the real `## Notes` heading. If it landed somewhere else, remove
-   the stray block and `Edit` the line into the correct `## Notes` section yourself.
-   **Delete this verification step once the CLI's section matcher is fixed** - it exists only to
-   paper over that bug, not because this is the intended design.
-4. **Report it in one line**, e.g. `Added breadcrumb to today's daily note.` No ceremony - just
-   enough for Josh to see it and undo or adjust.
+   One command does the whole job. `sb` creates today's daily note from the vault's configured
+   Obsidian daily template when it doesn't exist yet, and matches the existing `## Notes` heading
+   when it does. Keep the breadcrumb to links unless asked for more, and do not restructure or
+   rewrite the daily note.
+
+   Do not pre-check the note's existence, hand-copy the template, or verify where the line landed.
+   Those steps existed to paper over CLI bugs that are fixed; re-adding them is how a one-command
+   step turns back into four.
+
+   If the append does fail, say so out loud. A dropped breadcrumb must never be silent now that no
+   one is asked before it happens.
+2. **Report it in one line**, e.g. `Added breadcrumb to today's daily note.` No ceremony - just
+   enough for Josh to see it and undo or adjust. When the response includes `"created": true`, the
+   note was seeded from the template verbatim, so any `{{date}}` or placeholder links in it are
+   still literal. Leave them alone - that is the template's business, not the breadcrumb's.
 
 For deeper backlink weaving, hand off to the `connect` skill rather than reimplementing it.
 
