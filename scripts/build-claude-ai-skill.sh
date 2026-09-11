@@ -31,6 +31,8 @@ dist_dir="$skills_root/dist"
 mkdir -p "$dist_dir"
 
 skills=("$@")
+explicit=0
+[ "${#skills[@]}" -gt 0 ] && explicit=1
 if [ "${#skills[@]}" -eq 0 ]; then
   for dir in "$skills_root"/*/; do
     name="$(basename "$dir")"
@@ -47,11 +49,15 @@ fi
 for name in "${skills[@]}"; do
   skill_dir="$skills_root/$name"
   if [ ! -f "$skill_dir/SKILL.md" ]; then
+    if [ "$explicit" -eq 1 ]; then
+      echo "error: $name has no SKILL.md" >&2
+      exit 1
+    fi
     echo "skip: $name has no SKILL.md" >&2
     continue
   fi
   out="$dist_dir/$name.zip"
   rm -f "$out"
-  (cd "$skill_dir" && zip -X -r "$out" . -x '.*')
+  (cd "$skill_dir" && zip -X -r "$out" . -x '.*' -x '*/.*')
   echo "built plugins/$plugin/claude-ai-skills/dist/$name.zip"
 done

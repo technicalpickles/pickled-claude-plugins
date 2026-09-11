@@ -27,6 +27,12 @@ mirrors, and a commit touching it naturally scopes to that plugin
 existing commit-scope rule (see root `CLAUDE.md`'s Versioning section) with no
 special-casing.
 
+One consequence worth knowing: since version bumps are driven by
+conventional-commit scope, not by which files changed, a commit that touches only
+a claude-ai-skills port still bumps the host plugin's published version. That's
+intended — treat it like any other plugin change and run
+`./scripts/bump-version.sh --auto` as usual.
+
 A plugin's `claude-ai-skills/` directory can hold more than one skill.
 
 ## Building

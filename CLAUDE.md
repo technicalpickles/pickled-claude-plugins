@@ -131,6 +131,9 @@ mirror, but they are **not** plugin skills — no `plugin.json` entry, no market
 entry, not part of the generated README table, and none of the versioning/commit-scope
 mechanics below apply to their *content*. A commit touching one still uses that
 plugin's name as its conventional-commit scope, same as any other change to the plugin.
+This does mean a commit that touches only a claude-ai-skills port still bumps that
+plugin's published version in `marketplace.json` — expected, not a bug, and
+`./scripts/bump-version.sh --auto` handles it the same as any other plugin change.
 
 → Full details, the shared build script, and the straight-vs-adapted-port checklist:
 [`docs/claude-ai-skill-porting.md`](docs/claude-ai-skill-porting.md)
