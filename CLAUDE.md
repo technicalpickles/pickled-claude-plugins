@@ -121,6 +121,23 @@ plugins/{name}/
 - **Skill names are globally unique across all installed plugins** (Claude Code surfaces skills by their bare `name:` slug, not `plugin:name`). Two plugins shipping a skill called `doctor` collide. Prefix the directory and `name:` field with the plugin name: `plugins/actually-lsp/skills/actually-lsp-doctor/SKILL.md` with `name: actually-lsp-doctor`, not `skills/doctor/SKILL.md` with `name: doctor`. Some existing plugins (agent-meta, sandbox-first) ship generic-named skills and got away with it only because the names happened to be unique; don't rely on that for new plugins.
 - **Don't ship a `commands/{name}.md` with the same name as a `skills/{name}/SKILL.md`.** Beyond commands simply not being surfaced (see above), a same-name collision specifically suppresses the SKILL.md content injection that normally follows a Skill tool invocation, forcing the model to grep/read the file manually or hallucinate its contents. If a skill already exists at `skills/{name}/`, either give any slash-command wrapper a different name or drop it entirely: direct Skill invocation via keyword match or `/plugin:skill-name` is sufficient. Slash-command wrappers pointing at skills are a legacy pattern from before skills were directly slash-callable.
 
+## claude.ai Skills
+
+Some Claude Code skills are also worth porting to **claude.ai Skills** (the chat
+product's own skill format — Settings → Capabilities → Skills, no filesystem/CLI/MCP
+access, uploaded as a zip by hand). These ports live at
+`plugins/{name}/claude-ai-skills/{skill}/`, colocated with the Claude Code plugin they
+mirror, but they are **not** plugin skills — no `plugin.json` entry, no marketplace
+entry, not part of the generated README table, and none of the versioning/commit-scope
+mechanics below apply to their *content*. A commit touching one still uses that
+plugin's name as its conventional-commit scope, same as any other change to the plugin.
+This does mean a commit that touches only a claude-ai-skills port still bumps that
+plugin's published version in `marketplace.json` — expected, not a bug, and
+`./scripts/bump-version.sh --auto` handles it the same as any other plugin change.
+
+→ Full details, the shared build script, and the straight-vs-adapted-port checklist:
+[`docs/claude-ai-skill-porting.md`](docs/claude-ai-skill-porting.md)
+
 ## Versioning
 
 Versions live in `.claude-plugin/marketplace.json` only (not in plugin.json files).
@@ -167,6 +184,7 @@ The `plugin-list-check.yml` workflow blocks merge until the committed table matc
 ## Documentation
 
 - [`docs/versioning.md`](docs/versioning.md) - How plugin versions are managed
+- [`docs/claude-ai-skill-porting.md`](docs/claude-ai-skill-porting.md) - How claude.ai Skills (a separate product from Claude Code plugins) are structured and built
 - `plugins/tool-routing/docs/route-discovery.md` - How routes are found and merged
 - `plugins/tool-routing/docs/tests/` - Test scenarios and baseline results
 - `plugins/tool-routing/docs/retrospectives/` - Investigation notes
