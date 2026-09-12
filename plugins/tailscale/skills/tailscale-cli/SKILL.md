@@ -1,6 +1,6 @@
 ---
 name: tailscale-cli
-description: Use when running `tailscale` commands to debug connectivity, inspect status, or manage `tailscale serve`/`funnel`/Services — especially when `tailscale serve status` looks wrong, `tailscale` isn't found in a shell, `tailscale ping` fails against a host that's clearly up, or you're working across a mix of macOS (GUI app) and Linux (VM/container) nodes in the same tailnet.
+description: Use when running `tailscale` commands to debug connectivity, inspect status, or manage `tailscale serve`/`funnel`/Services — especially when `tailscale serve status` looks wrong, `tailscale` isn't found in a shell, `tailscale ping` fails against a host that's clearly up, you're working across a mix of macOS (GUI app) and Linux (VM/container) nodes in the same tailnet, or a node/sidecar joins fine but something downstream (a grant, an app-level check) crash-loops or silently fails — that's often an ACL/tagOwners issue, not a code bug. Also use for authoring or reading tailnet ACLs (tagOwners, grants, the legacy `acls` array) or querying the live policy via the Tailscale API.
 ---
 
 # Tailscale CLI
@@ -36,6 +36,10 @@ Two different features that look similar but have separate config and status out
 `tailscale serve --https=443 off` (or the bare-port form) tears down **every** path mapping on that port, not just the one you added. Confirmed by running it on a node with two node-level mappings (`/` and `/readme-preview`) to remove only `/`: `serve status --json` came back completely empty afterward, both mappings gone. There's no scoped "remove just this path" for node-level serve — `tailscale serve --set-path=/some/path off` fails outright if that exact path isn't the one currently mapped, and even a successful narrower-looking command can still wipe the shared `:443` config underneath it.
 
 If a node has more than one node-level mapping, or you're not sure whether it does: `tailscale serve status --json` before you touch anything, and after, so you know exactly what existed and can rebuild it (`tailscale serve --bg --set-path=<path> <target>` per mapping) rather than assuming your teardown was scoped to what you added. This matters most on a shared host, or anywhere state might have been added since you last checked — never assume you're the only thing that's touched `serve` on that node.
+
+## ACLs: tagOwners, grants, and the silent-drop pattern
+
+There's no local `tailscale acl` command — the policy file only lives in the admin console or the API. A node can join the tailnet fine while silently losing a requested tag it wasn't authorized for (`tagOwners`), which then breaks something downstream (a grant, an app-level check) without any Tailscale-level error. Recognizing this pattern, tagOwners vs. grants, legacy `acls` vs. current `grants`, and reading the live policy via the API: [references/acls.md](references/acls.md).
 
 ## Setting up a brand-new Service
 

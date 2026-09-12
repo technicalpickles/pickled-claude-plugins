@@ -112,7 +112,7 @@
     {
       "name": "tailscale",
       "source": "./plugins/tailscale",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "description": "Tailscale CLI reference and safe patterns for exposing local services over a tailnet"
     },
     {
