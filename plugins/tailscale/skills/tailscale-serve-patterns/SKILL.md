@@ -1,6 +1,6 @@
 ---
 name: tailscale-serve-patterns
-description: Use when deciding how to expose a locally-running server over a tailnet (loopback bind + `tailscale serve` vs. binding directly to the tailnet interface), when a service is reachable at its Tailscale address but a request seems to bypass expected auth, when working with Tailscale identity headers (`Tailscale-User-Login` and friends) for browser auth, or when a "bind is loopback-only" security check doesn't seem to reflect what's actually reachable (Docker port publish, reverse proxy, container networking).
+description: Use when deciding how to expose a locally-running server over a tailnet (loopback bind + `tailscale serve` vs. binding directly to the tailnet interface), when a service is reachable at its Tailscale address but a request seems to bypass expected auth, when working with Tailscale identity headers (`Tailscale-User-Login` and friends) for browser auth, or when a "bind is loopback-only" security check doesn't seem to reflect what's actually reachable (Docker port publish, reverse proxy, container networking). Also use this BEFORE handing the user a `localhost`/`127.0.0.1` URL or a bare port number for anything you just started serving (a quick script, a dev server, a one-off demo, a review page) if there's any chance they'll open it from another device (phone, tablet, another machine) -- check whether Tailscale is available and give them a tailnet URL that actually works from there instead of a URL that only works on the machine you're running on.
 ---
 
 # Tailscale Serve Patterns
@@ -21,6 +21,22 @@ Two ways to make a local service reachable over a tailnet, with very different s
 **Default to loopback + `serve`.** It's the pattern used across this project's homelab services (bind `127.0.0.1:<port>`, expose via host `tailscaled` + Services) and what the `crit` review tool's own auto-mode classifier treats as the expected, low-friction path. Direct tailnet-interface binding is the exception, appropriate for short-lived single-user sessions (e.g. "review this on my phone for the next ten minutes, I'm the only one on this tailnet") — treat it as something that needs an explicit, conscious opt-in (a flag like `--allow-unauthenticated-network`), not a default.
 
 `serve` does not change what the process itself binds to — it's a separate proxy layer. If a server only binds `127.0.0.1`, requests straight to the tailnet hostname's port will fail; you must go through the URL/port `serve` publishes (usually 443), not the app's own port.
+
+## Before handing back a URL for anything you just served
+
+The default habit -- "it's running, here's `http://localhost:8080`" -- is wrong the moment the user wants to open it from their phone, their other laptop, or anywhere that isn't the exact machine the process is bound to. That's an easy thing to forget in the moment because the server *is* working, just only from one place. Before handing back a URL for something you just started serving locally, get in the habit of checking whether a tailnet URL would actually work for the person on the other end, rather than a URL that only resolves on your current machine.
+
+Use the bundled helper instead of re-deriving this by hand (it's easy to get the details wrong -- see the gotchas below):
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/scripts/resolve-tailnet-url.sh" <port> [path]
+```
+
+It finds the `tailscale` binary (PATH or the macOS GUI app), confirms Tailscale is actually connected (`BackendState == Running`, not just installed), and prints a ready-to-use `http://<tailnet-host>:<port>/<path>` -- using the node's tailnet IP if the DNS name isn't usable. If Tailscale isn't connected, it exits non-zero and prints nothing to stdout; treat that as your signal to fall back to a plain `localhost` URL and say so, rather than guessing at a tailnet name yourself.
+
+**Reading Tailscale's status needs the sandbox bypass.** `tailscale status --json` talks to `tailscaled` over a local socket that the sandbox blocks by default -- the command will hang or fail silently rather than error clearly. Run the helper (or any `tailscale` command) with `dangerouslyDisableSandbox: true`.
+
+This only tells you the *URL*, not whether the server is reachable there -- if you bound to loopback, you still need `tailscale serve` proxying in front of it (see above) for that URL to actually work from another device.
 
 ## The IPv4/IPv6 loopback trap
 
@@ -51,3 +67,5 @@ A security/doctor check that inspects `gateway.bind` (or equivalent app-level co
 | Assuming a `0.0.0.0`/tailnet-interface bind flag is fine because "only I'm on this tailnet" | True today, but it's an unauthenticated-by-default state with no expiry — treat it as an explicit, temporary opt-in, not a config to leave on |
 | Debugging a `[::1]`-vs-`127.0.0.1` connection failure as a Tailscale problem | Check the actual bound address first; it may have nothing to do with the tailnet at all |
 | Trusting a passing "bind is loopback" doctor/security check as proof of true exposure | It only sees the app's own config, not Docker publish or reverse-proxy layers in front of it |
+| Handing back `http://localhost:<port>` for something the user will open from another device | Only works on the machine the process is running on; resolve the tailnet URL first (see above) |
+| Tearing down your own `serve` mapping with `serve --https=443 off` on a host that might have others | Removes the *entire* port's config, not just yours — see the `tailscale-cli` skill's "`serve ... off` removes the whole port's config" section before cleaning up |

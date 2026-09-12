@@ -21,10 +21,15 @@ Use when deciding how to expose a locally-running server over a tailnet, working
 
 **Covers:**
 - Loopback bind + `tailscale serve` proxy (safe default) vs. binding directly to the tailnet interface (unauthenticated, exposure-widening)
+- Resolving a tailnet URL (via the bundled `scripts/resolve-tailnet-url.sh`) before handing back a `localhost`/bare-port link for anything served locally that the user might open from another device
 - The IPv4 (`127.0.0.1`) vs. IPv6 (`[::1]`) loopback trap
 - Empirically-verified behavior of Tailscale identity headers on Services (undocumented by Tailscale itself): Serve overwrites spoofed headers rather than stripping them, but a request straight to the loopback port arrives unverified — making loopback-only binding a security invariant, not just hygiene
 - Why tagged devices and Funnel traffic never carry identity headers, and why that fallback isn't optional
 - Why an automated "bind is loopback" check can pass while a Docker `-p` publish or reverse proxy still exposes the port
+
+## Hooks
+
+Before `crit:crit` launches (the interactive review skill from the `crit` plugin), a `PreToolUse` hook nudges toward `scripts/resolve-tailnet-url.sh` for resolving the review URL, instead of re-deriving Tailscale's status/DNS-name lookup by hand each time.
 
 ## Installation
 

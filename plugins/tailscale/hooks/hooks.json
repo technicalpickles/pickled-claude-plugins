@@ -1,0 +1,16 @@
+{
+  "description": "Nudge toward the tailnet-URL helper script before crit launches a review server",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/nudge-tailscale-on-crit.py"
+          }
+        ]
+      }
+    ]
+  }
+}
