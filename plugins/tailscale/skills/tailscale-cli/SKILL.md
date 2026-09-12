@@ -31,6 +31,12 @@ Symptom of getting this wrong: `sudo tailscale status --json` hangs asking for a
 
 Two different features that look similar but have separate config and status output — a Service's config is invisible to bare `tailscale serve status` (it prints `No serve config` even when fully configured), and a serve command against an undefined Service reports success but does nothing. Full explanation and the fix (`serve status --json`, `.Services`): [references/services.md](references/services.md).
 
+## `serve ... off` removes the whole port's config, not just your mapping
+
+`tailscale serve --https=443 off` (or the bare-port form) tears down **every** path mapping on that port, not just the one you added. Confirmed by running it on a node with two node-level mappings (`/` and `/readme-preview`) to remove only `/`: `serve status --json` came back completely empty afterward, both mappings gone. There's no scoped "remove just this path" for node-level serve — `tailscale serve --set-path=/some/path off` fails outright if that exact path isn't the one currently mapped, and even a successful narrower-looking command can still wipe the shared `:443` config underneath it.
+
+If a node has more than one node-level mapping, or you're not sure whether it does: `tailscale serve status --json` before you touch anything, and after, so you know exactly what existed and can rebuild it (`tailscale serve --bg --set-path=<path> <target>` per mapping) rather than assuming your teardown was scoped to what you added. This matters most on a shared host, or anywhere state might have been added since you last checked — never assume you're the only thing that's touched `serve` on that node.
+
 ## Setting up a brand-new Service
 
 Has a specific required order (define in admin console → `serve --service=` → restart `tailscaled` → approve → validate from a different node) that's easy to get wrong on a first deploy: [references/new-service-setup.md](references/new-service-setup.md).
