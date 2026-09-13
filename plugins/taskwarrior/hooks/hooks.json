@@ -1,5 +1,5 @@
 {
-  "description": "Nudge taskwarrior UUID-safety when a skill that writes durable, resumed-later artifacts is invoked",
+  "description": "Nudge taskwarrior UUID-safety when a skill that writes durable, resumed-later artifacts is invoked; auto-resolve the UUID of a task just created with `task add`",
   "hooks": {
     "PostToolUse": [
       {
@@ -8,6 +8,15 @@
           {
             "type": "command",
             "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/nudge-uuid-on-handoff.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/resolve-added-task-uuid.py"
           }
         ]
       }
