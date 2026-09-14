@@ -14,7 +14,8 @@ Provides a skill that activates when you query or modify tasks. Captures dense r
 
 ## Hooks
 
-- A `PostToolUse:Skill` hook nudges taskwarrior UUID-safety whenever a skill that writes a durable, resumed-later artifact is invoked (currently: agent-meta's `park`). It injects a reminder to verify a cited UUID resolves before it goes into a handoff, and never cite the bare integer ID. See `hooks/nudge-uuid-on-handoff.py`.
+- A `PreToolUse:Write|Edit` hook nudges taskwarrior UUID-safety whenever you're about to write a file, regardless of which skill triggered it. It injects a reminder to verify any cited taskwarrior ID resolves to a UUID first, and never cite bare integer task IDs. See `hooks/nudge-durable-write-bare-id.py`.
+- A `PreToolUse:Bash` hook guards against risky Bash commands that cite bare taskwarrior integer IDs. It detects patterns like `task 123 delete` in the command being run and injects a nudge to use the UUID instead. See `hooks/guard-bash-task-citation.py`.
 - A `PostToolUse:Bash` hook resolves the UUID of a task just created with `task add`, without needing a follow-up tool call. It detects a `Created task <N>.` message, resolves `N` to its UUID via `task _get <N>.uuid`, and injects both into context. This exists because in practice the follow-up UUID resolution almost never happens on its own (measured: 32 of 33 `task add` calls across a week of sessions had no inline resolution) -- the bare integer is what's sitting in context when a durable artifact gets written later, so removing the need to remember the follow-up removes the leak at its source. See `hooks/resolve-added-task-uuid.py`.
 
 ## Companion config
