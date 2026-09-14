@@ -17,8 +17,8 @@ run_hook() {
   [ -z "$output" ]
 }
 
-@test "silent when the citation is already a UUID" {
-  run_hook '{"tool_input": {"file_path": "CLAUDE.md", "content": "see taskwarrior c9dca83f for context"}}'
+@test "silent when the citation is already a UUID (real citation from session history)" {
+  run_hook '{"tool_input": {"file_path": "task-5-report.md", "content": "deriving corroboration and status from distinct sources. Refs taskwarrior 7468dc21"}}'
 
   [ "$status" -eq 0 ]
   [ -z "$output" ]
@@ -40,11 +40,19 @@ run_hook() {
   [[ "$output" == *"additionalContext"* ]]
 }
 
-@test "handles Edit's new_string field the same as Write's content field" {
-  run_hook '{"tool_input": {"file_path": "docs/notes.md", "new_string": "task 42 covers this"}}'
+@test "handles Edit's new_string field the same as Write's content field (real shell-script comment)" {
+  run_hook '{"tool_input": {"file_path": "deploy.sh", "new_string": "# AGENTS.md was truncated on the 2026.8.1 upgrade deploy (taskwarrior 517)"}}'
 
   [ "$status" -eq 0 ]
   [[ "$output" == *"additionalContext"* ]]
+}
+
+@test "nudges on a real citation from a design spec doc (not one of the old dotfiles allowlist dirs)" {
+  run_hook '{"tool_input": {"file_path": "docs/superpowers/specs/checkpoint-design.md", "content": "read nowhere in the app or in ChirpCore. Filed as taskwarrior 448 rather than fixed here."}}'
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"additionalContext"* ]]
+  [[ "$output" == *"448"* ]]
 }
 
 @test "fails silently on malformed stdin" {

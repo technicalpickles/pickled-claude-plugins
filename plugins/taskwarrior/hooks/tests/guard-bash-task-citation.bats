@@ -27,12 +27,12 @@ JSON_END"
   [ -z "$output" ]
 }
 
-@test "nudges on task done by bare integer ID" {
-  run_hook '{"tool_input": {"command": "task 518 done"}}'
+@test "nudges on task done by bare integer ID (real command from session history)" {
+  run_hook '{"tool_input": {"command": "task 357 done"}}'
 
   [ "$status" -eq 0 ]
   [[ "$output" == *'"permissionDecision": "allow"'* ]]
-  [[ "$output" == *"518"* ]]
+  [[ "$output" == *"357"* ]]
 }
 
 @test "nudges on task annotate/modify/depends/delete/start/stop by bare ID" {
@@ -50,12 +50,12 @@ JSON_END"
   [ -z "$output" ]
 }
 
-@test "nudges on a git commit -m citing a bare integer ID" {
-  run_hook '{"tool_input": {"command": "git commit -m \"fix: matches taskwarrior 518\""}}'
+@test "nudges on a git commit -m citing a bare integer ID (real commit message)" {
+  run_hook '{"tool_input": {"command": "git commit -m \"fix: restore corrupted config values, verified byte-identical. Closes taskwarrior 437.\""}}'
 
   [ "$status" -eq 0 ]
   [[ "$output" == *"additionalContext"* ]]
-  [[ "$output" == *"518"* ]]
+  [[ "$output" == *"437"* ]]
 }
 
 @test "nudges on a git commit heredoc body citing a bare integer ID (the real incident's shape)" {
@@ -65,8 +65,8 @@ JSON_END"
   [[ "$output" == *"additionalContext"* ]]
 }
 
-@test "silent on a git commit citing a UUID, not an integer" {
-  run_hook '{"tool_input": {"command": "git commit -m \"closes taskwarrior c9dca83f\""}}'
+@test "silent on a git commit citing UUIDs, not integers (real commit message)" {
+  run_hook '{"tool_input": {"command": "git commit -m \"fix: node-host confirmation. Closes taskwarrior ee0ff1ed and c8244e96.\""}}'
 
   [ "$status" -eq 0 ]
   [ -z "$output" ]
