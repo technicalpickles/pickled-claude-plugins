@@ -6,15 +6,14 @@ content being written cites a bare integer task ID.
 Why content-only, no file-path scoping: an earlier version of this check
 (in dotfiles' claude/roles/home.jsonc) restricted itself to three
 hardcoded "durable artifact" directories (.parkinglot/, .beans/, the
-auto-memory dir). A real incident (2026-09-13, pickleclaw session
-55438e39) cited a bare integer ID ("taskwarrior 518") 8 times across
-CLAUDE.md and docs/setup-notes.md -- neither path was in the allowlist,
-so nothing fired. A bare-content match with no path filter is strictly
-broader and the cost of a false positive is one extra line of
-additionalContext, so there is no reason to maintain a path allowlist
-that will always be one directory behind wherever the model actually
-writes prose. See plugins/taskwarrior/skills/taskwarrior/SKILL.md's
-"Durable references" section for the underlying policy.
+auto-memory dir). That allowlist missed a bare integer ID landing
+repeatedly in CLAUDE.md and a docs file, neither of which was in it. A
+bare-content match with no path filter is strictly broader, and the cost
+of a false positive is one extra line of additionalContext, so there is
+no reason to maintain a path allowlist that will always be one directory
+behind wherever the model actually writes prose. See
+plugins/taskwarrior/skills/taskwarrior/SKILL.md's "Durable references"
+section for the underlying policy.
 
 This intentionally does not try to distinguish a genuine short UUID that
 happens to be all-digits (e.g. "09351263") from a real integer ID -- that

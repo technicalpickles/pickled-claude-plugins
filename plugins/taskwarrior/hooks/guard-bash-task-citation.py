@@ -10,11 +10,11 @@ single `task` or `git` command:
    point at the intended task.
 
 2. A `git commit` whose message text (via -m or a heredoc body) cites a
-   bare integer ID. This is the exact shape of a real incident
-   (2026-09-13, pickleclaw session 55438e39): "taskwarrior 518" landed
-   in a commit message 7.5 hours after the task-add-time UUID resolver
-   shipped, because that hook only fires when *creating* a task -- it
-   has nothing to say about citing an *existing* task from memory.
+   bare integer ID. This is the gap the task-add-time UUID resolver
+   (resolve-added-task-uuid.py) can't cover: that hook only fires when
+   *creating* a task, so it has nothing to say about citing an
+   *existing* task from memory hours or days later, which is exactly
+   how a bare ID has landed in a real commit message before.
 
 Formerly two separate hooks living in dotfiles' claude/roles/home.jsonc
 (the mutation check) and nowhere at all (the commit-message check).
