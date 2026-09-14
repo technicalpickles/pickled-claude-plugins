@@ -14,7 +14,8 @@ Provides a skill that activates when you query or modify tasks. Captures dense r
 
 ## Hooks
 
-- A `PostToolUse:Skill` hook nudges taskwarrior UUID-safety whenever a skill that writes a durable, resumed-later artifact is invoked (currently: agent-meta's `park`). It injects a reminder to verify a cited UUID resolves before it goes into a handoff, and never cite the bare integer ID. See `hooks/nudge-uuid-on-handoff.py`.
+- A `PreToolUse:Write|Edit` hook nudges taskwarrior UUID-safety whenever the content being written cites a bare integer task reference (`task 518`, `taskwarrior 518`, `task #518`). Fires on any Write or Edit, not just durable-looking paths -- an earlier, path-scoped version of this check (once part of personal dotfiles config, restricted to `.parkinglot/`, `.beans/`, and the auto-memory dir) missed a real incident where a bare ID landed in `CLAUDE.md` and `docs/setup-notes.md`. See `hooks/nudge-durable-write-bare-id.py`.
+- A `PreToolUse:Bash` hook guards two risky patterns in one pass: mutating a task (`done`/`annotate`/`modify`/`depends`/`delete`/`start`/`stop`) by its plain numeric ID, and a `git commit` whose message cites a bare integer ID. See `hooks/guard-bash-task-citation.py`.
 - A `PostToolUse:Bash` hook resolves the UUID of a task just created with `task add`, without needing a follow-up tool call. It detects a `Created task <N>.` message, resolves `N` to its UUID via `task _get <N>.uuid`, and injects both into context. This exists because in practice the follow-up UUID resolution almost never happens on its own (measured: 32 of 33 `task add` calls across a week of sessions had no inline resolution) -- the bare integer is what's sitting in context when a durable artifact gets written later, so removing the need to remember the follow-up removes the leak at its source. See `hooks/resolve-added-task-uuid.py`.
 
 ## Companion config

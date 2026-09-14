@@ -1,0 +1,27 @@
+name: taskwarrior plugin tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'plugins/taskwarrior/hooks/**'
+      - '.github/workflows/taskwarrior-plugin-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  bats:
+    name: bats
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugins/taskwarrior
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bats
+        run: sudo apt-get update && sudo apt-get install -y bats
+
+      - name: Run bats
+        run: bats hooks/tests/
