@@ -1,16 +1,27 @@
 {
-  "description": "Nudge taskwarrior UUID-safety when a skill that writes durable, resumed-later artifacts is invoked; auto-resolve the UUID of a task just created with `task add`",
+  "description": "Nudge taskwarrior UUID-safety on any Write/Edit or risky Bash command citing a bare integer task ID; auto-resolve the UUID of a task just created with `task add`",
   "hooks": {
-    "PostToolUse": [
+    "PreToolUse": [
       {
-        "matcher": "Skill",
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/nudge-uuid-on-handoff.py"
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/nudge-durable-write-bare-id.py"
           }
         ]
       },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/guard-bash-task-citation.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
       {
         "matcher": "Bash",
         "hooks": [
