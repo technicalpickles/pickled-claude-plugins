@@ -23,3 +23,6 @@
 # Temporary/generated test artifacts
 tmp/
 __pycache__
+
+# claude.ai Skill build output (see docs/claude-ai-skill-porting.md)
+plugins/*/claude-ai-skills/dist/
