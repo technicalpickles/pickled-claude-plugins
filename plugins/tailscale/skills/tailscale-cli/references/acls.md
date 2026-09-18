@@ -61,6 +61,45 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 
 `tailnet/-/acl` uses `-` for "the tailnet this credential belongs to" — no need to look up the tailnet name separately.
 
+## A tag can also be lost from an already-tagged, already-working node
+
+The pattern above is about a node that never got the tag it asked for.
+There's a second flavor: a node that **had** the tag and was working fine,
+then loses it later with no code change and no deploy involved.
+
+**Symptom:** everything that depends on plain tailnet connectivity keeps
+working -- SSH, `tailscale ping`, `tailscale status` on the node all look
+healthy -- but something that specifically depended on the tag breaks. If
+that something is a Tailscale Service the node hosts, the failure is sharp
+and immediate: `tailscale serve --service=svc:X ...` on the host starts
+failing with `service hosts must be tagged nodes`, and the Service's
+public hostname times out for every consumer even though the underlying
+app/container is fine. That error string is the smoking gun -- it means
+the *hosting node itself* isn't tagged, which is a separate requirement
+from any `grants`/reachability rule between tagged peers.
+
+**Confirmed trigger:** manually recovering a node from an unrelated
+Tailscale incident (e.g. re-approving/re-authing a node after its key
+expired) can silently drop tags it had before, the same way a first-join
+authkey can fail to pick one up. Nothing in the recovery flow warns you
+this happened -- `tailscale status` on the node reports a perfectly
+healthy connection either way.
+
+**Fix:** re-add the tag in the admin console -- Machine detail page →
+**ACL tags** (not the "Tags" row in the device list sidebar, which is easy
+to reach for first and doesn't have the control you want). If one host
+proxies multiple Services under the same node-level tag, they all break
+and all recover together once the tag is back; you generally don't need
+to re-run `serve` for each one individually, though it doesn't hurt to
+re-assert the one you were actively working on.
+
+**Diagnostic shortcut:** before chasing DNS, ACLs grants, client netmap
+staleness, or restarting `tailscaled`, check whether the host node itself
+still has the tag it's supposed to: `tailscale status --self --json | jq
+'.Self.Tags'` on the host, or the Machine detail page in the admin
+console. This is a five-second check that rules out (or confirms) the
+whole category before you spend real time isolating layers.
+
 ## Sidecar-container pattern
 
 The silent-drop failure above is especially common for sidecar containers (a helper container joining the same tailnet as a main service) because sidecars are often brought up with a shared or templated authkey that wasn't updated when a new tag was introduced. Checklist when a new sidecar crash-loops after joining its tailnet fine:

@@ -18,3 +18,23 @@ tailscale serve status --json | jq '.Services'
 ## Prerequisite gotcha
 
 `tailscale serve --service=svc:X ...` does **not** create the Service. A Service must already be defined in the tailnet admin console (Services page, name + port) before the CLI has anything to attach a pending-host-approval to. Running the serve command against an undefined Service reports success ("Serve started and running in the background") but nothing ever shows up as pending, and the hostname never resolves to anything real. Define the Service first, then run `serve --service=`.
+
+## The hosting node itself must be tagged
+
+Separate from any `grants`/ACL reachability rule, `tailscale serve
+--service=svc:X ...` requires the node running that command to be a tagged
+node, full stop. An untagged node -- even one with perfectly normal
+tailnet connectivity otherwise -- fails outright with:
+
+```
+service hosts must be tagged nodes
+```
+
+This isn't a permissions/grants problem to debug with `tailscale acl`-style
+policy reasoning; it's a hard requirement on the hosting node's own tags.
+If a node that was successfully hosting Services suddenly can't, and every
+other symptom (SSH, ping, container health) looks fine, suspect the node
+lost its tag rather than a Services-specific bug -- see the
+`tailscale-cli` skill's `references/acls.md` ("A tag can also be lost from
+an already-tagged, already-working node") for the confirmed trigger and
+fix.

@@ -56,7 +56,8 @@ Has a specific required order (define in admin console → `serve --service=` �
 3. Is the target a Service (`svc:`) and does it actually exist in the admin console yet? A serve command against an undefined Service "succeeds" but does nothing.
 4. Are you testing with `ping` against a Service VIP? Use `curl` against the hostname instead.
 5. Are you testing from the same host that's serving the proxy? Test from a different node.
-6. Only after 1-5 are ruled out: check `tailscaled` itself (`systemctl status tailscaled`, `tailscale status`, node's `BackendState`).
+6. **Is a Service that was previously working now timing out for everyone, while SSH/ping/`tailscale status`/container health on the host all look fine?** Check whether the host node itself still has its ACL tag (`tailscale status --self --json | jq '.Self.Tags'`, or the Machine detail page in the admin console) before going further — a tag can silently drop from an already-tagged node (e.g. during recovery from an unrelated key-expiry incident), and `serve --service=` on an untagged host fails with `service hosts must be tagged nodes`. See `references/acls.md` and `references/services.md`.
+7. Only after 1-6 are ruled out: check `tailscaled` itself (`systemctl status tailscaled`, `tailscale status`, node's `BackendState`).
 
 **Restarting `tailscaled` on a shared host is a real action, not a diagnostic one** — it affects connectivity for every service that host proxies. Don't do it reflexively while chasing a status-display confusion on an *already-working* Service; confirm with whoever owns the host first, and reach for it only after ruling out the gotchas above. (Standing up a *new* Service is different — there the restart is an expected, required step: [references/new-service-setup.md](references/new-service-setup.md).)
 
