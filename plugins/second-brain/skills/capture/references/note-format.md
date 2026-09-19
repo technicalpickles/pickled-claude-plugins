@@ -52,6 +52,20 @@ source-capture it mostly isn't. So:
 - **Drop** `repo`/`branch`/`commit` when they're all `none`. Keep them when the capture happened
   while working in a repo and that context matters.
 
+### Site fields
+
+When the source came from a site with its own playbook, add the fields that playbook names
+beside `source`. They describe the source, not the note, and stay out of the body:
+
+| Site | Fields |
+|------|--------|
+| X | `platform: x`, `author: "@handle"`, `published` |
+| YouTube | `platform: youtube`, `channel`, `published` |
+| Reddit | `platform: reddit`, `subreddit`, `author`, `published` |
+
+`published` is `YYYY-MM-DD`. See [sites/](sites/) for where each value comes from. If the vault's
+own `CLAUDE.md` names different fields for the same idea, use the vault's.
+
 ## Body
 
 ```markdown
