@@ -49,9 +49,12 @@ Every playbook has three parts:
      concrete reason, stated in the reply: the video is very long (download and OCR cost
      outweigh the value), the download fails or is blocked, or the content is evidently
      audio-only (podcast, talk over a static frame). A talking head alone is not a reason.
-   - Reddit: **blocked, no working path yet.** The planned `reddit-post <url>` (unauthenticated
-     `.json` endpoint) got a 403 from Reddit on 2026-09-19 (see "To verify"). Needs a redesign
-     before a Reddit playbook can ship; until then a Reddit URL stops and says so.
+   - Reddit: `reddit-post <url>` reads the post's Atom feed (`<permalink>.rss`), not `.json`
+     (blocked, see "To verify"). Feed carries post title, author, body, comment bodies and the subreddit
+     (`<category term="commandline" label="r/commandline"/>`); comments have only `updated`.
+     The sandbox proxy denies `www.reddit.com`, so the script needs that host allowlisted or an
+     unsandboxed run, and it must handle HTTP 429 (rate limit hit on the second request within
+     seconds). Reddit not reachable or blocked: stop and say so.
    - Web: `mcp__lightpanda__markdown`, `WebFetch` fallback (unchanged behavior).
 2. **Frontmatter extras**, added beside `source`:
    - X: `platform: x`, `author`, `published`
@@ -68,8 +71,8 @@ Every playbook has three parts:
 - Dotfiles' `bin/CLAUDE.md` and `claude/CLAUDE.md` pointers change to say the tools ship with
   second-brain; the dotfiles copies become symlinks or are removed. That is a dotfiles-repo
   change, done separately.
-- The Reddit reader is new. Probe first (unauthenticated `.json`, sandbox behavior, rate
-  limits, blocking) and design from what works.
+- The Reddit reader is new. Probed 2026-09-19: `.json` is blocked, `.rss` works
+  (`REDDIT_ALT = rss`, see "To verify"). Build `reddit-post` on the Atom feed.
 
 ## To verify before implementation
 
@@ -86,6 +89,21 @@ Every playbook has three parts:
   (not JSON, no rate-limit headers), so the unauthenticated `.json` endpoint is blocked from
   this environment. The post-permalink shape check was not possible (no JSON to parse). Two
   requests total; no workaround attempted. The `reddit-post` design must be revisited.
+- Reddit RSS alternative: probed 2026-09-19 with the same User-Agent. **`REDDIT_ALT = rss`.**
+  Sandboxed, the proxy again denied `www.reddit.com:443` (sandbox blocker, separate from
+  Reddit). Unsandboxed: `https://www.reddit.com/r/commandline/top/.rss?t=week&limit=1` returned
+  `200` Atom XML. A post feed `<permalink>.rss?limit=5` returned `429` on the first try
+  (seconds after the previous request; a bare 429, empty body), then `200` (6177 bytes) after a
+  30s wait, with `x-ratelimit-used: 1`, `x-ratelimit-remaining: 0.0`, `x-ratelimit-reset: 26`,
+  so back-to-back requests get throttled and the script needs a retry/backoff. Sample
+  permalink: `https://www.reddit.com/r/commandline/comments/1wfk0ns/a_gopher_watches_your_typing_test/`.
+  Post feed shape: first `<entry>` is the post (`id` `t3_...`, `title`, `author/name` as
+  `/u/name`, `content` HTML with the self-text or link, `updated` and `published`); following
+  entries are comments (`id` `t1_...`, `title` "/u/x on <post title>", `author/name`, `content`
+  HTML, `updated` only, no `published`). Limit 5 gave the post plus 5 comments. old.reddit.com
+  was not tried (not needed). Untested: nested reply structure, long threads, "more comments"
+  handling, deleted posts. Four-request budget: 3 requests reached Reddit (one 200, one 429, one
+  200), plus the sandbox-denied attempt.
 - Frontmatter field names against the vault's own `CLAUDE.md`.
 
 ## Testing
