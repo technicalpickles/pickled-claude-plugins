@@ -53,8 +53,7 @@ Every playbook has three parts:
      (blocked, see "Verified during implementation"). Feed carries post title, author, body, comment bodies and the subreddit
      (`<category term="commandline" label="r/commandline"/>`); comments have only `updated`.
      The sandbox proxy denies `www.reddit.com`, so the script needs that host allowlisted or an
-     unsandboxed run, and it must handle HTTP 429 (rate limit hit on the second request within
-     seconds). Reddit not reachable or blocked: stop and say so.
+     unsandboxed run, and it must handle HTTP 429 (rate limit hit on a request seconds after the previous one). Reddit not reachable or blocked: stop and say so.
    - Web: `mcp__lightpanda__markdown`, `WebFetch` fallback (unchanged behavior).
 2. **Frontmatter extras**, added beside `source`:
    - X: `platform: x`, `author`, `published`

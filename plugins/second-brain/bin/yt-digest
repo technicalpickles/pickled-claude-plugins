@@ -10,7 +10,7 @@
 # ]
 # ///
 """
-yt_digest.py — pull everything worth summarizing out of a YouTube (or
+yt-digest — pull everything worth summarizing out of a YouTube (or
 any yt-dlp-supported) video: the spoken transcript AND clean on-screen
 infographic/slide text, merged into one chronological document.
 
@@ -47,24 +47,24 @@ requiring `brew install ffmpeg`. `claude_agent_sdk` still shells out to the
 Claude Code's own auth, not something pip can vendor).
 
 Usage:
-    ./yt_digest.py "https://www.youtube.com/watch?v=..." \\
+    yt-digest "https://www.youtube.com/watch?v=..." \\
         --out-dir ./out --scene-threshold 0.3 --model claude-haiku-4-5
 
     # or, without chmod +x:
-    uv run yt_digest.py "https://www.youtube.com/watch?v=..."
+    uv run yt-digest "https://www.youtube.com/watch?v=..."
 
     # Re-run just the triage/vision stages on an already-downloaded video
     # (also reuses an existing transcript if one was already fetched):
-    ./yt_digest.py --skip-download --out-dir ./out
+    yt-digest --skip-download --out-dir ./out
 
     # No captions wanted, infographics only:
-    ./yt_digest.py "https://..." --no-transcript
+    yt-digest "https://..." --no-transcript
 
     # Talking-head video, captions only -- skips download, keyframes, OCR,
     # and vision entirely (this is a manual opt-in, not auto-detected: pick
     # it yourself when you already know the video has no on-screen text
     # worth extracting, e.g. a capture workflow for a talking-head clip):
-    ./yt_digest.py "https://..." --transcript-only
+    yt-digest "https://..." --transcript-only
 """
 from __future__ import annotations
 

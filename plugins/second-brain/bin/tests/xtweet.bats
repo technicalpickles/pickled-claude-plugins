@@ -48,8 +48,8 @@ teardown() {
   [[ "$output" == *"Ann (@ann)"* ]]
   [[ "$output" == *"hello world"* ]]
   # Verify xurl was called with the correct extracted ID (proves extract_id
-  # didn't mangle the input). The stub always returns id: 123, but the call
-  # path must contain the requested 789.
+  # didn't mangle the input). The stub echoes the requested id and records
+  # its argv, so the call path must contain the requested 789.
   grep -q "/2/tweets/789" "$STUB_DIR/xurl.calls"
 }
 

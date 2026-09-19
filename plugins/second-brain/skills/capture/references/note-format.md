@@ -63,7 +63,7 @@ beside `source`. They describe the source, not the note, and stay out of the bod
 | YouTube | `platform: youtube`, `channel`, `published` |
 | Reddit | `platform: reddit`, `subreddit`, `author`, `published` |
 
-`published` is `YYYY-MM-DD`. See [sites/](sites/) for where each value comes from. If the vault's
+`published` is `YYYY-MM-DD`. See [web](sites/web.md), [x](sites/x.md), [youtube](sites/youtube.md), [reddit](sites/reddit.md) for where each value comes from. If the vault's
 own `CLAUDE.md` names different fields for the same idea, use the vault's.
 
 ## Body
