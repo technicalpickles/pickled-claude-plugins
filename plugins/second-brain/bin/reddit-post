@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import http.client
 import re
 import sys
 import time
@@ -40,8 +41,9 @@ class RedditError(Exception):
 
 def feed_url(url: str, count: int) -> str:
     """Keep only the path, require a /comments/<id> permalink, rebuild on www.reddit.com."""
-    path = re.sub(r"^(?:[a-z]+://)?[^/]+", "", url.strip())
+    path = re.sub(r"^(?:[a-z]+://)?[^/]+", "", url.strip(), flags=re.I)
     path = re.split(r"[?#]", path, maxsplit=1)[0].rstrip("/")
+    path = re.sub(r"\.rss$", "", path)
     if not POST_PATH.search(path):
         raise RedditError(f"expected a post URL containing /comments/<id>, got: {url}")
     return f"https://www.reddit.com{path}.rss?limit={count}"
@@ -62,7 +64,7 @@ def fetch(url, ua=UA, opener=urllib.request.urlopen, sleep=time.sleep, retries=2
         request = urllib.request.Request(url, headers={"User-Agent": ua})
         try:
             with opener(request, timeout=30) as response:
-                return response.read().decode("utf-8")
+                return response.read().decode("utf-8", errors="replace")
         except urllib.error.HTTPError as exc:
             if exc.code == 429 and attempt < retries:
                 wait = _wait_seconds(exc.headers)
@@ -75,6 +77,8 @@ def fetch(url, ua=UA, opener=urllib.request.urlopen, sleep=time.sleep, retries=2
             if "Tunnel connection failed" in str(exc.reason):
                 hint = " (sandbox proxy? www.reddit.com may need allowlisting)"
             raise RedditError(f"could not reach {url}: {exc.reason}{hint}") from exc
+        except (OSError, http.client.HTTPException) as exc:
+            raise RedditError(f"could not read {url}: {exc}") from exc
     raise RedditError(f"gave up on {url}")  # unreachable; keeps the type checker honest
 
 
@@ -99,7 +103,7 @@ class _TextExtractor(HTMLParser):
     def handle_endtag(self, tag):
         if tag == "a" and self._href:
             text = "".join(self._link_text).strip()
-            if self._href.startswith("http") and text != self._href:
+            if text and self._href.startswith("http") and text != self._href:
                 self.parts.append(f" ({self._href})")
             self._href = None
 
@@ -118,9 +122,17 @@ def _to_text(raw_html: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", text).strip()
 
 
+_FOOTER = re.compile(r"submitted by\b.*?\[comments\](?:\s*\([^)]*\))?\s*$", re.S)
+
+
 def _strip_footer(text: str) -> str:
-    """Drop Reddit's trailing `submitted by /u/x [link] [comments]` line."""
-    return re.sub(r"\n?\s*submitted by\b.*?\[comments\](?:\s*\([^)]*\))?\s*$", "", text, flags=re.S).strip()
+    """Drop Reddit's trailing `submitted by /u/x [link] [comments]` line.
+    Only the final occurrence is considered, so body text containing the
+    phrase is never truncated."""
+    idx = text.rfind("submitted by")
+    if idx != -1 and _FOOTER.match(text, idx):
+        return text[:idx].strip()
+    return text.strip()
 
 
 def parse_feed(xml_text: str) -> dict:
@@ -175,10 +187,20 @@ def format_output(feed: dict) -> str:
     return "\n".join(lines)
 
 
+def _positive_int(value: str) -> int:
+    try:
+        number = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"invalid int: {value!r}")
+    if number < 1:
+        raise argparse.ArgumentTypeError("must be >= 1")
+    return number
+
+
 def main(argv=None, fetcher=fetch, out=sys.stdout) -> int:
     parser = argparse.ArgumentParser(prog="reddit-post", description="Read a Reddit post and its comments via the Atom feed.")
     parser.add_argument("url", help="Reddit post URL (must contain /comments/<id>)")
-    parser.add_argument("-n", type=int, default=10, help="number of comments to fetch (default 10)")
+    parser.add_argument("-n", type=_positive_int, default=10, help="number of comments to fetch (default 10)")
     parser.add_argument("--print-url", action="store_true", help="print the feed URL and exit")
     args = parser.parse_args(argv)
     try:
