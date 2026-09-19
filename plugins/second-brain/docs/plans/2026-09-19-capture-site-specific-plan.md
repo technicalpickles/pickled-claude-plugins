@@ -281,252 +281,479 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### reddit-reader: new reddit-post script
+### reddit-reader: new reddit-post script (Atom/RSS)
 
-Gate: `probe-reddit` recorded `REDDIT_JSON = blocked`, so this task as written (the `.json` endpoint)
-is **superseded**. Start only after `probe-reddit-rss` records `REDDIT_ALT = rss`; then rewrite this
-task against the RSS/Atom shape it recorded (same interface: `reddit-post [-n COUNT] [--print-url] <url>`,
-same fake-`curl` test approach, fixture becomes a small Atom document, parsing switches from `jq` to
-whatever the recorded shape needs) before dispatching it. On `none`, this task is dropped and the
-user decides the browser or OAuth path. The script text below is the `.json` design, kept for reference.
+Rewritten 2026-09-19 after `probe-reddit` (`.json` blocked) and `probe-reddit-rss` (`REDDIT_ALT = rss`).
+Observed: `<post permalink>.rss?limit=N` returns an Atom feed: entry 1 is the post (`published`, `author/name`
+as `/u/<user>`, HTML `content`), entries 2..N+1 are comments (`author/name`, `updated` only, HTML `content`),
+and the feed-level `<category term="<sub>" label="r/<sub>"/>` names the subreddit. Reddit answers `429`
+(empty body) to back-to-back requests and recovers after ~30s (`x-ratelimit-reset`). The sandbox proxy denies
+`www.reddit.com` (CONNECT 403), so a sandboxed run cannot reach it.
 
 **Files:**
 - Create: `plugins/second-brain/bin/reddit-post`
-- Test: `plugins/second-brain/bin/tests/reddit-post.bats`
-- Test fixture: `plugins/second-brain/bin/tests/fixtures/reddit-post.json`
+- Test: `plugins/second-brain/bin/tests/test_reddit_post.py`
 
 **Interfaces:**
-- Produces: `reddit-post [-n COUNT] [--print-url] <reddit-post-url>`. Prints the post (subreddit, author, date, permalink, title, selftext, score, linked URL if a link post) then the top `COUNT` (default 10) top-level comments. `--print-url` prints the API URL it would fetch and exits 0 (used by tests and debugging). Exit 1 with a `reddit-post:` message on bad URL or non-200 response. Requires `curl` and `jq`. Env `REDDIT_USER_AGENT` overrides the default User-Agent.
+- Produces: `reddit-post [-n COUNT] [--print-url] <reddit-post-url>` (`-n` default 10). Prints a header line `r/<sub> -- u/<author> -- <YYYY-MM-DD>`, then `🔗 <permalink>`, the title, the post body as plain text, `🔗 <url>` when the post links out, then `--- comments (N) ---` and each comment as `u/<author> -- <YYYY-MM-DD>` plus its plain-text body. `--print-url` prints the feed URL it would fetch and exits 0. Exit 1 with a `reddit-post:` message on a non-post URL, HTTP error, or unreachable host. On `429` it waits (the `x-ratelimit-reset` header + 1s, else 30s, capped at 60s) and retries up to twice, saying so on stderr. If the connection error is the sandbox proxy's ("Tunnel connection failed"), the message adds `(sandbox proxy? www.reddit.com may need allowlisting)`.
+- Python module-level functions, importable by the test: `feed_url(url: str, count: int) -> str`, `parse_feed(xml_text: str) -> dict` with keys `subreddit, permalink, post, comments` (post/comment dicts: `author, date, text`; post also `title, link`), `fetch(url, ua=UA, opener=urllib.request.urlopen, sleep=time.sleep, retries=2) -> str`, `format_output(feed: dict) -> str`, `RedditError(Exception)`.
+- Requires `uv` only (stdlib script, no dependencies, same `uv run --script` convention as `yt-digest`). No credentials.
 
-- [ ] **Step 1: Create the fixture**
+- [ ] **Step 1: Write the failing tests**
 
-`plugins/second-brain/bin/tests/fixtures/reddit-post.json`:
+`plugins/second-brain/bin/tests/test_reddit_post.py`:
 
-```json
-[
-  {"data": {"children": [{"kind": "t3", "data": {
-    "subreddit": "commandline", "author": "alice", "created_utc": 1767225600,
-    "permalink": "/r/commandline/comments/abc123/a_neat_tool/",
-    "title": "A neat tool", "selftext": "Body text here.", "is_self": true,
-    "url": "https://www.reddit.com/r/commandline/comments/abc123/a_neat_tool/",
-    "score": 42, "num_comments": 2}}]}},
-  {"data": {"children": [
-    {"kind": "t1", "data": {"author": "bob", "score": 10, "body": "First comment", "created_utc": 1767229200}},
-    {"kind": "t1", "data": {"author": "carol", "score": 5, "body": "Second comment", "created_utc": 1767232800}},
-    {"kind": "more", "data": {"count": 3}}
-  ]}}
-]
+```python
+"""Tests for reddit-post. The Atom fixture is synthetic but follows the shape
+observed from a real post feed on 2026-09-19 (see the design doc)."""
+import importlib.machinery
+import importlib.util
+import io
+import sys
+import unittest
+import urllib.error
+from pathlib import Path
+from unittest import mock
+
+SCRIPT = Path(__file__).resolve().parent.parent / "reddit-post"
+
+
+def load_module():
+    loader = importlib.machinery.SourceFileLoader("reddit_post", str(SCRIPT))
+    spec = importlib.util.spec_from_loader("reddit_post", loader)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["reddit_post"] = module
+    loader.exec_module(module)
+    return module
+
+
+rp = load_module()
+
+PERMALINK = "https://www.reddit.com/r/commandline/comments/abc123/a_neat_tool/"
+
+FEED = """<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
+  <category term="commandline" label="r/commandline"/>
+  <title>a neat tool : commandline</title>
+  <entry>
+    <author><name>/u/alice</name><uri>https://www.reddit.com/user/alice</uri></author>
+    <content type="html">&lt;!-- SC_OFF --&gt;&lt;div class="md"&gt;&lt;p&gt;Body text &lt;a href="https://example.com/repo"&gt;the repo&lt;/a&gt;.&lt;/p&gt;&lt;/div&gt;&lt;!-- SC_ON --&gt; &amp;#32; submitted by &amp;#32; &lt;a href="https://www.reddit.com/user/alice"&gt; /u/alice &lt;/a&gt; &lt;span&gt;&lt;a href="https://example.com/repo"&gt;[link]&lt;/a&gt;&lt;/span&gt; &lt;span&gt;&lt;a href="https://www.reddit.com/r/commandline/comments/abc123/a_neat_tool/"&gt;[comments]&lt;/a&gt;&lt;/span&gt;</content>
+    <id>t3_abc123</id>
+    <link href="https://www.reddit.com/r/commandline/comments/abc123/a_neat_tool/"/>
+    <updated>2026-01-01T10:00:00+00:00</updated>
+    <published>2026-01-01T09:00:00+00:00</published>
+    <title>A neat tool</title>
+  </entry>
+  <entry>
+    <author><name>/u/bob</name><uri>https://www.reddit.com/user/bob</uri></author>
+    <content type="html">&lt;div class="md"&gt;&lt;p&gt;First comment&lt;/p&gt;&lt;/div&gt;</content>
+    <id>t1_c1</id>
+    <link href="https://www.reddit.com/r/commandline/comments/abc123/a_neat_tool/c1/"/>
+    <updated>2026-01-02T11:00:00+00:00</updated>
+    <title>/u/bob on A neat tool</title>
+  </entry>
+  <entry>
+    <author><name>/u/carol</name><uri>https://www.reddit.com/user/carol</uri></author>
+    <content type="html">&lt;div class="md"&gt;&lt;p&gt;Second comment&lt;/p&gt;&lt;/div&gt;</content>
+    <id>t1_c2</id>
+    <link href="https://www.reddit.com/r/commandline/comments/abc123/a_neat_tool/c2/"/>
+    <updated>2026-01-03T12:00:00+00:00</updated>
+    <title>/u/carol on A neat tool</title>
+  </entry>
+</feed>
+"""
+
+
+class FeedUrl(unittest.TestCase):
+    def test_normalizes_host_strips_query_and_fragment(self):
+        url = "https://old.reddit.com/r/commandline/comments/abc123/a_neat_tool/?utm_source=share#x"
+        self.assertEqual(
+            rp.feed_url(url, 10),
+            "https://www.reddit.com/r/commandline/comments/abc123/a_neat_tool.rss?limit=10",
+        )
+
+    def test_count_is_used(self):
+        self.assertIn("limit=3", rp.feed_url(PERMALINK, 3))
+
+    def test_host_without_scheme(self):
+        self.assertTrue(rp.feed_url("reddit.com/r/x/comments/abc123/t/", 5).startswith("https://www.reddit.com/r/x/comments/abc123/t.rss"))
+
+    def test_non_post_url_is_an_error(self):
+        with self.assertRaises(rp.RedditError) as ctx:
+            rp.feed_url("https://www.reddit.com/r/commandline/", 10)
+        self.assertIn("/comments/", str(ctx.exception))
+
+
+class ParseFeed(unittest.TestCase):
+    def setUp(self):
+        self.feed = rp.parse_feed(FEED)
+
+    def test_subreddit_and_permalink(self):
+        self.assertEqual(self.feed["subreddit"], "commandline")
+        self.assertEqual(self.feed["permalink"], PERMALINK)
+
+    def test_post_fields(self):
+        post = self.feed["post"]
+        self.assertEqual(post["title"], "A neat tool")
+        self.assertEqual(post["author"], "alice")
+        self.assertEqual(post["date"], "2026-01-01")
+        self.assertIn("Body text", post["text"])
+        self.assertNotIn("submitted by", post["text"])
+        self.assertNotIn("[comments]", post["text"])
+        self.assertNotIn("<", post["text"])
+
+    def test_link_post_url_is_captured_only_when_it_leaves_reddit(self):
+        self.assertEqual(self.feed["post"]["link"], "https://example.com/repo")
+
+    def test_comments_use_updated_when_no_published(self):
+        comments = self.feed["comments"]
+        self.assertEqual([c["author"] for c in comments], ["bob", "carol"])
+        self.assertEqual(comments[0]["date"], "2026-01-02")
+        self.assertEqual(comments[0]["text"], "First comment")
+
+    def test_empty_feed_is_an_error(self):
+        with self.assertRaises(rp.RedditError):
+            rp.parse_feed('<feed xmlns="http://www.w3.org/2005/Atom"></feed>')
+
+
+class FormatOutput(unittest.TestCase):
+    def test_full_output(self):
+        out = rp.format_output(rp.parse_feed(FEED))
+        self.assertIn("r/commandline -- u/alice -- 2026-01-01", out)
+        self.assertIn(PERMALINK, out)
+        self.assertIn("A neat tool", out)
+        self.assertIn("Body text", out)
+        self.assertIn("--- comments (2) ---", out)
+        self.assertIn("u/bob -- 2026-01-02", out)
+        self.assertIn("Second comment", out)
+
+
+def http_error(code, headers=None):
+    return urllib.error.HTTPError("https://x", code, "err", headers or {}, io.BytesIO(b""))
+
+
+class FakeResponse:
+    def __init__(self, body):
+        self.body = body
+
+    def read(self):
+        return self.body.encode()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+class Fetch(unittest.TestCase):
+    def test_retries_429_using_the_reset_header_then_succeeds(self):
+        calls = iter([http_error(429, {"x-ratelimit-reset": "26"}), FakeResponse("ok")])
+
+        def opener(req, timeout):
+            result = next(calls)
+            if isinstance(result, Exception):
+                raise result
+            return result
+
+        sleeps = []
+        self.assertEqual(rp.fetch("https://x", opener=opener, sleep=sleeps.append), "ok")
+        self.assertEqual(sleeps, [27])
+
+    def test_429_without_header_waits_30s(self):
+        calls = iter([http_error(429), FakeResponse("ok")])
+
+        def opener(req, timeout):
+            result = next(calls)
+            if isinstance(result, Exception):
+                raise result
+            return result
+
+        sleeps = []
+        rp.fetch("https://x", opener=opener, sleep=sleeps.append)
+        self.assertEqual(sleeps, [30])
+
+    def test_gives_up_after_retries(self):
+        def opener(req, timeout):
+            raise http_error(429)
+
+        with self.assertRaises(rp.RedditError) as ctx:
+            rp.fetch("https://x", opener=opener, sleep=lambda s: None, retries=2)
+        self.assertIn("HTTP 429", str(ctx.exception))
+
+    def test_other_http_errors_do_not_retry(self):
+        attempts = []
+
+        def opener(req, timeout):
+            attempts.append(1)
+            raise http_error(403)
+
+        with self.assertRaises(rp.RedditError) as ctx:
+            rp.fetch("https://x", opener=opener, sleep=lambda s: None)
+        self.assertIn("HTTP 403", str(ctx.exception))
+        self.assertEqual(len(attempts), 1)
+
+    def test_sandbox_proxy_denial_gets_a_hint(self):
+        def opener(req, timeout):
+            raise urllib.error.URLError("Tunnel connection failed: 403 Forbidden")
+
+        with self.assertRaises(rp.RedditError) as ctx:
+            rp.fetch("https://x", opener=opener, sleep=lambda s: None)
+        self.assertIn("allowlisting", str(ctx.exception))
+
+
+class Main(unittest.TestCase):
+    def test_print_url_needs_no_network(self):
+        out = io.StringIO()
+        code = rp.main(["--print-url", "-n", "4", PERMALINK], fetcher=None, out=out)
+        self.assertEqual(code, 0)
+        self.assertEqual(out.getvalue().strip(), "https://www.reddit.com/r/commandline/comments/abc123/a_neat_tool.rss?limit=4")
+
+    def test_non_post_url_exits_1(self):
+        err = io.StringIO()
+        with mock.patch.object(sys, "stderr", err):
+            code = rp.main(["https://www.reddit.com/r/commandline/"], fetcher=None, out=io.StringIO())
+        self.assertEqual(code, 1)
+        self.assertIn("reddit-post:", err.getvalue())
+
+    def test_prints_formatted_feed(self):
+        out = io.StringIO()
+        code = rp.main([PERMALINK], fetcher=lambda url: FEED, out=out)
+        self.assertEqual(code, 0)
+        self.assertIn("First comment", out.getvalue())
+
+
+if __name__ == "__main__":
+    unittest.main()
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [ ] **Step 2: Run to verify it fails**
 
-`plugins/second-brain/bin/tests/reddit-post.bats`:
+Run: `python3 plugins/second-brain/bin/tests/test_reddit_post.py`
+Expected: FAIL at load (`reddit-post` does not exist: `FileNotFoundError`).
 
-```bash
-#!/usr/bin/env bats
-# reddit-post tests: a fake `curl` on PATH serves the fixture, so no network.
-
-REDDIT_POST="$BATS_TEST_DIRNAME/../reddit-post"
-FIXTURE="$BATS_TEST_DIRNAME/fixtures/reddit-post.json"
-
-setup() {
-  STUB_DIR="$(mktemp -d)"
-  export PATH="$STUB_DIR:$PATH"
-  export FIXTURE
-  cat > "$STUB_DIR/curl" <<'STUB'
-#!/usr/bin/env bash
-out=""
-while [[ $# -gt 0 ]]; do
-  if [[ "$1" == "-o" ]]; then out="$2"; shift; fi
-  shift
-done
-cp "$FIXTURE" "$out"
-printf '%s' "${FAKE_CURL_STATUS:-200}"
-STUB
-  chmod +x "$STUB_DIR/curl"
-}
-
-teardown() {
-  rm -rf "$STUB_DIR"
-}
-
-@test "--print-url normalizes host, strips query and fragment, appends .json" {
-  run "$REDDIT_POST" --print-url "https://old.reddit.com/r/commandline/comments/abc123/a_neat_tool/?utm_source=share#x"
-  [ "$status" -eq 0 ]
-  [ "$output" = "https://www.reddit.com/r/commandline/comments/abc123/a_neat_tool.json?limit=10&raw_json=1" ]
-}
-
-@test "-n changes the requested comment limit" {
-  run "$REDDIT_POST" -n 3 --print-url "https://www.reddit.com/r/commandline/comments/abc123/a_neat_tool/"
-  [[ "$output" == *"limit=3"* ]]
-}
-
-@test "a non-post URL exits 1 and says so" {
-  run "$REDDIT_POST" "https://www.reddit.com/r/commandline/"
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"reddit-post:"* ]]
-  [[ "$output" == *"comments/"* ]]
-}
-
-@test "formats the post header, body, and top-level comments" {
-  run "$REDDIT_POST" "https://www.reddit.com/r/commandline/comments/abc123/a_neat_tool/"
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"r/commandline"* ]]
-  [[ "$output" == *"u/alice"* ]]
-  [[ "$output" == *"2026-01-01"* ]]
-  [[ "$output" == *"A neat tool"* ]]
-  [[ "$output" == *"Body text here."* ]]
-  [[ "$output" == *"u/bob"* ]]
-  [[ "$output" == *"First comment"* ]]
-  [[ "$output" == *"Second comment"* ]]
-  [[ "$output" != *"more"* ]]
-}
-
-@test "a non-200 response exits 1 and reports the status" {
-  FAKE_CURL_STATUS=429 run "$REDDIT_POST" "https://www.reddit.com/r/commandline/comments/abc123/a_neat_tool/"
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"HTTP 429"* ]]
-}
-```
-
-- [ ] **Step 3: Run to verify it fails**
-
-Run: `bats plugins/second-brain/bin/tests/reddit-post.bats`
-Expected: FAIL (script missing).
-
-- [ ] **Step 4: Write the script**
+- [ ] **Step 3: Write the script**
 
 `plugins/second-brain/bin/reddit-post`:
 
-```bash
-#!/usr/bin/env bash
-#
-# reddit-post -- read a Reddit post and its top comments by URL, via Reddit's
-# unauthenticated .json endpoint (append .json to any post permalink).
-#
-# Requires: curl and jq. No Reddit credentials. If Reddit rate-limits or
-# blocks the request this exits 1 with the HTTP status; it never falls back
-# to scraping HTML.
-#
-# Usage:
-#   reddit-post <post-url>
-#   reddit-post -n 20 <post-url>     # top 20 top-level comments (default 10)
-#   reddit-post --print-url <post-url>   # show the API URL and exit
+```python
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = []
+# ///
+"""reddit-post -- read a Reddit post and its comments by URL, via the post's
+Atom feed (append .rss to any post permalink).
 
-set -euo pipefail
+Requires: uv (stdlib-only script). No Reddit credentials. If Reddit blocks or
+rate-limits the request this exits 1 with the HTTP status; it never falls back
+to scraping HTML. www.reddit.com must be reachable: a sandboxed shell may deny
+it (the error says so).
 
-usage() {
-  cat << 'EOF'
-usage: reddit-post [-n COUNT] [--print-url] <reddit-post-url>
+Usage:
+    reddit-post <post-url>
+    reddit-post -n 25 <post-url>         # more comments (default 10)
+    reddit-post --print-url <post-url>   # show the feed URL and exit
+"""
 
-Read a Reddit post and its top-level comments via the .json endpoint.
+from __future__ import annotations
 
-Options:
-  -n COUNT       Number of top-level comments to show (default 10)
-  --print-url    Print the API URL that would be fetched, then exit
-  -h, --help     Show this help and exit
+import argparse
+import html
+import re
+import sys
+import time
+import urllib.error
+import urllib.request
+import xml.etree.ElementTree as ET
+from html.parser import HTMLParser
 
-Env:
-  REDDIT_USER_AGENT   Override the default User-Agent
-EOF
-}
+ATOM = "{http://www.w3.org/2005/Atom}"
+UA = "second-brain-capture/1.0 (personal note capture)"
+POST_PATH = re.compile(r"/comments/[A-Za-z0-9]+")
 
-count=10
-print_url=false
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    -h | --help)
-      usage
-      exit 0
-      ;;
-    -n)
-      count="${2:?reddit-post: -n needs a number}"
-      shift 2
-      ;;
-    --print-url)
-      print_url=true
-      shift
-      ;;
-    *) break ;;
-  esac
-done
 
-if [[ $# -ne 1 ]]; then
-  usage >&2
-  exit 1
-fi
+class RedditError(Exception):
+    pass
 
-# Keep only the path (drop scheme/host/query/fragment/trailing slash), require
-# a /comments/<id> post permalink, then rebuild on www.reddit.com.
-normalize_url() {
-  local url="$1" path
-  path="${url#*://}"
-  path="/${path#*/}"
-  path="${path%%[?#]*}"
-  path="${path%/}"
-  if [[ ! "$path" =~ /comments/[A-Za-z0-9]+ ]]; then
-    echo "reddit-post: expected a post URL containing /comments/<id>, got: $url" >&2
-    return 1
-  fi
-  echo "https://www.reddit.com${path}.json?limit=${count}&raw_json=1"
-}
 
-api_url="$(normalize_url "$1")" || exit 1
+def feed_url(url: str, count: int) -> str:
+    """Keep only the path, require a /comments/<id> permalink, rebuild on www.reddit.com."""
+    path = re.sub(r"^(?:[a-z]+://)?[^/]+", "", url.strip())
+    path = re.split(r"[?#]", path, maxsplit=1)[0].rstrip("/")
+    if not POST_PATH.search(path):
+        raise RedditError(f"expected a post URL containing /comments/<id>, got: {url}")
+    return f"https://www.reddit.com{path}.rss?limit={count}"
 
-if [[ "$print_url" == true ]]; then
-  echo "$api_url"
-  exit 0
-fi
 
-ua="${REDDIT_USER_AGENT:-second-brain-capture/1.0 (personal note capture)}"
-tmp="$(mktemp)"
-trap 'rm -f "$tmp"' EXIT
+def _wait_seconds(headers) -> int:
+    try:
+        return min(max(int(float(headers.get("x-ratelimit-reset", 30))) + 1, 1), 60)
+    except (TypeError, ValueError):
+        return 30
 
-status="$(curl -sS -A "$ua" -o "$tmp" -w '%{http_code}' "$api_url")"
-if [[ "$status" != "200" ]]; then
-  echo "reddit-post: HTTP $status from $api_url" >&2
-  exit 1
-fi
 
-jq -r --argjson n "$count" '
-  (.[0].data.children[0].data) as $p |
-  "r/\($p.subreddit) -- u/\($p.author) -- \($p.created_utc | floor | todate)\n" +
-  "🔗 https://www.reddit.com\($p.permalink)\n" +
-  "\($p.title)\n" +
-  (if ($p.selftext // "") != "" then "\n\($p.selftext)\n" else "" end) +
-  (if ($p.is_self | not) then "🔗 \($p.url)\n" else "" end) +
-  "⬆ \($p.score)  💬 \($p.num_comments)\n" +
-  "\n--- top comments ---\n",
-  (
-    [.[1].data.children[] | select(.kind == "t1") | .data][0:$n][] |
-    "u/\(.author) -- \(.created_utc | floor | todate) -- ⬆ \(.score)\n\(.body)\n"
-  )
-' "$tmp"
+def fetch(url, ua=UA, opener=urllib.request.urlopen, sleep=time.sleep, retries=2) -> str:
+    for attempt in range(retries + 1):
+        request = urllib.request.Request(url, headers={"User-Agent": ua})
+        try:
+            with opener(request, timeout=30) as response:
+                return response.read().decode("utf-8")
+        except urllib.error.HTTPError as exc:
+            if exc.code == 429 and attempt < retries:
+                wait = _wait_seconds(exc.headers)
+                print(f"reddit-post: rate limited (429), waiting {wait}s", file=sys.stderr)
+                sleep(wait)
+                continue
+            raise RedditError(f"HTTP {exc.code} from {url}") from exc
+        except urllib.error.URLError as exc:
+            hint = ""
+            if "Tunnel connection failed" in str(exc.reason):
+                hint = " (sandbox proxy? www.reddit.com may need allowlisting)"
+            raise RedditError(f"could not reach {url}: {exc.reason}{hint}") from exc
+    raise RedditError(f"gave up on {url}")  # unreachable; keeps the type checker honest
+
+
+class _TextExtractor(HTMLParser):
+    """HTML to plain text: paragraph breaks kept, links written as `text <url>`."""
+
+    BREAKS = {"p", "br", "li", "div", "tr", "blockquote", "pre", "h1", "h2", "h3"}
+
+    def __init__(self):
+        super().__init__()
+        self.parts: list[str] = []
+        self._href: str | None = None
+        self._link_text: list[str] = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag in self.BREAKS:
+            self.parts.append("\n")
+        if tag == "a":
+            self._href = dict(attrs).get("href")
+            self._link_text = []
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._href:
+            text = "".join(self._link_text).strip()
+            if self._href.startswith("http") and text != self._href:
+                self.parts.append(f" <{self._href}>")
+            self._href = None
+
+    def handle_data(self, data):
+        self.parts.append(data)
+        if self._href is not None:
+            self._link_text.append(data)
+
+
+def _to_text(raw_html: str) -> str:
+    parser = _TextExtractor()
+    parser.feed(raw_html)
+    text = html.unescape("".join(parser.parts))
+    text = re.sub(r"[ \t ]+", " ", text)
+    text = re.sub(r"\n[ \t]+", "\n", text)
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
+def _strip_footer(text: str) -> str:
+    """Drop Reddit's trailing `submitted by /u/x [link] [comments]` line."""
+    return re.sub(r"\n?\s*submitted by\b.*?\[comments\]\s*$", "", text, flags=re.S).strip()
+
+
+def parse_feed(xml_text: str) -> dict:
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError as exc:
+        raise RedditError(f"response was not a valid Atom feed: {exc}") from exc
+    entries = root.findall(f"{ATOM}entry")
+    if not entries:
+        raise RedditError("feed has no entries (deleted or removed post?)")
+
+    category = root.find(f"{ATOM}category")
+    subreddit = (category.get("term") if category is not None else None) or "?"
+
+    def entry_fields(entry) -> dict:
+        author = (entry.findtext(f"{ATOM}author/{ATOM}name") or "?").removeprefix("/u/")
+        date = (entry.findtext(f"{ATOM}published") or entry.findtext(f"{ATOM}updated") or "")[:10]
+        raw = entry.findtext(f"{ATOM}content") or ""
+        return {"author": author, "date": date, "raw": raw, "text": _strip_footer(_to_text(raw))}
+
+    first = entries[0]
+    link_el = first.find(f"{ATOM}link")
+    permalink = link_el.get("href") if link_el is not None else ""
+
+    post = entry_fields(first)
+    post["title"] = first.findtext(f"{ATOM}title") or ""
+    outbound = re.search(r'<a href="([^"]+)">\[link\]</a>', post.pop("raw"))
+    post["link"] = outbound.group(1) if outbound and "/comments/" not in outbound.group(1) else None
+
+    comments = []
+    for entry in entries[1:]:
+        fields = entry_fields(entry)
+        fields.pop("raw")
+        comments.append(fields)
+    return {"subreddit": subreddit, "permalink": permalink, "post": post, "comments": comments}
+
+
+def format_output(feed: dict) -> str:
+    post = feed["post"]
+    lines = [
+        f"r/{feed['subreddit']} -- u/{post['author']} -- {post['date']}",
+        f"🔗 {feed['permalink']}",
+        post["title"],
+    ]
+    if post["text"]:
+        lines += ["", post["text"]]
+    if post["link"]:
+        lines.append(f"🔗 {post['link']}")
+    lines += ["", f"--- comments ({len(feed['comments'])}) ---", ""]
+    for comment in feed["comments"]:
+        lines += [f"u/{comment['author']} -- {comment['date']}", comment["text"], ""]
+    return "\n".join(lines)
+
+
+def main(argv=None, fetcher=fetch, out=sys.stdout) -> int:
+    parser = argparse.ArgumentParser(prog="reddit-post", description="Read a Reddit post and its comments via the Atom feed.")
+    parser.add_argument("url", help="Reddit post URL (must contain /comments/<id>)")
+    parser.add_argument("-n", type=int, default=10, help="number of comments to fetch (default 10)")
+    parser.add_argument("--print-url", action="store_true", help="print the feed URL and exit")
+    args = parser.parse_args(argv)
+    try:
+        url = feed_url(args.url, args.n)
+        if args.print_url:
+            print(url, file=out)
+            return 0
+        print(format_output(parse_feed(fetcher(url))), file=out)
+        return 0
+    except RedditError as exc:
+        print(f"reddit-post: {exc}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
 ```
 
 ```bash
 chmod +x plugins/second-brain/bin/reddit-post
 ```
 
-- [ ] **Step 5: Run to verify it passes**
+- [ ] **Step 4: Run to verify it passes**
 
-Run: `bats plugins/second-brain/bin/tests/reddit-post.bats && shellcheck plugins/second-brain/bin/reddit-post`
-Expected: 5 tests pass, shellcheck clean.
+Run: `python3 plugins/second-brain/bin/tests/test_reddit_post.py`
+Expected: all tests pass, output pristine. If a `FEED` fixture assertion fails because the real feed differs from the synthetic one, fix the parser against `.superpowers`-free evidence: the shape recorded in the design doc, not by loosening assertions.
 
-- [ ] **Step 6: Live smoke test against a real post**
-
-Use the permalink recorded during `probe-reddit`:
+- [ ] **Step 5: Live smoke test (needs network; run unsandboxed only after a shown sandbox denial)**
 
 ```bash
-plugins/second-brain/bin/reddit-post -n 3 "https://www.reddit.com<permalink from probe>"
+plugins/second-brain/bin/reddit-post -n 3 "https://www.reddit.com/r/commandline/comments/1wfk0ns/a_gopher_watches_your_typing_test/"
 ```
 
-Expected: a formatted post plus up to 3 comments. Skip only if the probe already showed sandbox denial and the user chose to run it unsandboxed.
+Expected: a header line `r/commandline -- u/mkhamat -- 2026-09-13`, the permalink, title, body, and 3 comments as plain text with no HTML tags or `submitted by` footer. A stderr line `rate limited (429), waiting Ns` followed by success is the expected backoff path. If Reddit answers 403, stop and report DONE_WITH_CONCERNS with the output.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add plugins/second-brain/bin/reddit-post plugins/second-brain/bin/tests/reddit-post.bats plugins/second-brain/bin/tests/fixtures/reddit-post.json
+git add plugins/second-brain/bin/reddit-post plugins/second-brain/bin/tests/test_reddit_post.py
 git commit -m "feat(second-brain): add reddit-post reader for capture
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
@@ -851,18 +1078,18 @@ full `/comments/<id>` URL first if the user gave one).
 ## Read
 
 ```bash
-reddit-post <post-url>            # post + top 10 top-level comments
-reddit-post -n 25 <post-url>      # more comments when the discussion is the point
+reddit-post <post-url>            # post + 10 comments
+reddit-post -n 25 <post-url>      # more comments when the discussion is the point (comments come in the order Reddit's feed returns them, not ranked)
 ```
 
 Only post permalinks (`/comments/<id>`) work. For a subreddit or user page, ask the user which
 post they mean.
 
-**Requires** `curl` and `jq`; no Reddit credentials. It uses the unauthenticated `.json` endpoint.
+**Requires** `uv` (stdlib-only script) and a shell that can reach `www.reddit.com`; no Reddit credentials. It reads the post's Atom feed (`<permalink>.rss`). Reddit rate-limits back-to-back requests; the script waits and retries twice on its own. If it reports `sandbox proxy? www.reddit.com may need allowlisting`, that is the sandbox, not Reddit: say so and let the user allowlist the host or approve an unsandboxed run.
 
 ## Frontmatter extras
 
-Beside `source`, from the `reddit-post` header line (`r/<sub> -- u/<author> -- <date>`):
+Beside `source`, from the `reddit-post` header line (`r/<sub> -- u/<author> -- <YYYY-MM-DD>`; the date is the post's `published`):
 
 ```yaml
 platform: reddit
@@ -980,7 +1207,7 @@ Also add a short "Bundled tools" subsection to the README near the capture secti
 | Tool | Needs |
 |------|-------|
 | `xtweet` | `xurl` authenticated for the X API, `jq` |
-| `reddit-post` | `curl`, `jq` |
+| `reddit-post` | `uv`; `www.reddit.com` reachable from the shell |
 | `yt-digest` | `uv`, a logged-in `claude` CLI |
 ```
 
