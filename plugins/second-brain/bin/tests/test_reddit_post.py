@@ -302,6 +302,27 @@ class FeedUrlEdges(unittest.TestCase):
             "https://www.reddit.com/r/x/comments/abc123/t.rss?limit=5",
         )
 
+    def test_comment_permalink_normalizes_to_post_feed(self):
+        self.assertEqual(
+            rp.feed_url("https://www.reddit.com/r/x/comments/abc123/t/c1abc/", 5),
+            "https://www.reddit.com/r/x/comments/abc123/t.rss?limit=5",
+        )
+
+    def test_bare_comments_id_still_works(self):
+        self.assertEqual(
+            rp.feed_url("https://www.reddit.com/comments/abc123", 5),
+            "https://www.reddit.com/comments/abc123.rss?limit=5",
+        )
+
+    def test_hostile_hosts_are_rebuilt_on_reddit(self):
+        for hostile in (
+            "https://evil.com/r/x/comments/abc/t/",
+            "https://www.reddit.com@evil.com/r/x/comments/abc/t/",
+            "//evil.com/r/x/comments/abc/t/",
+        ):
+            with self.subTest(url=hostile):
+                self.assertTrue(rp.feed_url(hostile, 10).startswith("https://www.reddit.com/"))
+
 
 class CountValidation(unittest.TestCase):
     def test_non_positive_counts_are_rejected(self):

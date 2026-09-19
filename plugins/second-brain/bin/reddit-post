@@ -44,6 +44,8 @@ def feed_url(url: str, count: int) -> str:
     path = re.sub(r"^(?:[a-z]+://)?[^/]+", "", url.strip(), flags=re.I)
     path = re.split(r"[?#]", path, maxsplit=1)[0].rstrip("/")
     path = re.sub(r"\.rss$", "", path)
+    # A comment permalink (/comments/<id>/<slug>/<comment-id>) is truncated to its post.
+    path = re.sub(r"(/comments/[A-Za-z0-9]+/[^/]+)/.+$", r"\1", path)
     if not POST_PATH.search(path):
         raise RedditError(f"expected a post URL containing /comments/<id>, got: {url}")
     return f"https://www.reddit.com{path}.rss?limit={count}"
