@@ -123,6 +123,51 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
+### probe-reddit-rss: does .rss or old.reddit.com work when .json is blocked?
+
+Added 2026-09-19 after `probe-reddit` found the `.json` endpoint blocked (sandbox proxy denies
+`www.reddit.com`; Reddit itself answers 403 to unauthenticated curl). The user chose to probe
+the cheap alternatives before considering a browser or OAuth path.
+
+**Files:**
+- Modify: `plugins/second-brain/docs/plans/2026-09-19-capture-site-specific-design.md` (record result in "To verify" and the Reddit "Read" entry)
+
+**Interfaces:**
+- Produces: a recorded answer, `REDDIT_ALT = rss | old-html | none`, plus the working URL shape and sample permalink. **Gate:** `reddit-reader` only proceeds on `rss` (or `old-html` if the user agrees to HTML parsing). On `none`, stop and ask the user to choose between the browser and OAuth paths.
+
+- [ ] **Step 1: Probe the RSS endpoint of a post and of a subreddit (sandbox first)**
+
+```bash
+UA='second-brain-capture/1.0 (personal note capture)'
+curl -sS -o "$TMPDIR/sub.rss" -w '%{http_code}\n' -A "$UA" 'https://www.reddit.com/r/commandline/top/.rss?t=week&limit=1'
+```
+
+Expected: `200` and Atom XML (`head -c 400 "$TMPDIR/sub.rss"`). A `<sandbox_violations>` denial means retry this one command once with `dangerouslyDisableSandbox: true` and record that the sandbox is a separate blocker from Reddit.
+
+- [ ] **Step 2: If Step 1 gave a post link, try that post's RSS (comments included)**
+
+Take a post permalink from `$TMPDIR/sub.rss` (`grep -o 'https://www.reddit.com/r/commandline/comments/[^"<]*' "$TMPDIR/sub.rss" | head -1`), then:
+
+```bash
+curl -sS -o "$TMPDIR/post.rss" -w '%{http_code}\n' -A "$UA" "<permalink>.rss?limit=5"
+```
+
+Expected: `200`; the feed has the post entry first and comment entries after it.
+
+- [ ] **Step 3: Only if RSS is blocked, try old.reddit.com once**
+
+```bash
+curl -sS -o "$TMPDIR/old.html" -w '%{http_code}\n' -A "$UA" "https://old.reddit.com/<permalink path>"
+```
+
+At most 4 requests total across the task. No other endpoints, no third-party mirrors, no scraping loops.
+
+- [ ] **Step 4: Record and commit**
+
+Record the status codes, sandbox-vs-Reddit attribution, the working URL shape, and what fields the feed carries (title, author, published date, body, comment bodies) in the design doc; set `REDDIT_ALT`. Commit as `docs(second-brain): record reddit rss probe result`.
+
+---
+
 ### move-xtweet: bring xtweet into the plugin with tests
 
 **Files:**
@@ -238,7 +283,12 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ### reddit-reader: new reddit-post script
 
-Gate: only start if `probe-reddit` recorded `REDDIT_JSON = works`.
+Gate: `probe-reddit` recorded `REDDIT_JSON = blocked`, so this task as written (the `.json` endpoint)
+is **superseded**. Start only after `probe-reddit-rss` records `REDDIT_ALT = rss`; then rewrite this
+task against the RSS/Atom shape it recorded (same interface: `reddit-post [-n COUNT] [--print-url] <url>`,
+same fake-`curl` test approach, fixture becomes a small Atom document, parsing switches from `jq` to
+whatever the recorded shape needs) before dispatching it. On `none`, this task is dropped and the
+user decides the browser or OAuth path. The script text below is the `.json` design, kept for reference.
 
 **Files:**
 - Create: `plugins/second-brain/bin/reddit-post`
