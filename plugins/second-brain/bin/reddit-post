@@ -1,0 +1,197 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = []
+# ///
+"""reddit-post -- read a Reddit post and its comments by URL, via the post's
+Atom feed (append .rss to any post permalink).
+
+Requires: uv (stdlib-only script). No Reddit credentials. If Reddit blocks or
+rate-limits the request this exits 1 with the HTTP status; it never falls back
+to scraping HTML. www.reddit.com must be reachable: a sandboxed shell may deny
+it (the error says so).
+
+Usage:
+    reddit-post <post-url>
+    reddit-post -n 25 <post-url>         # more comments (default 10)
+    reddit-post --print-url <post-url>   # show the feed URL and exit
+"""
+
+from __future__ import annotations
+
+import argparse
+import html
+import re
+import sys
+import time
+import urllib.error
+import urllib.request
+import xml.etree.ElementTree as ET
+from html.parser import HTMLParser
+
+ATOM = "{http://www.w3.org/2005/Atom}"
+UA = "second-brain-capture/1.0 (personal note capture)"
+POST_PATH = re.compile(r"/comments/[A-Za-z0-9]+")
+
+
+class RedditError(Exception):
+    pass
+
+
+def feed_url(url: str, count: int) -> str:
+    """Keep only the path, require a /comments/<id> permalink, rebuild on www.reddit.com."""
+    path = re.sub(r"^(?:[a-z]+://)?[^/]+", "", url.strip())
+    path = re.split(r"[?#]", path, maxsplit=1)[0].rstrip("/")
+    if not POST_PATH.search(path):
+        raise RedditError(f"expected a post URL containing /comments/<id>, got: {url}")
+    return f"https://www.reddit.com{path}.rss?limit={count}"
+
+
+def _wait_seconds(headers) -> int:
+    try:
+        reset = headers.get("x-ratelimit-reset")
+        if reset is None:
+            return 30
+        return min(max(int(float(reset)) + 1, 1), 60)
+    except (TypeError, ValueError):
+        return 30
+
+
+def fetch(url, ua=UA, opener=urllib.request.urlopen, sleep=time.sleep, retries=2) -> str:
+    for attempt in range(retries + 1):
+        request = urllib.request.Request(url, headers={"User-Agent": ua})
+        try:
+            with opener(request, timeout=30) as response:
+                return response.read().decode("utf-8")
+        except urllib.error.HTTPError as exc:
+            if exc.code == 429 and attempt < retries:
+                wait = _wait_seconds(exc.headers)
+                print(f"reddit-post: rate limited (429), waiting {wait}s", file=sys.stderr)
+                sleep(wait)
+                continue
+            raise RedditError(f"HTTP {exc.code} from {url}") from exc
+        except urllib.error.URLError as exc:
+            hint = ""
+            if "Tunnel connection failed" in str(exc.reason):
+                hint = " (sandbox proxy? www.reddit.com may need allowlisting)"
+            raise RedditError(f"could not reach {url}: {exc.reason}{hint}") from exc
+    raise RedditError(f"gave up on {url}")  # unreachable; keeps the type checker honest
+
+
+class _TextExtractor(HTMLParser):
+    """HTML to plain text: paragraph breaks kept, links written as `text (url)`."""
+
+    BREAKS = {"p", "br", "li", "div", "tr", "blockquote", "pre", "h1", "h2", "h3"}
+
+    def __init__(self):
+        super().__init__()
+        self.parts: list[str] = []
+        self._href: str | None = None
+        self._link_text: list[str] = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag in self.BREAKS:
+            self.parts.append("\n")
+        if tag == "a":
+            self._href = dict(attrs).get("href")
+            self._link_text = []
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._href:
+            text = "".join(self._link_text).strip()
+            if self._href.startswith("http") and text != self._href:
+                self.parts.append(f" ({self._href})")
+            self._href = None
+
+    def handle_data(self, data):
+        self.parts.append(data)
+        if self._href is not None:
+            self._link_text.append(data)
+
+
+def _to_text(raw_html: str) -> str:
+    parser = _TextExtractor()
+    parser.feed(raw_html)
+    text = html.unescape("".join(parser.parts))
+    text = re.sub(r"[ \t ]+", " ", text)
+    text = re.sub(r"\n[ \t]+", "\n", text)
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
+def _strip_footer(text: str) -> str:
+    """Drop Reddit's trailing `submitted by /u/x [link] [comments]` line."""
+    return re.sub(r"\n?\s*submitted by\b.*?\[comments\](?:\s*\([^)]*\))?\s*$", "", text, flags=re.S).strip()
+
+
+def parse_feed(xml_text: str) -> dict:
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError as exc:
+        raise RedditError(f"response was not a valid Atom feed: {exc}") from exc
+    entries = root.findall(f"{ATOM}entry")
+    if not entries:
+        raise RedditError("feed has no entries (deleted or removed post?)")
+
+    category = root.find(f"{ATOM}category")
+    subreddit = (category.get("term") if category is not None else None) or "?"
+
+    def entry_fields(entry) -> dict:
+        author = (entry.findtext(f"{ATOM}author/{ATOM}name") or "?").removeprefix("/u/")
+        date = (entry.findtext(f"{ATOM}published") or entry.findtext(f"{ATOM}updated") or "")[:10]
+        raw = entry.findtext(f"{ATOM}content") or ""
+        return {"author": author, "date": date, "raw": raw, "text": _strip_footer(_to_text(raw))}
+
+    first = entries[0]
+    link_el = first.find(f"{ATOM}link")
+    permalink = link_el.get("href") if link_el is not None else ""
+
+    post = entry_fields(first)
+    post["title"] = first.findtext(f"{ATOM}title") or ""
+    outbound = re.search(r'<a href="([^"]+)">\[link\]</a>', post.pop("raw"))
+    post["link"] = outbound.group(1) if outbound and "/comments/" not in outbound.group(1) else None
+
+    comments = []
+    for entry in entries[1:]:
+        fields = entry_fields(entry)
+        fields.pop("raw")
+        comments.append(fields)
+    return {"subreddit": subreddit, "permalink": permalink, "post": post, "comments": comments}
+
+
+def format_output(feed: dict) -> str:
+    post = feed["post"]
+    lines = [
+        f"r/{feed['subreddit']} -- u/{post['author']} -- {post['date']}",
+        f"🔗 {feed['permalink']}",
+        post["title"],
+    ]
+    if post["text"]:
+        lines += ["", post["text"]]
+    if post["link"]:
+        lines.append(f"🔗 {post['link']}")
+    lines += ["", f"--- comments ({len(feed['comments'])}) ---", ""]
+    for comment in feed["comments"]:
+        lines += [f"u/{comment['author']} -- {comment['date']}", comment["text"], ""]
+    return "\n".join(lines)
+
+
+def main(argv=None, fetcher=fetch, out=sys.stdout) -> int:
+    parser = argparse.ArgumentParser(prog="reddit-post", description="Read a Reddit post and its comments via the Atom feed.")
+    parser.add_argument("url", help="Reddit post URL (must contain /comments/<id>)")
+    parser.add_argument("-n", type=int, default=10, help="number of comments to fetch (default 10)")
+    parser.add_argument("--print-url", action="store_true", help="print the feed URL and exit")
+    args = parser.parse_args(argv)
+    try:
+        url = feed_url(args.url, args.n)
+        if args.print_url:
+            print(url, file=out)
+            return 0
+        print(format_output(parse_feed(fetcher(url))), file=out)
+        return 0
+    except RedditError as exc:
+        print(f"reddit-post: {exc}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
