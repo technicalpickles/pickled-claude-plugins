@@ -49,7 +49,9 @@ Every playbook has three parts:
      concrete reason, stated in the reply: the video is very long (download and OCR cost
      outweigh the value), the download fails or is blocked, or the content is evidently
      audio-only (podcast, talk over a static frame). A talking head alone is not a reason.
-   - Reddit: TBD by probe (see below).
+   - Reddit: **blocked, no working path yet.** The planned `reddit-post <url>` (unauthenticated
+     `.json` endpoint) got a 403 from Reddit on 2026-09-19 (see "To verify"). Needs a redesign
+     before a Reddit playbook can ship; until then a Reddit URL stops and says so.
    - Web: `mcp__lightpanda__markdown`, `WebFetch` fallback (unchanged behavior).
 2. **Frontmatter extras**, added beside `source`:
    - X: `platform: x`, `author`, `published`
@@ -76,7 +78,14 @@ Every playbook has three parts:
   `probe-ok`. **`BIN_ON_PATH = yes`**, so playbooks and `allowed-tools` invoke scripts by bare
   name. `${CLAUDE_PLUGIN_ROOT}` did **not** expand in a Bash tool call (`echo
   "${CLAUDE_PLUGIN_ROOT}"` printed an empty line), so don't spell invocations with it.
-- Reddit access path (above).
+- Reddit access path (above): probed 2026-09-19 with `curl -A 'second-brain-capture/1.0
+  (personal note capture)'` against `https://www.reddit.com/r/commandline/top.json?limit=1&t=week&raw_json=1`.
+  **`REDDIT_JSON = blocked`.** Sandboxed, the proxy denied `www.reddit.com:443` (CONNECT 403,
+  a `<sandbox_violations>` entry), so that hop is a sandbox allowlist issue. Retried once
+  unsandboxed to separate the causes: Reddit itself answered `403` with an HTML block page
+  (not JSON, no rate-limit headers), so the unauthenticated `.json` endpoint is blocked from
+  this environment. The post-permalink shape check was not possible (no JSON to parse). Two
+  requests total; no workaround attempted. The `reddit-post` design must be revisited.
 - Frontmatter field names against the vault's own `CLAUDE.md`.
 
 ## Testing
