@@ -4,6 +4,7 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'plugins/second-brain/bin/**'
       - 'plugins/second-brain/scripts/**'
       - 'plugins/second-brain/hooks/**'
       - '.github/workflows/second-brain-plugin-tests.yml'
@@ -25,4 +26,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y bats
 
       - name: Run bats
-        run: bats scripts/tests/ hooks/tests/
+        run: bats bin/tests/ scripts/tests/ hooks/tests/
+
+      - name: Run Python tests
+        run: python3 -m unittest discover -s bin/tests -p 'test_*.py'
