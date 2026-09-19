@@ -1,6 +1,6 @@
 # Capture: site-specific behavior
 
-Status: design, approved in conversation 2026-09-19. Not yet planned or implemented.
+Status: implemented (see 2026-09-19-capture-site-specific-plan.md).
 
 ## Problem
 
@@ -23,7 +23,7 @@ already exist in dotfiles for this (`xtweet`, `yt-digest`); Reddit has none.
 
 ```
 plugins/second-brain/
-├── bin/                      # xtweet, yt-digest, reddit reader (new)
+├── bin/                      # xtweet, yt-digest, reddit-post
 └── skills/capture/
     ├── SKILL.md              # Step 2: host dispatch table
     └── references/sites/
@@ -50,7 +50,7 @@ Every playbook has three parts:
      outweigh the value), the download fails or is blocked, or the content is evidently
      audio-only (podcast, talk over a static frame). A talking head alone is not a reason.
    - Reddit: `reddit-post <url>` reads the post's Atom feed (`<permalink>.rss`), not `.json`
-     (blocked, see "To verify"). Feed carries post title, author, body, comment bodies and the subreddit
+     (blocked, see "Verified during implementation"). Feed carries post title, author, body, comment bodies and the subreddit
      (`<category term="commandline" label="r/commandline"/>`); comments have only `updated`.
      The sandbox proxy denies `www.reddit.com`, so the script needs that host allowlisted or an
      unsandboxed run, and it must handle HTTP 429 (rate limit hit on the second request within
@@ -67,14 +67,20 @@ Every playbook has three parts:
 
 ## Scripts
 
-- `xtweet` and `yt-digest` move from dotfiles `bin/`. Header comments document requirements.
-- Dotfiles' `bin/CLAUDE.md` and `claude/CLAUDE.md` pointers change to say the tools ship with
-  second-brain; the dotfiles copies become symlinks or are removed. That is a dotfiles-repo
-  change, done separately.
-- The Reddit reader is new. Probed 2026-09-19: `.json` is blocked, `.rss` works
-  (`REDDIT_ALT = rss`, see "To verify"). Build `reddit-post` on the Atom feed.
+All three live in `plugins/second-brain/bin/`, on PATH for Bash tool calls. Tests are in
+`plugins/second-brain/bin/tests/` (`xtweet.bats`, `test_yt_digest.py`, `test_reddit_post.py`).
 
-## To verify before implementation
+- `xtweet` and `yt-digest` moved from dotfiles `bin/`. Header comments document requirements.
+  `yt-digest` also writes `metadata.json` (title, channel, published, url, duration_seconds),
+  because the frontmatter needs channel and published. It is best-effort, written on fresh
+  runs and `--transcript-only`, not with `--skip-download`.
+- `reddit-post` is a stdlib-only Python `uv run --script`. It reads the post's Atom feed
+  (`<permalink>.rss`), not the `.json` endpoint (blocked, HTTP 403) and not curl/jq. It retries
+  HTTP 429 with backoff (waits about 30s, twice).
+- The dotfiles side (copies of `xtweet`/`yt-digest`, pointer docs) is a separate change, see
+  Followups.
+
+## Verified during implementation
 
 - Plugin `bin/` on PATH: verified 2026-09-19 with `claude -p --plugin-dir` against a temp copy
   holding an executable `bin/sb-probe`. A Bash tool call running bare `sb-probe` printed
@@ -104,11 +110,29 @@ Every playbook has three parts:
   was not tried (not needed). Untested: nested reply structure, long threads, "more comments"
   handling, deleted posts. Four-request budget: 3 requests reached Reddit (one 200, one 429, one
   200), plus the sandbox-denied attempt.
-- Frontmatter field names against the vault's own `CLAUDE.md`.
+- Frontmatter field names against the vault's own `CLAUDE.md`: done. No collisions found in
+  `~/Vaults/pickled-knowledge/CLAUDE.md` as of 2026-09-19.
 
 ## Testing
 
-- Trigger evals (`skills/capture/evals/`): add per-site prompts so bare `x.com` and
-  `youtube.com` links still route to `capture`.
-- Scripts: smoke tests for URL parsing at minimum; neither script has tests today.
+- Trigger evals (`skills/capture/evals/`) extended to 24 queries, including per-site prompts, and
+  measured with no regression. The new positives were already 3/3 before the pointer widening,
+  so no lift shown; the queries guard against regression.
+- Scripts have tests (see Scripts).
 - Version bump via `./scripts/bump-version.sh --auto`.
+
+## Followups
+
+Each is filed as a taskwarrior task (tag `second-brain`).
+
+1. `fetch-source <url>` dispatcher script (option C from brainstorming, deferred).
+2. Dotfiles cleanup: replace `bin/xtweet` and `bin/yt-digest` in the dotfiles repo with symlinks
+   to the plugin's bin (or remove), and update dotfiles `bin/CLAUDE.md` and `claude/CLAUDE.md`
+   pointers.
+3. Sandbox network allowlist: the command sandbox's proxy denies `www.reddit.com`, so
+   `reddit-post` only works unsandboxed until the host is allowed (dotfiles `claude/roles/*.jsonc`
+   holds sandbox network config). `api.x.com` and the YouTube hosts for xtweet/yt-digest are also
+   unverified under the sandbox.
+4. `trigger_eval.py` crashes on a relative `--plugin-src ../../..` (`Path.name` is `..`), and
+   `evals/README.md` "Running them" still shows that command. Fix with `Path(p).resolve()` in the
+   script.
