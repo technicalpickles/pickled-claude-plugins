@@ -71,8 +71,11 @@ Every playbook has three parts:
 
 ## To verify before implementation
 
-- Does a plugin's `bin/` land on PATH when the plugin is enabled? If not, playbooks invoke
-  `${CLAUDE_PLUGIN_ROOT}/bin/...`.
+- Plugin `bin/` on PATH: verified 2026-09-19 with `claude -p --plugin-dir` against a temp copy
+  holding an executable `bin/sb-probe`. A Bash tool call running bare `sb-probe` printed
+  `probe-ok`. **`BIN_ON_PATH = yes`**, so playbooks and `allowed-tools` invoke scripts by bare
+  name. `${CLAUDE_PLUGIN_ROOT}` did **not** expand in a Bash tool call (`echo
+  "${CLAUDE_PLUGIN_ROOT}"` printed an empty line), so don't spell invocations with it.
 - Reddit access path (above).
 - Frontmatter field names against the vault's own `CLAUDE.md`.
 
