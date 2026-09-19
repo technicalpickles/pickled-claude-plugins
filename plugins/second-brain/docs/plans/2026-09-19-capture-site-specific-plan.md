@@ -6,7 +6,7 @@
 
 **Architecture:** `capture/SKILL.md` Step 2 dispatches on the URL host to `references/sites/<site>.md`. Each playbook states how to read the source, which frontmatter extras to add, and the failure mode. `xtweet` and `yt-digest` move from dotfiles into `plugins/second-brain/bin/`; a new `reddit-post` script joins them. The vault CLAUDE.md pointer template is widened so bare X/YouTube/Reddit links still trigger `capture`.
 
-**Tech Stack:** bash + jq + curl (`xtweet`, `reddit-post`), Python via `uv run --script` (`yt-digest`), bats and unittest for tests.
+**Tech Stack:** bash + jq (`xtweet`), Python via `uv run --script` (`yt-digest`, `reddit-post`), bats and unittest for tests.
 
 **Spec:** [2026-09-19-capture-site-specific-design.md](2026-09-19-capture-site-specific-design.md)
 
