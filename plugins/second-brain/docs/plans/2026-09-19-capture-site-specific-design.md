@@ -44,8 +44,11 @@ Every playbook has three parts:
 
 1. **Read**: exact tool, flags, and requirements.
    - X: `xtweet <url>`; `-q` for the quoted chain, `-r` when replies matter. Requires `xurl`.
-   - YouTube: `yt-digest --transcript-only` for talking-head content, full mode for
-     slide/infographic-heavy video. The user picks; there is no auto-detection.
+   - YouTube: `yt-digest` in full mode (video, transcript, on-screen text) by default. The
+     agent does not ask the user to choose. Fall back to `--transcript-only` only with a
+     concrete reason, stated in the reply: the video is very long (download and OCR cost
+     outweigh the value), the download fails or is blocked, or the content is evidently
+     audio-only (podcast, talk over a static frame). A talking head alone is not a reason.
    - Reddit: TBD by probe (see below).
    - Web: `mcp__lightpanda__markdown`, `WebFetch` fallback (unchanged behavior).
 2. **Frontmatter extras**, added beside `source`:
