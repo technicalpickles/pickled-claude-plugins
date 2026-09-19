@@ -8,13 +8,16 @@ Default is the full pull: video, spoken transcript, and on-screen text (slides, 
 merged into one chronological document. Do not ask the user which mode.
 
 ```bash
-OUT="$TMPDIR/yt-digest/<video-id>"
-yt-digest --out-dir "$OUT" "<url>"
+yt-digest --out-dir "$TMPDIR/yt-digest/<video-id>" "<url>"
 ```
 
-Then `Read` `$OUT/full_context.md` (transcript + on-screen text) and `$OUT/metadata.json`.
+Then `Read` `$TMPDIR/yt-digest/<video-id>/full_context.md` (transcript + on-screen text) and
+`$TMPDIR/yt-digest/<video-id>/metadata.json`. If `full_context.md` is not there, the video produced
+neither captions nor readable on-screen text: stop and report per the Failure mode section, and do
+not write a note from the title, description, or someone else's summary.
 
-Fall back to `--transcript-only` (reads `$OUT/transcript.md`) only with a concrete reason, and say
+Fall back to `--transcript-only` (reads `$TMPDIR/yt-digest/<video-id>/transcript.md`; run it as
+`yt-digest --transcript-only --out-dir "$TMPDIR/yt-digest/<video-id>" "<url>"`) only with a concrete reason, and say
 which reason in your reply:
 
 - the video is very long, so download and OCR cost outweighs the value
@@ -25,6 +28,10 @@ A talking head alone is not a reason: they still show slides, demos and screens.
 
 **Requires** `uv` and a logged-in `claude` CLI (`yt-digest` runs as `uv run --script`; first run
 downloads its dependencies). Use `$TMPDIR`, never the vault or the repo, for `--out-dir`.
+
+If a fresh full or transcript-only run produced no `metadata.json`, check `command -v yt-digest`:
+an older copy elsewhere on PATH (e.g. from dotfiles) lacks metadata support. Say so in the reply,
+and omit `channel` and `published` as below.
 
 ## Frontmatter extras
 
@@ -37,7 +44,8 @@ published: 2026-01-02
 ```
 
 If `metadata.json` is missing, omit `channel` and `published` rather than guessing. It is written
-only on a fresh run (not with `--skip-download`), and is best-effort even then.
+on fresh full runs and on `--transcript-only`, not with `--skip-download`, and is best-effort even
+then.
 
 ## Failure mode
 

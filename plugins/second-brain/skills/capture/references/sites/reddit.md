@@ -1,7 +1,10 @@
 # Reddit
 
 Hosts: `reddit.com`, `www.reddit.com`, `old.reddit.com`, `redd.it` (short links: resolve to the
-full `/comments/<id>` URL first if the user gave one).
+full `/comments/<id>` URL first if the user gave one). Resolve a `redd.it` short link by fetching
+it with `WebFetch` (it follows the redirect) and reading the final URL, then pass that to
+`reddit-post`. If that does not yield a `/comments/<id>` URL, stop and ask the user for the full
+link. This is only redirect resolution, not content scraping.
 
 ## Read
 
