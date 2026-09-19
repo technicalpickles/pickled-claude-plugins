@@ -8,6 +8,9 @@ allowed-tools:
   - Glob
   - Grep
   - Bash(npx @techpickles/sb:*)
+  - Bash(xtweet:*)
+  - Bash(reddit-post:*)
+  - Bash(yt-digest:*)
   - mcp__qmd__query
   - mcp__qmd__get
   - mcp__qmd__multi_get
@@ -80,15 +83,22 @@ lookup failing twice across two separate sessions.
 
 ## Step 2: Read the actual primary source
 
-**Never write a note from search snippets.** Fetch the real thing:
+**Never write a note from search snippets.** Fetch the real thing.
 
-| Source | Tool |
-|--------|------|
-| Web page | `mcp__lightpanda__markdown {url}` preferred; `WebFetch` as fallback |
-| Tweet / thread | `xtweet <url-or-id>` (`-q` for quoted chain, `-r` for replies) |
+Match the source, then follow its playbook. For a URL, match on the host:
+
+| Source | Playbook / tool |
+|--------|-----------------|
+| `x.com`, `twitter.com` | [references/sites/x.md](references/sites/x.md) |
+| `youtube.com`, `youtu.be` | [references/sites/youtube.md](references/sites/youtube.md) |
+| `reddit.com`, `redd.it` | [references/sites/reddit.md](references/sites/reddit.md) |
+| Any other URL | [references/sites/web.md](references/sites/web.md) |
 | PDF or local file | `Read` |
 | Notion page | `mcp__notiongusto__notion-fetch` |
 | Slack thread | the `slack` skill |
+
+Each playbook also names frontmatter fields to add beside `source` in Step 3; carry them into the
+note. New site: add `references/sites/<site>.md` and one row here.
 
 **If you cannot reach the source, or cannot find the thing the user described, stop and say so.**
 Do not write a note containing a URL you did not load, a title you inferred, or details you filled
@@ -103,6 +113,8 @@ npx @techpickles/sb note create --source auto --title "<title>"            # ret
 ```
 
 Then write the body at the returned path with `Write`/`Edit`.
+Add any site fields from the playbook to the frontmatter (see
+[references/note-format.md](references/note-format.md#site-fields)).
 
 **Do not hand-roll the destination path.** sb resolves the inbox, the zettelkasten timestamp, and
 the filename slug (`202608141249 note-title.md` - space after the timestamp, hyphens inside the
