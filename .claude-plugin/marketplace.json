@@ -19,7 +19,7 @@
     {
       "name": "git",
       "source": "./plugins/git",
-      "version": "3.2.3"
+      "version": "3.2.4"
     },
     {
       "name": "ci-cd-tools",
@@ -54,7 +54,7 @@
     {
       "name": "agent-meta",
       "source": "./plugins/agent-meta",
-      "version": "2.6.0"
+      "version": "2.7.0"
     },
     {
       "name": "buildkite",
