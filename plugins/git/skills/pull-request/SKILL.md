@@ -5,7 +5,7 @@ description: Invoke this skill BEFORE running any gh pr create, gh pr edit, or g
 
 ## Overview
 
-Authoring PR communication that respects busy reviewers. All bodies and comments are drafted to `.scratch/pr-bodies/` first — for creation the draft is the audit record, written then used immediately; for updates and comments it's also a review checkpoint. Anti-patterns (metrics, diff-noise, H1 headings) are avoided. Manual edits are detected before overwriting.
+Authoring PR communication that respects busy reviewers. All bodies and comments are drafted to `.scratch/pr-bodies/` first. For creation the draft is the audit record, written then used immediately; for updates and comments it's also a review checkpoint. Anti-patterns (metrics, diff-noise, H1 headings) are avoided. Manual edits are detected before overwriting.
 
 ## Operations
 
@@ -42,13 +42,23 @@ Check for a PR template (`.github/pull_request_template.md`, `.github/PULL_REQUE
 ## Test plan
 
 - How to verify (only if non-obvious)
+
+<attribution footer, if your environment requires one>
 ```
 
 Optional sections based on context: `## Breaking changes`, `## Migration notes`, `## Follow-up work`.
 
+If your instructions require an attribution footer on PR bodies (for example a "Generated with ..." line), append it as the last line of the body. It isn't a section; don't give it a heading.
+
 ### PR title
 
 Imperative mood (Add, Fix, Update, Refactor), under 72 characters, capitalize first word, no trailing period. Derive from the branch name when semantic, otherwise from the first commit.
+
+### Voice and style
+
+If a voice or writing-style skill is available for prose written under the user's name, load it and follow it for the body and comments. Its rules take precedence over the tone guidance here.
+
+Use commas, colons, parentheses, or separate sentences instead of em-dashes (—) in titles, bodies, and comments. Check the draft for them before running `gh`.
 
 ### Do
 
@@ -77,7 +87,7 @@ Three to five sentences, conversational, professional. Acknowledge reviewer inpu
 1. Check for existing PR: `gh pr view --json number 2>/dev/null`. If one exists, error or route to update.
 2. Gather: `git log <base>..HEAD`, PR template, `CONTRIBUTING.md`.
 3. Draft body to `.scratch/pr-bodies/drafts/<slug>.md`.
-4. Create: `gh pr create --title "..." --body-file <draft-path>` (add `--draft` if the user asked for a draft). No approval pause on the routine case — being asked to create a PR is itself the go-ahead; the draft file is the record, not a checkpoint. Do stop and confirm first if something's off the routine path: no commits ahead of base, an open PR already exists for this branch, or the title/scope is genuinely ambiguous.
+4. Create: `gh pr create --title "..." --body-file <draft-path>` (add `--draft` if the user asked for a draft). No approval pause on the routine case: being asked to create a PR is itself the go-ahead; the draft file is the record, not a checkpoint. Do stop and confirm first if something's off the routine path: no commits ahead of base, an open PR already exists for this branch, or the title/scope is genuinely ambiguous.
 5. Archive: move the draft to `.scratch/pr-bodies/<number>/<timestamp>-body.md` and write `metadata.json` with the body hash.
 
 ## Workflow: Update body
@@ -149,10 +159,11 @@ fi
 
 ## Common mistakes
 
-- Posting an update or comment without user review. Always confirm before running `gh pr edit`/`gh pr comment` — unlike create, these can overwrite manual edits or ping reviewers unexpectedly.
+- Posting an update or comment without user review. Always confirm before running `gh pr edit`/`gh pr comment`. Unlike create, these can overwrite manual edits or ping reviewers unexpectedly.
 - Adding a confirmation pause back into the create path "to be safe." That's the exact round-trip this skill exists to skip; the draft file already gives an audit trail.
 - Overwriting manual edits silently. Always compare hashes and show the diff first.
 - Updating body when nothing material changed. Skip with "description still accurate".
+- Leaving em-dashes in the draft. Fix them before sending, not after the send is rejected.
 - Using raw `gh pr create` without `--body-file`. Shell-escaping issues and no draft review step.
 - Running create on `main`/`master`. Stop and ask the user to branch first.
 - Ignoring repeated open PRs on the same branch. Always check `gh pr list --head <branch>`.
