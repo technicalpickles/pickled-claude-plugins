@@ -15,7 +15,9 @@ IF adding files that look like they are agent configuration, or adding planning 
 
 ## git commit
 
-PREFER writing out a commit message to the `scratch/` directory, and save it to a name reflecting what is being commited. Then use use `git commit -t scratch/path-to-message.txt`
+PREFER writing the commit message to a file under `$TMPDIR`, named for what is being committed, then commit with `git commit -F "$TMPDIR/path-to-message.txt"`.
+
+Use `-F` (`--file`), NEVER `-t` (`--template`). A template opens the message in an editor and git aborts if it comes back unchanged (`Aborting commit; you did not edit the message.`). Agent shells run with a no-op editor, so `-t` always aborts. The abort comes after pre-commit hooks run, so the failure looks like a hook problem. It isn't; don't reach for `--no-verify`.
 
 ### signing
 
