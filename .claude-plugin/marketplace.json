@@ -19,7 +19,7 @@
     {
       "name": "git",
       "source": "./plugins/git",
-      "version": "3.2.4"
+      "version": "3.3.0"
     },
     {
       "name": "ci-cd-tools",
