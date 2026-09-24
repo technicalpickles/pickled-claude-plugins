@@ -152,16 +152,20 @@ EOF
 REPO_ROOT=$(find_repo_root)
 cd "$REPO_ROOT"
 
-# Find all artifacts and group by directory
-declare -A seen_dirs
+# Find all artifacts and group by directory.
+# seen_dirs is a newline-delimited list, not an associative array, so this
+# runs on bash 3.2 (macOS /bin/bash).
+seen_dirs=$'\n'
 SUBPROJECTS=""
 
 while read -r artifact_path; do
   dir=$(dirname "$artifact_path")
 
   # Skip if we've seen this directory
-  [[ -n "${seen_dirs[$dir]:-}" ]] && continue
-  seen_dirs[$dir]=1
+  case "$seen_dirs" in
+    *$'\n'"$dir"$'\n'*) continue ;;
+  esac
+  seen_dirs+="$dir"$'\n'
 
   # Generate subproject ID (relative path with / → -)
   rel_path="${dir#$REPO_ROOT/}"
