@@ -14,7 +14,7 @@
     {
       "name": "working-in-monorepos",
       "source": "./plugins/working-in-monorepos",
-      "version": "1.0.0"
+      "version": "1.0.1"
     },
     {
       "name": "git",
