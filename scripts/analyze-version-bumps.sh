@@ -27,7 +27,10 @@
 #
 
 set -eo pipefail
-# Note: -u disabled because empty associative arrays cause issues
+# Note: -u disabled because expanding an empty array trips it on bash < 4.4.
+#
+# Must run on bash 3.2 (macOS /bin/bash, which `env bash` can resolve to), so
+# no associative arrays: per-plugin state lives in parallel indexed arrays.
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MARKETPLACE_JSON="$REPO_ROOT/.claude-plugin/marketplace.json"
@@ -202,9 +205,30 @@ version_gte() {
     return 1
 }
 
-# Main analysis
-declare -A PLUGIN_BUMPS=()  # plugin -> bump type (major, minor, patch)
-declare -A PLUGIN_COMMITS=()  # plugin -> list of commit descriptions
+# Main analysis: PLUGIN_NAMES[i] has bump PLUGIN_BUMPS[i] (major, minor, patch)
+# and commit descriptions PLUGIN_COMMITS[i]
+PLUGIN_NAMES=()
+PLUGIN_BUMPS=()
+PLUGIN_COMMITS=()
+
+# Print the index of a plugin in PLUGIN_NAMES, or -1 if absent
+plugin_index() {
+    local name="$1"
+    local i
+    for ((i = 0; i < ${#PLUGIN_NAMES[@]}; i++)); do
+        if [[ "${PLUGIN_NAMES[$i]}" == "$name" ]]; then
+            echo "$i"
+            return
+        fi
+    done
+    echo "-1"
+}
+
+# Plugin names in sorted order
+sorted_plugins() {
+    [[ ${#PLUGIN_NAMES[@]} -gt 0 ]] || return 0
+    printf '%s\n' "${PLUGIN_NAMES[@]}" | sort
+}
 
 # Analyze each commit
 while IFS= read -r line; do
@@ -227,25 +251,32 @@ while IFS= read -r line; do
     bump_type=$(get_bump_type "$type" "$breaking" "$body")
     [[ "$bump_type" == "none" ]] && continue
 
+    idx=$(plugin_index "$scope")
+    if [[ "$idx" -lt 0 ]]; then
+        idx=${#PLUGIN_NAMES[@]}
+        PLUGIN_NAMES[$idx]="$scope"
+        PLUGIN_BUMPS[$idx]="none"
+        PLUGIN_COMMITS[$idx]=""
+    fi
+
     # Update plugin bump (keep highest)
-    current_bump="${PLUGIN_BUMPS[$scope]:-none}"
-    PLUGIN_BUMPS[$scope]=$(compare_bump "$current_bump" "$bump_type")
+    PLUGIN_BUMPS[$idx]=$(compare_bump "${PLUGIN_BUMPS[$idx]}" "$bump_type")
 
     # Track commits for this plugin
-    PLUGIN_COMMITS[$scope]+="  - $subject"$'\n'
+    PLUGIN_COMMITS[$idx]+="  - $subject"$'\n'
 
 done < <(get_branch_commits)
 
 # Output results
-num_bumps="${#PLUGIN_BUMPS[@]}"
+num_bumps="${#PLUGIN_NAMES[@]}"
 
 if [[ "$JSON_OUTPUT" == "true" ]]; then
     # Build JSON with only pending bumps (where current < expected)
     pending_bumps=""
     pending_count=0
     if [[ $num_bumps -gt 0 ]]; then
-        for plugin in "${!PLUGIN_BUMPS[@]}"; do
-            bump="${PLUGIN_BUMPS[$plugin]}"
+        for plugin in $(sorted_plugins); do
+            bump="${PLUGIN_BUMPS[$(plugin_index "$plugin")]}"
             base=$(get_base_version "$plugin")
             current=$(get_plugin_version "$plugin")
             expected=$(bump_version "$base" "$bump")
@@ -280,9 +311,10 @@ else
     echo ""
 
     needs_bump=false
-    declare -A PENDING_PLUGINS=()
-    for plugin in $(echo "${!PLUGIN_BUMPS[@]}" | tr ' ' '\n' | sort); do
-        bump="${PLUGIN_BUMPS[$plugin]}"
+    PENDING_PLUGINS=()  # "plugin bump" pairs
+    for plugin in $(sorted_plugins); do
+        idx=$(plugin_index "$plugin")
+        bump="${PLUGIN_BUMPS[$idx]}"
         base=$(get_base_version "$plugin")
         current=$(get_plugin_version "$plugin")
         expected=$(bump_version "$base" "$bump")
@@ -299,18 +331,17 @@ else
         else
             echo "  Status: ✗ Needs bump"
             needs_bump=true
-            PENDING_PLUGINS[$plugin]="$bump"
+            PENDING_PLUGINS+=("$plugin $bump")
         fi
         echo "  Commits:"
-        echo "${PLUGIN_COMMITS[$plugin]}"
+        echo "${PLUGIN_COMMITS[$idx]}"
     done
 
     if [[ ${#PENDING_PLUGINS[@]} -gt 0 ]]; then
         echo ""
         echo "To apply pending bumps, run:"
-        for plugin in "${!PENDING_PLUGINS[@]}"; do
-            bump="${PENDING_PLUGINS[$plugin]}"
-            echo "  ./scripts/bump-version.sh $plugin $bump"
+        for pending in "${PENDING_PLUGINS[@]}"; do
+            echo "  ./scripts/bump-version.sh $pending"
         done
     else
         echo ""

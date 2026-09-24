@@ -85,6 +85,10 @@ rm -rf ~/.claude/plugins/cache/pickled-claude-plugins/{plugin}/
 /plugin install {plugin}@pickled-claude-plugins
 ```
 
+### Shell scripts must run on bash 3.2
+
+macOS ships `/bin/bash` 3.2, and `#!/usr/bin/env bash` can resolve to it even with a newer Homebrew bash installed. So no `declare -A`, `mapfile`, `${var,,}`, `|&`, etc. — use parallel indexed arrays or a delimited string instead of associative arrays. `./scripts/check-bash-compat.sh` flags these (CI and the hk pre-commit hook run it); test locally with `/bin/bash path/to/script`. It can't catch `"${arr[@]}"` on an empty array under `set -u`, which also errors on bash < 4.4.
+
 ## Environment Variables
 
 | Variable | Set By | Purpose |
