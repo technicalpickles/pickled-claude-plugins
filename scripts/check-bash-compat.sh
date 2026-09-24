@@ -24,7 +24,9 @@
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SELF="scripts/check-bash-compat.sh"
+# This script and its tests quote the constructs they look for
+EXCLUDE="scripts/check-bash-compat.sh
+tests/scenarios/test-bash-compat.sh"
 ALLOW_MARKER="bash-compat: allow"
 
 cd "$REPO_ROOT"
@@ -38,7 +40,7 @@ list_shell_files() {
             | while IFS= read -r match; do
                 [[ "$match" == *:1:* ]] && echo "${match%%:1:*}"
             done
-    } | grep -vxF "$SELF" | sort -u
+    } | grep -vxF "$EXCLUDE" | sort -u
 }
 
 FILES=()
