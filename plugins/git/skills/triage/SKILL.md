@@ -1,6 +1,7 @@
 ---
 name: triage
 description: Use when reviewing git state across worktrees, stashes, and branches - helps decide what to clean up, resume, or address
+disable-model-invocation: true
 ---
 
 # Git Triage

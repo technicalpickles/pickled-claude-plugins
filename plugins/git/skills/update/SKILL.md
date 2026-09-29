@@ -1,6 +1,12 @@
 ---
 name: update
-description: Use when updating your branch with upstream changes - fetches, merges, and intelligently resolves conflicts
+description: >-
+  Use when a branch or PR has merge conflicts, is behind main, or needs upstream
+  changes pulled in. Triggers on "resolve the merge conflicts", "there's a merge
+  conflict on the PR, fix it", "rebase this PR on main", "catch this branch up
+  with main", "update my branch". Fetches, merges the base branch (merge, not
+  rebase), and resolves conflicts by reading the intent of both sides. Do NOT
+  use for fast-forwarding a local main after a merge (just git pull).
 ---
 
 # Git Update

@@ -14,12 +14,12 @@
     {
       "name": "working-in-monorepos",
       "source": "./plugins/working-in-monorepos",
-      "version": "1.0.0"
+      "version": "1.0.1"
     },
     {
       "name": "git",
       "source": "./plugins/git",
-      "version": "3.2.2"
+      "version": "3.4.0"
     },
     {
       "name": "ci-cd-tools",
@@ -54,7 +54,7 @@
     {
       "name": "agent-meta",
       "source": "./plugins/agent-meta",
-      "version": "2.6.0"
+      "version": "2.7.0"
     },
     {
       "name": "buildkite",

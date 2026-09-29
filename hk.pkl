@@ -6,6 +6,11 @@ local validate_versions = new Step {
   check = "./scripts/validate-plugin-versions.sh"
 }
 
+// Shell scripts must run on bash 3.2 (macOS /bin/bash)
+local bash_compat = new Step {
+  check = "./scripts/check-bash-compat.sh"
+}
+
 // Conventional commit format check (basic)
 local conventional_commit = (Builtins.check_conventional_commit) {}
 
@@ -19,6 +24,7 @@ hooks {
   ["pre-commit"] {
     steps {
       ["validate-versions"] = validate_versions
+      ["bash-compat"] = bash_compat
     }
   }
 

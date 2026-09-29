@@ -1,5 +1,6 @@
 {
   "routes": [
-    "./skills/pull-request/tool-routes.yaml"
+    "./skills/pull-request/tool-routes.yaml",
+    "./skills/commit/tool-routes.yaml"
   ]
 }

@@ -85,6 +85,8 @@ names the open question to resolve. Copy-paste ready.]
 
 **Resume Prompt is mandatory and must be specific.** Before writing the file, check the generated prompt: if it reads as filler ("if you want to resume...", "feel free to continue...", "you could pick this up..."), regenerate it with concrete file paths, named skills to invoke, and explicit next actions. Do not write the file with a filler prompt.
 
+**Name the skill, not the raw command, for steps that have a skill.** The resuming session tends to run whatever literal command the handoff spells out, and that skips the skill that would have handled it properly. So when a next step opens, edits, or comments on a PR, write "open the PR via the `git:pull-request` skill", not `gh pr create --title ... --body ...`. The same goes for commits (`git:commit`) and working through review feedback (`git:pull-feedback`). Keep the step's specifics (branch, what the PR body must cover, draft vs ready). Just don't hand over a copy-paste command that routes around the skill.
+
 Filename: `[topic-slug].md`
 
 ## Close-out Template

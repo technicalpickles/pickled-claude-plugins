@@ -1,0 +1,58 @@
+routes:
+  # git commit -t/--template aborts non-interactively
+  git-commit-template:
+    tool: Bash
+    pattern: "(?<!`)\\bgit\\s+(?:-C\\s+\\S+\\s+)?commit\\b[^|;&\\n]*\\s(?:-t|--template)(?:\\s|=)"
+    message: |
+      Use `git commit -F <file>`, not `-t`/`--template`.
+
+      A template opens the message in an editor and git aborts if it comes
+      back unchanged ("Aborting commit; you did not edit the message.").
+      Agent shells use a no-op editor, so `-t` always aborts, after
+      pre-commit hooks run, which makes it look like a hook failure.
+
+      See the git:commit skill.
+    tests:
+      - desc: "commit -t should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit -t scratch/msg.txt"
+        expect: block
+        contains: "git commit -F"
+      - desc: "commit --template= should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit --template=msg.txt -- a.rb"
+        expect: block
+      - desc: "commit -C dir with -t after add should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git add a.rb && git -C /repo commit --no-verify -t /tmp/msg.txt"
+        expect: block
+      - desc: "commit -F should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit -F \"$TMPDIR/msg.txt\" -- a.rb"
+        expect: allow
+      - desc: "-t in a later command should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit -F msg.txt && pt beans create 'x' -t task"
+        expect: allow
+      - desc: "-t inside a later line of a heredoc message should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit -m \"$(cat <<'EOF'\nfix: stop using -t for templates\nEOF\n)\""
+        expect: allow
+      - desc: "backtick-quoted mention in prose should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "pt beans create 'x' -d 'why: `git commit -t <file>` aborts'"
+        expect: allow

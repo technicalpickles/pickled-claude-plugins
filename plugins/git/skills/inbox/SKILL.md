@@ -1,6 +1,7 @@
 ---
 name: inbox
 description: Use when checking what PRs are waiting for your review, or when starting your day to see what needs attention
+disable-model-invocation: true
 ---
 
 # Git Inbox
