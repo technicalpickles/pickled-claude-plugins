@@ -22,11 +22,12 @@ hooks:
 
 # Capture
 
-Write a note into the vault from a source the user hands you. One arc, five steps:
-**search → read the primary source → create through sb → leave it in the inbox → offer connections.**
+Write a note into the vault from a source the user hands you. One arc, six steps:
+**search → read the primary source → create through sb → leave it in the inbox → link connections
+→ fold in follow-ups.**
 
 This is the dominant vault interaction. Do not decompose it into separate asks; the user saying
-"read this and make a note" means all five steps, and the connect step in particular will not
+"read this and make a note" means all six steps, and the connect step in particular will not
 happen unless this skill runs it.
 
 See [references/note-format.md](references/note-format.md) for frontmatter and body shape.
@@ -132,16 +133,27 @@ The exception is an explicit destination named in the same conversation ("put it
 `code` or PARA folder), then `sb note move --from "{note-path}" --to "{destination}/"`.
 Never construct the destination path from the user's words alone.
 
-## Step 5: Offer connections, append the daily breadcrumb
+## Step 5: Link connections, append the daily breadcrumb
 
 Connection discovery does not fire on its own, and the user should not have to notice it was
-skipped. **Offer it every time**, using the step 1 results plus a fresh search from the finished
-note's content.
+skipped. **Run it every time**, using the step 1 results plus a fresh search from the finished
+note's content. Only ever link notes **confirmed to exist** by an actual search hit — never a
+`[[link]]` you have not verified, and never a side note created on your own initiative (offer
+those, don't make them - see Constraints).
 
-- Only link notes **confirmed to exist** by an actual search hit. Never emit a `[[link]]` to a note
-  you have not verified, and never create side notes on your own initiative. Surface those as
-  suggestions ("want me to make a note for X too?") and let the user decide.
-- Add links under `## Related` with a few words on *why* each one relates. A bare link list decays.
+Split what the search turns up by confidence, and don't ask about the confident ones:
+
+- **Confident - add it, don't ask.** The existing note passes either test: **same subject** (same
+  tool/person/project/event as the new note, not just a shared theme) or **named in the source**
+  (the source text itself references the thing that note covers). Add it under `## Related` with a
+  few words on *why* it relates - a bare link list decays - and mention it in your summary
+  (`Linked to <note>.`), but don't stop to ask first.
+- **Weak - offer, don't add.** Same theme or category but a different subject (e.g. two notes both
+  about "self-hosted family tooling" but covering different products). Surface these as a suggestion
+  ("Want me to link X too?") and let the user decide.
+
+If in doubt which bucket a match falls in, try writing the "why" clause without the words "theme"
+or "similar" - if you can't, it's weak.
 
 Then append the daily-note breadcrumb yourself - this is no longer a yes/no:
 
@@ -167,11 +179,27 @@ Then append the daily-note breadcrumb yourself - this is no longer a yes/no:
 
 For deeper backlink weaving, hand off to the `connect` skill rather than reimplementing it.
 
+## Step 6: Fold in follow-up research on the note you just wrote
+
+If, right after capture, the user asks a question about the thing the note covers ("is there a
+release date yet?", "how does this relate to X?"), answer it and then **update the note with the
+answer** - don't just answer in chat and leave the note stale. This is still editing the note we
+just made, not creating something new, so it doesn't need a yes first. Say what you added in one
+line (`Added the October 2026 theater date.`).
+
+This stops once the conversation moves to a genuinely new note or a different source - it covers
+direct follow-ups on the note just written, not an open-ended research thread.
+
 ## Capturing several sources at once
 
-When the user hands over a batch ("make notes for each of these", "write them up"), dispatch **one
-subagent per note** so each reads its source in isolation and cannot cross-contaminate. This is a
-pattern the user asks for explicitly; default to it for 3+ sources.
+When the user hands over a batch ("make notes for each of these", "write them up", "atomic notes
+for each option/family we found"), dispatch **one subagent per note** so each reads its source in
+isolation and cannot cross-contaminate. This is a pattern the user asks for explicitly; default to
+it for 3+ sources.
+
+Phrasing like "each option", "separate notes", or "at least the families of them" is standing
+permission for the whole batch - don't re-ask per item once the batch is agreed. A single new note
+still gets offered, not created outright (see Constraints).
 
 Each subagent: read the primary source, write one note via sb, and report back **path, title,
 verified wiki-links used, and anything it could not confirm**. Then do the cross-linking pass
@@ -187,8 +215,14 @@ yourself once all notes exist, since connections need the whole set in view.
 - **Inbox by default.** Routing is `process-inbox`'s job — capture never asks or
   routes, except an explicit user-named destination, resolved via `sb vault
   structure` like `route` does, never hand-rolled.
-- **Connecting is offered; the breadcrumb is not.** Suggest related links and let the user decide,
-  but the daily-note breadcrumb append happens automatically every time - it no longer waits for a
-  yes.
+- **Confident links and the breadcrumb are automatic; new notes and weak links are offered.**
+  A confident link (same subject, or named in the source) gets added and mentioned, not asked
+  about. A weak link (same theme, different subject) and any brand-new note get offered as a
+  suggestion, never created outright - unless the user's phrasing already covers the whole batch
+  (see "Capturing several sources at once"). The daily-note breadcrumb append happens automatically
+  every time regardless.
+- **Editing the note just written doesn't need permission.** A confident related link or a
+  direct follow-up answer about the note's subject (Step 6) both count as finishing the note
+  already in progress, not starting something new.
 - **One note, one idea.** If the source carries several distinct ideas, say so and offer to split
   rather than writing one sprawling note.
