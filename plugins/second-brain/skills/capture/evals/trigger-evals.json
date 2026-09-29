@@ -49,7 +49,6 @@
     "should_trigger": true,
     "note": "verbatim from session 2827ceb3. Research + capture + connect."
   },
-
   {
     "query": "drain the inbox backlog, there are a bunch of stale notes in there",
     "should_trigger": false,
@@ -99,5 +98,25 @@
     "query": "my obsidian sync is busted, notes from my laptop arent showing up on my phone",
     "should_trigger": false,
     "note": "near-miss: vault troubleshooting, not note work"
+  },
+  {
+    "query": "https://www.youtube.com/watch?v=dQw4w9WgXcQ make a note for this",
+    "should_trigger": true,
+    "note": "synthetic; site playbook: bare YouTube link with note intent"
+  },
+  {
+    "query": "read this reddit thread and put together an atomic note https://www.reddit.com/r/commandline/comments/abc123/a_neat_tool/",
+    "should_trigger": true,
+    "note": "synthetic; site playbook: Reddit permalink with note intent"
+  },
+  {
+    "query": "https://x.com/karpathy/status/1917920338492977296 capture this",
+    "should_trigger": true,
+    "note": "synthetic; site playbook: bare tweet link"
+  },
+  {
+    "query": "watch https://www.youtube.com/watch?v=dQw4w9WgXcQ and tell me if the demo at the end is worth trying, dont save anything",
+    "should_trigger": false,
+    "note": "synthetic; near-miss: YouTube link, but a question about the video, not a note"
   }
 ]

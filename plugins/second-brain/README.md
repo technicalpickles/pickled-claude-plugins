@@ -124,7 +124,7 @@ The front door for "read this and make a note for it." Runs the whole loop as on
 gets silently skipped:
 
 1. **Search first** via the qmd MCP tools, showing what already exists before anything is written
-2. **Read the primary source** (lightpanda / WebFetch / xtweet / Read / Notion), never a snippet
+2. **Read the primary source** through its site playbook (X via xtweet, YouTube via yt-digest, Reddit via reddit-post, other pages via lightpanda / WebFetch; Read / Notion for files and pages), never a snippet
 3. **Create through `sb note create`**, which owns the inbox path, timestamp, and filename slug
 4. **Leave it in the inbox** — routing is offered, not performed
 5. **Offer connections** plus a daily-note breadcrumb
@@ -135,6 +135,16 @@ semantic search misses (basename search across the vault, checking both inbox fo
 | Reference | Content |
 |-----------|---------|
 | `skills/capture/references/note-format.md` | Frontmatter and body shape for a fresh capture |
+
+### Bundled tools
+
+`bin/` ships the readers `capture` uses. Each has its own requirements:
+
+| Tool | Needs |
+|------|-------|
+| `xtweet` | `xurl` authenticated for the X API, `jq` |
+| `reddit-post` | `uv`; `www.reddit.com` reachable from the shell |
+| `yt-digest` | `uv`, a logged-in `claude` CLI |
 
 ### `obsidian` — vault mechanics
 

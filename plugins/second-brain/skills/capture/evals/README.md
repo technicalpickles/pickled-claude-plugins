@@ -80,6 +80,34 @@ Notes on getting trustworthy numbers:
   with the pointer section deleted.
 - `--description` patches the description in a temp copy, for A/B without touching SKILL.md.
 
+## Site-specific links (2026-09-19)
+
+Added 4 queries for the site-playbook work: bare YouTube link + "make a note", Reddit permalink +
+"atomic note", bare tweet link + "capture this" (3 positives), and a YouTube link asked as a question
+with "dont save anything" (1 near-miss). **These are synthetic**, not mined from real sessions (their
+`note` fields say so); replace them with verbatim prompts as real ones accumulate. The set is now 24
+queries (13 positives, 11 negatives).
+
+| Query | Baseline (pointer before) | Widened pointer |
+|---|---|---|
+| YouTube link, make a note | 3/3 | 3/3 |
+| Reddit permalink, atomic note | 3/3 | 3/3 |
+| Bare tweet link, capture this | 3/3 | 3/3 |
+| YouTube link, question only (negative) | 0/3 | 0/3 |
+
+- The **baseline arm ran only the 4 new queries** against the old pointer
+  (`results/2026-09-19-site-baseline.json`). The widened arm ran the full 24
+  (`results/2026-09-19-site-pointer.json`); the existing 20 are compared to
+  `results/2026-08-14-pointer-widened.json`.
+- Existing 10 positives: all 3/3 (two that were 2/3 on 2026-08-14 went to 3/3, noise). Existing negatives
+  (10) and the new one: all 0/3, specificity 100%. No regressions.
+- Caveat: the new positives already fired 3/3 before the pointer change (the pointer's "read
+  \<url\> and make a note" and "capture" wording plus explicit note intent was enough), so this set
+  can't show lift from the widening. It guards against regression and covers the bare-link phrasing;
+  a link with no verb at all is not measured here.
+- Harness note: `--plugin-src ../../..` crashes (`Path("../../..").name` is `..`); pass the resolved
+  absolute path to `plugins/second-brain` instead.
+
 ## Why not skill-creator's `run_eval.py`
 
 `skill-creator` ships `scripts/run_eval.py` for exactly this job. It does not work for plugin
