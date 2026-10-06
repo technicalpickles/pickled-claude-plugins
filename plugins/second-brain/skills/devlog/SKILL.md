@@ -51,8 +51,9 @@ step gets skipped.
 - Reading an external source and writing it up — that's
   `second-brain:capture`
 - Trivially obvious or one-off details you'd never reach for again
-- Project-specific context (a config value, a repo convention) — that
-  belongs in Claude Code's own memory system, not the vault
+- A bare project-specific fact (a config value, a repo convention) with
+  no story behind it — that belongs in Claude Code's own memory system
+  alone, not the vault
 
 ## Step 1: Load Configuration
 
@@ -188,6 +189,23 @@ One bullet per entry, each with a wall-clock timestamp:
 
 Prose, not a title. Write it like a short journal line, not a commit
 message.
+
+### Also saved as a memory or bean?
+
+A memory or bean doesn't replace the devlog entry. The memory is what
+future sessions act on, the bean is the tracked work, and the devlog is
+the vault's record of what happened. When the discovery was also saved
+to one of those, write the entry anyway and say where it went:
+
+```markdown
+- 14:05 The VM's guest DNS drifts off its DHCP lease after the host
+  sleeps, so image pulls time out until it's reset. Saved as a memory
+  (`~/.claude/projects/<project>/memory/reference_vm_dns_drift.md`),
+  tracked in bean ab-1234.
+```
+
+Point at it, don't paste it: one or two sentences of what happened,
+then the pointer. The memory or bean holds the details.
 
 ## Constraints
 
