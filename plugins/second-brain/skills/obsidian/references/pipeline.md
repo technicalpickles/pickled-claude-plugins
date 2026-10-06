@@ -45,7 +45,7 @@ After human resolves `pending-review` (picks a destination), status moves to `ro
 | Insight | `insight` | `ingest` stage | `enrich` through `link-daily` |
 
 Session notes files contain bullet points from a working session, sharing
-one provenance (repo/branch/bean). The `ingest` stage keeps them as one
+one provenance (repo/branch/issue). The `ingest` stage keeps them as one
 note by default, only splitting when bullets genuinely diverge in
 provenance.
 
