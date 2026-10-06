@@ -23,7 +23,7 @@ A session notes file in the inbox with `status: raw` and `type: session-notes`.
 ## Default: enrich whole
 
 Most session notes — including every `devlog`-produced one — are already
-well-organized: one session, one provenance (repo/branch/bean), a handful
+well-organized: one session, one provenance (repo/branch/issue), a handful
 of related bullets. Splitting them into N separate notes mints
 near-duplicate notes that mostly route to the same destination anyway — a
 real run against 32 session notes would have exploded into 120-140
@@ -42,22 +42,24 @@ cleanup next.
 Check for a real cross-topic signal before splitting — not a bullet count.
 Read the note's bullets:
 
-- If every bullet shares the same repo/branch/bean context (the common
+- If every bullet shares the same repo/branch/issue context (the common
   case, and always true for a single `devlog` session), keep it whole.
-- If bullets explicitly reference **different** repos, branches, or beans
+- If bullets explicitly reference **different** repos, branches, or issues
   within the same file (only possible in hand-authored or legacy
   multi-topic session notes — `devlog` output never does this), split
   those bullets into separate notes instead:
 
-  There's no structured per-bullet frontmatter for this — repo/branch/bean
+  There's no structured per-bullet frontmatter for this — repo/branch/issue
   only ever exist once, at the file level. Infer divergence from what the
   bullet text itself says (e.g. a bullet's prose names a different repo
-  than the file's own frontmatter, or than another bullet).
+  than the file's own frontmatter, or than another bullet). Older notes
+  may carry `bean:` instead of `issue:`; treat them the same, and copy
+  whichever key the source note used.
 
   1. For each insight, create a new note via
      `sb note create --source auto --title "{insight title}"` with
      `status: ingested`, `type: insight`, `source-session: {original session filename}`,
-     and that bullet's own repo/branch/bean.
+     and that bullet's own repo/branch/issue.
   2. Write the note body (the bullet text, cleaned into a sentence or
      short paragraph) using the Write tool.
   3. Update the original session file's status to `ingested` using the

@@ -78,11 +78,32 @@ second devlog note for a session that already has one.
 
 1. Collect session context:
    - Current repo and branch, if in a worktree
-   - Current bean ID, if applicable
+   - Current work item, if any (see [Work items](#work-items) below)
    - Short session id (first 8 characters of the session UUID)
-   - Source string format: `claude-code session {short-id} ({repo}, branch {branch}, bean {id})`
+   - Source string format: `claude-code session {short-id} ({repo}, branch {branch}, {tracker} {id})`
      (omit fields that don't apply, matching the format the retired
      `distill-conversation` command used)
+
+### Work items
+
+This plugin doesn't know or assume an issue tracker. If your context names
+a tracked work item for this session (a ticket, issue, or task ID), record
+it; otherwise leave it out. It can arrive two ways:
+
+- **Your instructions** (CLAUDE.md, the user's own words) say what tracker
+  they use and which item is current.
+- **A hook** injects candidates when this skill loads, in this shape:
+  ```
+  Work items this session ({tracker}):
+  - {id} ({status}): {title}
+  ```
+  A `PreToolUse` hook on the `Skill` tool can emit this as
+  `additionalContext` for `second-brain:devlog`.
+
+If there are several candidates, pick the one(s) this entry is actually
+about. A follow-up item filed during the session is usually not what the
+session was about. If none fit, or nothing names a work item, omit it.
+Don't guess one from the branch name.
 
 2. **Check your own memory first.** If you already created or appended to
    this session's devlog note earlier in this same conversation, you
@@ -133,7 +154,7 @@ cat > "$STAGE" <<'EOF'
 EOF
 npx @techpickles/sb note create \
   --title "Session: {topic}" \
-  --source "claude-code session {short-id} ({repo}, branch {branch}, bean {id})" \
+  --source "claude-code session {short-id} ({repo}, branch {branch}, {tracker} {id})" \
   --content "$(cat "$STAGE")"
 rm -f "$STAGE"
 ```
@@ -167,7 +188,9 @@ exact frontmatter sb wrote, then Edit it:
   git context if available) — don't add a second `repo:` line
 - replace the `branch: none` line sb wrote with `branch: {branch-name}`
   (from git context if available) — don't add a second `branch:` line
-- add `bean: {bean-id}` (from git context if available)
+- add `issue: {id}` if there's a current work item (see
+  [Work items](#work-items)); a YAML list if the entry covers several.
+  Omit the line entirely otherwise
 - keep `source` as sb wrote it — the `claude-code session ...` string
   already covers provenance for devlog's format
 - keep `captured` as sb wrote it

@@ -75,7 +75,7 @@ npx @techpickles/sb note create \
   --title "{session context}"
 ```
 
-Generate the title from conversation context: repo name, current branch, bean ID if available, and what you're working on (e.g., "Debugging auth timeout in zenpayroll").
+Generate the title from conversation context: repo name, current branch, work item ID if your context names one, and what you're working on (e.g., "Debugging auth timeout in zenpayroll").
 
 The file is created with frontmatter. Read the created file to preserve the exact frontmatter sb wrote.
 
@@ -85,7 +85,7 @@ Add `type: session-notes` to the frontmatter if not present. The frontmatter sho
 - `source-session: {topic}`
 - `repo: {repo-name}` (from git context if available)
 - `branch: {branch-name}` (from git context if available)
-- `bean: {bean-id}` (from git context if available)
+- `issue: {id}` (only if your context names a current work item, e.g. via your instructions or a hook; omit otherwise)
 - `captured: {ISO timestamp}`
 
 Then write the note structure:
@@ -97,7 +97,7 @@ type: session-notes
 source-session: {topic}
 repo: {repo-name}
 branch: {branch-name}
-bean: {bean-id}
+issue: {id}
 captured: {ISO timestamp}
 ---
 
@@ -132,6 +132,6 @@ That's it. No routing, no connecting, no daily linking. Those happen later via `
 
 - **Always write to inbox** - Inbox capture only, no routing
 - **Use sb CLI for note creation** - sb handles timestamps, frontmatter, vault structure
-- **Capture cheap metadata** - repo, branch, bean ID from git/provenance context
+- **Capture cheap metadata** - repo, branch from git/provenance context, plus a work item ID only if your context names one
 - **Clean prose for bullets** - Each insight is a polished sentence or short phrase
 - **No routing, connecting, or linking** - Processing moves to the separate `process-inbox` skill
