@@ -190,22 +190,25 @@ One bullet per entry, each with a wall-clock timestamp:
 Prose, not a title. Write it like a short journal line, not a commit
 message.
 
-### Also saved as a memory or bean?
+### Also saved somewhere else?
 
-A memory or bean doesn't replace the devlog entry. The memory is what
-future sessions act on, the bean is the tracked work, and the devlog is
-the vault's record of what happened. When the discovery was also saved
-to one of those, write the entry anyway and say where it went:
+A record somewhere else doesn't replace the devlog entry. Claude Code's
+memory is what future sessions act on, an issue or ticket is the tracked
+work, and the devlog is the vault's record of what happened. When the
+discovery was also saved to one of those, write the entry anyway and say
+where it went:
 
 ```markdown
 - 14:05 The VM's guest DNS drifts off its DHCP lease after the host
   sleeps, so image pulls time out until it's reset. Saved as a memory
-  (`~/.claude/projects/<project>/memory/reference_vm_dns_drift.md`),
-  tracked in bean ab-1234.
+  (`~/.claude/projects/<project>/memory/reference_vm_dns_drift.md`).
 ```
 
 Point at it, don't paste it: one or two sentences of what happened,
-then the pointer. The memory or bean holds the details.
+then the pointer. The other record holds the details. Which trackers
+count beyond memory (and how to cite them) is up to your own
+instructions or the hook that nudged you here; this skill doesn't
+assume any.
 
 ## Constraints
 
