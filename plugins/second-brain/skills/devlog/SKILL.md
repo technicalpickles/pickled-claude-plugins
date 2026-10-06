@@ -94,7 +94,8 @@ it; otherwise leave it out. It can arrive two ways:
   they use and which item is current.
 - **A hook** injects candidates when this skill loads, in this shape:
   ```
-  Work items this session ({tracker}): {id} ({status}, {how it was touched}), ...
+  Work items this session ({tracker}):
+  - {id} ({status}): {title}
   ```
   A `PreToolUse` hook on the `Skill` tool can emit this as
   `additionalContext` for `second-brain:devlog`.
