@@ -17,6 +17,14 @@ Working with AI coding agents generates valuable artifacts beyond code: session 
 
 Invoke by asking naturally ("park this session", "wrap this up", "unpark docs/handoffs/foo.md") or with the fully qualified slash form (`/agent-meta:park`).
 
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `/session-id` | Print the current session ID. Answers instantly, with no model turn, and works mid-turn. |
+
+`/session-id` is a [mod](https://code.claude.com/docs/en/plugins/mods/overview): a function-hooks module at `hooks/register.ts`, loaded alongside the shell hooks in `hooks/hooks.json`. Run its tests with `claude plugin test plugins/agent-meta`.
+
 ### Park modes
 
 `park` produces two distinct artifacts:
