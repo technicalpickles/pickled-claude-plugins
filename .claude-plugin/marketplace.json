@@ -119,6 +119,12 @@
       "name": "stay-principled",
       "source": "./plugins/stay-principled",
       "version": "0.1.0"
+    },
+    {
+      "name": "come-on",
+      "source": "./plugins/come-on",
+      "version": "0.1.0",
+      "description": "Catch Claude stopping short: unchecked claims, giving up early, inherited conclusions, unresearched options, and replies that don't land"
     }
   ]
 }
