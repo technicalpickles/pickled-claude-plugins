@@ -46,11 +46,11 @@ See individual plugin READMEs for details on what each plugin provides.
 | [agent-meta](plugins/agent-meta) | Meta-development tools for agentic workflows | harness-binary-spelunking, park, snapshot, unpark |
 | [buildkite](plugins/buildkite) | Buildkite CI tools: build investigation, pipeline development, and tool preference enforcement | developing-pipelines, investigating-builds |
 | [ci-cd-tools](plugins/ci-cd-tools) | CI/CD pipeline tools and integrations | fixing-ci |
+| [come-on](plugins/come-on) | Catch Claude stopping short: unchecked claims, giving up early, inherited conclusions, unresearched options, and replies that don't land | come-on, come-on-check, come-on-rederive, come-on-simplify, come-on-try, come-on-unpack, come-on-weigh |
 | [cq](https://github.com/technicalpickles/cq) | Query past Claude Code sessions via the cq CLI (SQL over session transcripts) | [see repo](https://github.com/technicalpickles/cq) |
 | [dev-tools](plugins/dev-tools) | Developer productivity tools and utilities | colima, designing-clis, finding-api-docs, hk, working-in-scratch-areas, working-with-mise, working-with-scope |
 | [git](plugins/git) | Git workflow tools: commits, PRs, review inbox, checkout, and work triage | checkout, commit, inbox, pull-feedback, pull-request, push, triage, update |
 | [github-actions](plugins/github-actions) | GitHub Actions CI tools: investigate failing runs via gh + a structured snapshot helper | investigating-runs |
-| [gut-check](plugins/gut-check) | Ground before you act: catch decisions and factual claims made from a thin basis (memory, the handoff, an unexamined pick) | gut-check |
 | [mcpproxy](plugins/mcpproxy) | MCP server management and integration tools | working-with-mcp |
 | [petri-dish](https://github.com/technicalpickles/petri-dish) | Author Claude Code experiments (petri-dish cultures) with disciplined schema, baselines, and multi-run averaging | [see repo](https://github.com/technicalpickles/petri-dish) |
 | [sandbox-advisor](plugins/sandbox-advisor) | Turns Claude Code sandbox EPERMs into crisp re-run-unsandboxed guidance | – |
