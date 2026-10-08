@@ -23,4 +23,30 @@ Prior art: [backnotprop/bro](https://github.com/backnotprop/bro), whose `bro` sk
 
 ## Testing status
 
-Filled in by Task 7.
+Eval cases live in `evals/` and run with Claude Code's built-in `claude plugin eval`. Trigger cases check that the `come-on` skill fires at the right moments and stays quiet on routine work. Behavior scenarios run each situation with and without the plugin and report the difference.
+
+Last run: 2026-10-08, 3 runs per case.
+
+**Triggers:** 10/10 fire, 8/8 stay quiet. The skill description was tuned against these prompts, so this overstates how well it fires on phrasings it hasn't seen.
+
+**Behavior scenarios** (mean score over 3 runs, 0 to 1):
+
+| Scenario | without | with | skill fired (of 3 runs) |
+|---|---|---|---|
+| unpack-handoff-jargon | 0.33 | 0.83 | 3 |
+| weigh-hybrid | 0.00 | 0.47 | 3 |
+| rederive-stale-root-cause | 0.87 | 1.00 | 2 |
+| weigh-retry-policy | 0.47 | 0.60 | 0 |
+| simplify-for-slack | 0.83 | 1.00 | 0 |
+| check-preexisting | 0.87 | 0.60 | 1 |
+| try-transient-retry | 0.87 | 0.73 | 1 |
+| rederive-old-design-assumption | 1.00 | 1.00 | 0 |
+| try-reach-other-tools | 1.00 | 1.00 | 0 |
+| unpack-for-reviewer | 0.50 | 0.50 | 0 |
+
+How to read it:
+
+- A gap only means something where the skill fired. Where it never fired, the difference is run-to-run noise.
+- The skill fires reliably when the prompt itself asks for the angle (weigh these options, ask me the decision). It fires much less often at the moment Claude is about to stop short on its own (claiming something is checked, saying "can't", building on an old conclusion).
+- Until that improves, the entry-point skills (`come-on-check`, `come-on-try`, and the rest) are the dependable way to invoke an angle.
+- Three runs per case is small. Scores moved a lot between two sweeps of the same cases.
