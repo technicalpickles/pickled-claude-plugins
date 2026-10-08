@@ -104,12 +104,6 @@
       "version": "0.2.0"
     },
     {
-      "name": "gut-check",
-      "source": "./plugins/gut-check",
-      "version": "0.1.0",
-      "description": "Ground before you act: catch decisions and factual claims made from a thin basis (memory, the handoff, an unexamined pick)"
-    },
-    {
       "name": "tailscale",
       "source": "./plugins/tailscale",
       "version": "0.4.0",
@@ -119,6 +113,12 @@
       "name": "stay-principled",
       "source": "./plugins/stay-principled",
       "version": "0.1.0"
+    },
+    {
+      "name": "come-on",
+      "source": "./plugins/come-on",
+      "version": "0.1.0",
+      "description": "Catch Claude stopping short: unchecked claims, giving up early, inherited conclusions, unresearched options, and replies that don't land"
     }
   ]
 }

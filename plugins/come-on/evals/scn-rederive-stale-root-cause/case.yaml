@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: scn-rederive-stale-root-cause
+prompt: prompt.md
+context:
+  scaffold_script: scaffold.sh
+runs: 3
+max_turns: 12
+allowed_tools: [Read, Glob, Grep, Bash, Edit, Skill]
