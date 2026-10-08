@@ -1,6 +1,7 @@
 ---
-type: tool_used
-tool: Grep
-min: 1
+type: regex
+pattern: '0012|schema\.rb'
+match: contains
+target: trace
 ---
-Searches the codebase for prior art before weighing the options.
+Finds the existing prior art (the accounts.settings column or ADR 0012) by any tool.

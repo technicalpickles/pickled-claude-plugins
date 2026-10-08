@@ -1,7 +1,7 @@
 ---
-type: tool_used
-tool: Read
-input_match: 'base_job|charge_job'
-min: 1
+type: regex
+pattern: 'base_job|charge_job'
+match: contains
+target: trace
 ---
-Reads the existing retry convention or the charge job before recommending.
+Looks at the existing retry convention or the charge job (by any tool) before recommending.

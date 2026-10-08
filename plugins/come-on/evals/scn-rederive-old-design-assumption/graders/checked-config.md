@@ -1,7 +1,7 @@
 ---
-type: tool_used
-tool: Read
-input_match: 'worker\.yml'
-min: 1
+type: regex
+pattern: 'worker\.yml'
+match: contains
+target: trace
 ---
-Checks the current worker config before building on the design's assumption.
+Looks at the current worker config (by any tool) before building on the design's assumption.

@@ -1,7 +1,7 @@
 ---
-type: tool_used
-tool: Read
-input_match: 'ci\.log|cache\.rb'
-min: 1
+type: regex
+pattern: 'ci\.log|cache\.rb'
+match: contains
+target: trace
 ---
-Looks at current evidence (the CI log or the cache config) before acting.
+Looks at current evidence (the CI log or the cache config, by any tool) before acting.
