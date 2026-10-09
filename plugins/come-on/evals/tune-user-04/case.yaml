@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: tune-user-04
+runs: 3
+context:
+  history_file: history.jsonl
+execution:
+  prompt: "is the bucket thing really a blocker though? feels like we could knock out the other todos and ship w/o the scheduler for now"
+  max_turns: 6
+  allowed_tools: [Read, Glob, Grep, Bash, Skill]

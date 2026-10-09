@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: tune-user-02
+runs: 3
+context:
+  history_file: history.jsonl
+execution:
+  prompt: "wait is it actually merged tho? i'm about to tell dana in standup it's fixed, can u confirm first"
+  max_turns: 6
+  allowed_tools: [Read, Glob, Grep, Bash, Skill]

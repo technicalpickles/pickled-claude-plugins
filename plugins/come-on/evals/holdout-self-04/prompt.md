@@ -1,0 +1,1 @@
+Turn notes/status.md into a quick Slack update I can send to Priya on the support team. She hasn't been in any of our syncs, she just wants to know what's going on with ledger-sync and whether she needs to do anything.
