@@ -1,5 +1,50 @@
 # Angles, in more detail
 
+## Checklists
+
+### check: before claiming done / fixed / found / pre-existing
+
+- State the claim precisely, then verify it this session: read the file, run the command, grep the evidence. Memory and the handoff don't count.
+- Report: confirmed, not true, or partial, with the evidence.
+- Never call a failure pre-existing, unrelated, or flaky without reproducing it on a clean base this session (`main`, a WIP commit and re-run, or `git blame`). A guess here sends the user chasing the wrong cause.
+
+### try: before "can't" / "impossible" / "blocked" / "say the word"
+
+- Transient failure (timeout, 403, a hook's API unreachable)? Retry once before calling it a block.
+- Before "can't": list the other tools that could answer, and try the likeliest (menu below).
+- Read-only and cheap? Do it. Don't offer to.
+- Before "impossible" or "weeks of work": actually attempt it for a few minutes.
+- Still blocked: say what you tried.
+
+### rederive: before building on an earlier conclusion
+
+- Say where the conclusion came from (handoff, design doc, past investigation, "the usual way") and how old it is.
+- Re-establish it from current evidence: runs, code, recent sessions, the data.
+- Expensive to reverse? Offer a clean-room pass (below).
+- Report what still holds, what doesn't, and what changed.
+
+### weigh: before putting options in front of the user
+
+- Drop options that aren't real.
+- Find the prior art (ADRs, docs, code, earlier decisions), then check it still holds. Old and load-bearing means `rederive` it.
+- Per real option: what you get, the main tradeoff, effort, durability, and the evidence for each.
+- Lead with a recommendation. The user decides.
+
+### unpack [reader]: before options or a question
+
+The reader wasn't there for what you read. Default reader: the user in this session.
+
+- Every ID (ticket, PR, internal label) gets a link and a one-line "this is…".
+- Jargon and terms you coined: explain on first use, or use plain words.
+- Before a question: one line on where things stand and why it matters now.
+- Option labels never collide with labels already in play.
+
+### simplify [shape]: before a long reply without an answer up top
+
+- Answer first, then a few bullets, then stop.
+- No new digging. Cut and restate plainly.
+- Honor a requested shape (`for slack`, `for a PR comment`). See shapes below.
+
 ## try: the tool menu
 
 Before saying "can't", go down this list and try whichever fits:
