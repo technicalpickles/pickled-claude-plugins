@@ -6,7 +6,7 @@
 
 - State the claim precisely, then verify it this session: read the file, run the command, grep the evidence. Memory and the handoff don't count.
 - Report: confirmed, not true, or partial, with the evidence.
-- Never call a failure pre-existing, unrelated, or flaky without reproducing it on a clean base this session (`main`, a WIP commit and re-run, or `git blame`). A guess here sends the user chasing the wrong cause.
+- **Hard rule:** never call a failure pre-existing, unrelated, or flaky without reproducing it on a clean base this session (`main`, commit your WIP and re-run on the parent, or `git blame`). A guess here sends the user chasing the wrong cause.
 
 ### try: before "can't" / "impossible" / "blocked" / "say the word"
 

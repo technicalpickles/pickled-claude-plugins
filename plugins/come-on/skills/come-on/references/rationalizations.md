@@ -4,7 +4,7 @@
 |--------|---------|
 | "I'm confident it's already done" | Confidence is memory, not evidence. It's the symptom that triggers a check. |
 | "The handoff says it's done" | The handoff is a claim from another session. Verify it this session. |
-| "Those failures are pre-existing / unrelated" | You haven't run them on a clean base. Reproduce on `main` / stash / blame first. |
+| "Those failures are pre-existing / unrelated" | You haven't run them on a clean base. Reproduce on `main`, on the parent of a WIP commit, or via blame first. |
 | "It's flaky" | A hypothesis until reproduced. Run it again on a clean base. |
 | "It timed out, so it's blocked" | Timeouts are transient until they happen twice. Retry once. |
 | "I can't from here" | You checked one tool. List the others and try the likeliest. |

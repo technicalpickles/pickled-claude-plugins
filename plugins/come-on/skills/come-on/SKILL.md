@@ -10,7 +10,7 @@ Don't stop short. Do the cheap work, then make it land.
 
 ## Mode
 
-`$ARGUMENTS`
+Arguments: "$ARGUMENTS"
 
 - **Empty:** you're here on your own or the user said "come on". Pick the angles that fit the turn you're about to send (or the one the user is reacting to).
 - **Starts with a mode** (`check`, `try`, `rederive`, `weigh`, `unpack`, `simplify`): run that angle on the last reply, plus any other that obviously applies. The rest of the arguments name the target: a claim, a reader (`unpack for my skip-level`), or a shape (`simplify for slack`).
@@ -38,7 +38,7 @@ Why: the user can't see what you didn't check. A claim built on memory reads exa
 | unpack | ask a question or offer options | define every ID and label for a reader who wasn't there |
 | simplify | send a long reply | answer first, a few bullets, stop |
 
-Full checklist per angle, the tool menu, the clean-room pass, and reply shapes: `references/angles.md`. Read the section for each angle you're running.
+Full checklist per angle, the tool menu, the clean-room pass, and reply shapes: `references/angles.md`. For each angle you're running, read its checklist and any `<angle>:` section further down.
 
 ## Red flags: stop and run the core
 
