@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: tune-user-03
+runs: 3
+context:
+  history_file: history.jsonl
+execution:
+  prompt: "hold on, whats shadow-drain? and i have no idea what option C or the T-lane is"
+  max_turns: 6
+  allowed_tools: [Read, Glob, Grep, Bash, Skill]

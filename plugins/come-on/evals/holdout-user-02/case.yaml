@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: holdout-user-02
+runs: 3
+context:
+  history_file: history.jsonl
+execution:
+  prompt: "uh i have no idea what rtx-14 or qz or pw-3381 are. i cant pick between those. whats actually killing the job and what do you think we shoud do"
+  max_turns: 6
+  allowed_tools: [Read, Glob, Grep, Bash, Skill]

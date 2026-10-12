@@ -3,6 +3,6 @@ name: scn-weigh-retry-policy
 prompt: prompt.md
 context:
   scaffold_script: scaffold.sh
-runs: 3
+runs: 5
 max_turns: 12
 allowed_tools: [Read, Glob, Grep, Bash, Edit, Skill]
