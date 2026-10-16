@@ -18,6 +18,10 @@ hooks:
       hooks:
         - type: command
           command: "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/check-sb-before-call.py"
+    - matcher: "WebFetch"
+      hooks:
+        - type: command
+          command: "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/webfetch-prefer-lightpanda.py"
 ---
 
 # Capture
