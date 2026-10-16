@@ -36,7 +36,7 @@ Six angles, each a verb that finishes the sentence "come on, ___":
       come on, <b>weigh</b>
     </td>
     <td align="center">
-      <img src="https://media.giphy.com/media/xT77Y36ijyuwn58bja/giphy.gif" width="260" alt="Barack Obama at a podium pulling his head back with furrowed brows and a small shrug, as if saying 'I don't even know what that means'"><br>
+      <img src="https://media.giphy.com/media/pPhyAv5t9V8djyRFJH/giphy-downsized.gif" width="260" alt="Barack Obama sitting in an armchair, hands up and gesturing in confusion, as if saying 'what does that even mean?'"><br>
       come on, <b>unpack</b>
     </td>
     <td align="center">
