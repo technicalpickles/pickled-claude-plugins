@@ -27,3 +27,21 @@ HOOK="$BATS_TEST_DIRNAME/../session-start-devlog-nudge.sh"
   [[ "$context" == *"process-inbox"* ]]
   [[ "$context" == *"second-brain:capture"* ]]
 }
+
+@test "stays silent when devlog_mode is sidechain" {
+  CLAUDE_PLUGIN_OPTION_DEVLOG_MODE=sidechain run bash "$HOOK"
+
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "still nudges when devlog_mode is nudge, both, or unset" {
+  for mode in nudge both; do
+    CLAUDE_PLUGIN_OPTION_DEVLOG_MODE=$mode run bash "$HOOK"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "SessionStart"'
+  done
+
+  run env -u CLAUDE_PLUGIN_OPTION_DEVLOG_MODE bash "$HOOK"
+  echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "SessionStart"'
+}
