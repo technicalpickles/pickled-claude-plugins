@@ -1,23 +1,43 @@
 #!/usr/bin/env python3
 """PostToolUseFailure:Bash hook (sandbox-advisor). See README.md."""
 import json
+import os
 import re
 import sys
 
-# Per-mode error fingerprints, matched case-insensitively against the raw
-# payload text. git-write is deliberately broad: the same sandbox deny surfaces
-# as the index.lock message, a blocked-path "Operation not permitted", OR the
-# downstream "Could not reset index file" with no EPERM line visible. srb and
-# ps-top stay narrow because their failures are distinctive.
+# Modes whose error text is distinctive enough to identify on its own, no
+# matter what command produced it. Checked first: a sorbet LMDB abort looks
+# the same whether it came from `bin/srb tc`, `bundle exec srb`, or a test
+# runner that shells out to sorbet three wrappers deep.
+_ERROR_ONLY_FINGERPRINTS = {
+    "srb": (
+        "mdb_error",
+        "maybecreatekeyvaluestore",
+    ),
+    "bun-tmpdir": (
+        "bun is unable to write files to tempdir",
+    ),
+    "gem-spec-cache": (
+        ".cache/gem/specs",
+    ),
+    "keychain-write": (
+        "seckeychainitemcreatefromcontent",
+        "writing destination keychain",
+        "keychain is accessible and writable",
+    ),
+}
+
+# Per-mode error fingerprints for modes picked by command shape, matched
+# case-insensitively against the failure text. The command decides which mode
+# applies; the fingerprint confirms it was the sandbox and not an ordinary
+# failure of that command.
 _MODE_FINGERPRINTS = {
+    # An actual EPERM, or the downstream message a mid-checkout deny leaves
+    # with no EPERM line visible. A bare "index.lock" isn't enough: `File
+    # exists` on index.lock is a concurrent git process, not the sandbox.
     "git-write": (
         "operation not permitted",
-        "index.lock",
         "could not reset index file",
-        ".claude/agents",
-        ".claude/commands",
-        ".vscode/",
-        ".gitmodules",
     ),
     "srb": (
         "operation not permitted",
@@ -29,29 +49,55 @@ _MODE_FINGERPRINTS = {
         "os error 1",
     ),
     "git-ssh": (
-        # SSH (port 22) egress is blocked outright by the sandbox network
-        # allowlist, which only permits HTTPS to specific hosts -- not the
-        # ssh-agent socket, which is a separate (and already-open) surface.
         # Deliberately excludes the generic "operation not permitted"
         # fingerprint: the `gh` matcher below is broad (any gh subcommand),
         # and that string is common enough in unrelated gh failures to
         # false-positive.
         "port 22",
+        "ssh_dispatch_run_fatal",
         "could not read from remote repository",
         "authentication method negotiation failed",
         "connection closed by unknown port",
         "failed to run git: exit status",
     ),
     "keychain-write": (
-        # macOS Keychain WRITES go through a Security.framework call the
-        # sandbox denies outright; READS are unaffected (confirmed
-        # empirically: `security find-generic-password` and `gh auth status`
-        # both succeed against an existing item). Narrow matcher below makes
-        # the generic "operation not permitted" fingerprint safe here.
+        # Safe to include the generic EPERM here because the command matcher
+        # for this mode is narrow (gh auth writes, security add/delete).
         "seckeychainitemcreatefromcontent",
         "operation not permitted",
     ),
 }
+
+# git-write splits further by what the failure text names. Order matters:
+# a worktree-delete failure can also mention a .git path, and a path deny can
+# also show up next to an index.lock line.
+_GIT_WORKTREE_DELETE_FPS = ("failed to delete '",)
+_GIT_PATH_DENY_FPS = (
+    ".claude/agents",
+    ".claude/commands",
+    ".vscode/",
+    ".idea/",
+    ".gitmodules",
+    ".mcp.json",
+    ".git/hooks",
+    ".git/config",
+    "could not lock config file",
+    "could not write config file",
+    "could not reset index file",
+    # Shell rc basenames are denied at any depth, so a dotfiles repo that
+    # tracks them can't check them out sandboxed.
+    ".gitconfig'",
+    ".zshrc'",
+    ".zprofile'",
+    ".bashrc'",
+    ".profile'",
+)
+_GIT_SCOPE_FPS = (
+    "index.lock",
+    "cannot lock ref",
+    "unable to create temporary file",
+    "unable to unlink old",
+)
 
 
 def matches_mode_fingerprints(text: str, mode: str) -> bool:
@@ -60,6 +106,17 @@ def matches_mode_fingerprints(text: str, mode: str) -> bool:
         return False
     low = text.lower()
     return any(fp in low for fp in _MODE_FINGERPRINTS.get(mode, ()))
+
+
+def error_only_mode(text: str):
+    """Return a mode identified by error text alone, or None."""
+    if not text:
+        return None
+    low = text.lower()
+    for mode, fps in _ERROR_ONLY_FINGERPRINTS.items():
+        if any(fp in low for fp in fps):
+            return mode
+    return None
 
 
 # git subcommands that write locally (worktree/index/refs), MINUS the ones
@@ -73,18 +130,14 @@ _GIT_WRITE_SUBCOMMANDS = {
     "checkout", "switch", "init", "stash", "worktree", "branch", "tag",
 }
 
-# git subcommands that talk to a remote -- fail under the sandbox because raw
-# SSH (port 22) egress is blocked, not because of a blocked write path.
+# git subcommands that talk to a remote.
 _GIT_NETWORK_SUBCOMMANDS = {"push", "fetch", "pull", "clone", "ls-remote"}
 
 _SRB_RE = re.compile(r"^(bundle\s+exec\s+)?(\./)?(bin/)?srb(\s|$)")
 _PS_TOP_RE = re.compile(r"^(rtk\s+)?(/usr/bin/|/bin/)?(ps|top)(\s|$)")
 # Deliberately broad: matches ANY gh subcommand, not just the ones that shell
 # out to git. Only `pr checkout`/`co`/`sw` and `repo sync` actually inherit
-# the current repo's remote protocol (and so hit this bug when that remote is
-# SSH); `repo clone`/`gist clone`/`repo fork --clone`/`extension install` use
-# gh's own `git_protocol` config instead, independent of any local remote.
-# The rest of gh is pure REST/GraphQL over HTTPS and never touches this path.
+# the current repo's remote protocol; the rest of gh is pure REST/GraphQL.
 # Fingerprint gating in decide_advice() is what keeps the broad match safe.
 _GH_RE = re.compile(r"^gh(\s|$)")
 # gh subcommands that write credentials to the macOS Keychain. Checked before
@@ -97,6 +150,9 @@ _GH_AUTH_WRITE_RE = re.compile(
 _SECURITY_WRITE_RE = re.compile(
     r"^security\s+(add|delete)-(generic|internet)-password(\s|$)"
 )
+# `wt` (worktrunk) wraps git worktree, so its create and remove hit the same
+# denies as `git worktree add`/`remove`.
+_WT_WRITE_RE = re.compile(r"^wt\s+(remove|switch)(\s|$)")
 _ENV_PREFIX_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*=\S*\s+)+")
 
 
@@ -142,6 +198,8 @@ def classify_command(command: str):
         return "ps-top"
     if _GH_AUTH_WRITE_RE.match(seg) or _SECURITY_WRITE_RE.match(seg):
         return "keychain-write"
+    if _WT_WRITE_RE.match(seg):
+        return "git-write"
     sub = _git_subcommand(seg)
     if sub in _GIT_NETWORK_SUBCOMMANDS or _GH_RE.match(seg):
         return "git-ssh"
@@ -150,24 +208,99 @@ def classify_command(command: str):
     return None
 
 
+_ABS_PATH_RE = re.compile(r"""(/[^\s'":]+)""")
+_CMD_TARGET_RE = re.compile(r"""(?:^|&&|;)\s*(?:cd|git\s+-C)\s+(['"]?)([^\s'";&]+)\1""")
+
+
+def _under(path: str, root: str) -> bool:
+    path = os.path.normpath(path)
+    root = os.path.normpath(root)
+    return path == root or path.startswith(root.rstrip("/") + "/")
+
+
+def _targets_outside_cwd(command: str, error_text: str, cwd: str) -> bool:
+    """True if the failing git op targeted a repo outside the session's cwd.
+
+    The sandbox anchors write access to the session's working directory, and
+    a shell `cd` doesn't move it. So a lock/temp-file EPERM on a path outside
+    `cwd` is the scope mismatch (fix: EnterWorktree), not a blocked path.
+    """
+    if not cwd:
+        return False
+    home = os.path.expanduser("~")
+    candidates = []
+    for p in _ABS_PATH_RE.findall(error_text):
+        if ".git" in p or p.endswith(".lock"):
+            candidates.append(p)
+    for _, p in _CMD_TARGET_RE.findall(command):
+        p = p.replace("$HOME", home)
+        p = os.path.expanduser(p)
+        if os.path.isabs(p):
+            candidates.append(p)
+    return any(not _under(p, cwd) for p in candidates)
+
+
+def classify_git_write(command: str, error_text: str, cwd: str) -> str:
+    """Split a git-write failure into the case that decides the fix."""
+    low = error_text.lower()
+    if any(fp in low for fp in _GIT_WORKTREE_DELETE_FPS):
+        return "git-worktree-delete"
+    if any(fp in low for fp in _GIT_PATH_DENY_FPS):
+        return "git-path-deny"
+    if any(fp in low for fp in _GIT_SCOPE_FPS) and _targets_outside_cwd(
+        command, error_text, cwd
+    ):
+        return "git-cwd-scope"
+    return "git-write"
+
+
 # Advisory, not directive. We acknowledge the command is a KNOWN sandbox
 # failure mode and that this is likely (not certainly) why it failed, then
-# offer the fix. This honesty is what makes the broad git fingerprints safe:
-# we never assert "definitely the sandbox," we say "known to fail this way."
+# offer the fix. Unsandboxing is the last resort, named only for cases with
+# no in-sandbox fix.
 _ADVICE = {
+    "git-path-deny": (
+        "Heads up: this git write touched a path the Claude Code command "
+        "sandbox ALWAYS denies, regardless of allowWrite (.git/config, "
+        ".git/hooks/*, .claude/agents/*, .claude/commands/*, .mcp.json, "
+        ".vscode/*, .idea/*, .gitmodules). No setting lifts these. If that's "
+        "why this failed, re-run this exact command with "
+        "dangerouslyDisableSandbox: true. If it was a worktree create "
+        "(`wt switch --create`, `git worktree add -b`) that died partway, the "
+        "branch already exists: retry without `--create`/`-b`."
+    ),
+    "git-cwd-scope": (
+        "Heads up: this git write targets a repo outside the session's "
+        "working directory. The Claude Code sandbox anchors write access to "
+        "the directory the session started in (or last entered with "
+        "EnterWorktree), and a shell `cd` or `git -C` doesn't move it. Fix: "
+        "EnterWorktree(path: <that repo's worktree>) and re-run sandboxed. "
+        "Only if EnterWorktree isn't possible there, re-run with "
+        "dangerouslyDisableSandbox: true."
+    ),
+    "git-worktree-delete": (
+        "Heads up: removing a worktree directory is KNOWN to fail under the "
+        "Claude Code command sandbox, often after git has already "
+        "unregistered it (so `git worktree list` no longer shows it). Re-run "
+        "with dangerouslyDisableSandbox: true. If the directory still "
+        "survives, delete it with `/bin/rm -rf <path>`: plain `rm` is often "
+        "aliased to a trash tool that fails for unrelated reasons."
+    ),
     "git-write": (
-        "Heads up: git writes inside pt worktrees are KNOWN to fail under the "
-        "Claude Code command sandbox (the blocked .claude/.vscode/.gitmodules "
-        "paths and .git/worktrees/.../index.lock, which allowWrite cannot "
-        "override). If that's why this failed, re-run with "
+        "Heads up: this git write hit an `Operation not permitted`, which is "
+        "usually the Claude Code command sandbox. Identify the case before "
+        "unsandboxing: if the repo is outside the session's working "
+        "directory, EnterWorktree(path: <repo>) first; if the error names a "
+        "path the sandbox always denies (.git/hooks, .git/config, "
+        ".claude/agents, .mcp.json, ...), re-run with "
         "dangerouslyDisableSandbox: true."
     ),
     "srb": (
         "Heads up: srb (sorbet) is KNOWN to fail under the Claude Code command "
-        "sandbox -- it caches in LMDB, which uses SysV semaphores the sandbox "
-        "denies (semctl/semop EPERM); the cache dir is already writable so "
-        "allowWrite cannot fix it. If that's why this failed, re-run with "
-        "dangerouslyDisableSandbox: true."
+        "sandbox -- it opens an LMDB key-value store, and LMDB's SysV "
+        "semaphores (semctl/semop) are denied. This happens even with no "
+        "cache dir and with a writable one, so allowWrite cannot fix it. If "
+        "that's why this failed, re-run with dangerouslyDisableSandbox: true."
     ),
     "ps-top": (
         "Heads up: ps/top are KNOWN to fail under the Claude Code command "
@@ -177,28 +310,41 @@ _ADVICE = {
         "dangerouslyDisableSandbox: true."
     ),
     "git-ssh": (
-        "Heads up: git operations over SSH (push, fetch, pull, clone, "
-        "ls-remote), or `gh pr checkout`/`gh repo sync` against a repo whose "
-        "remote is an SSH URL, are KNOWN to fail under the Claude Code "
-        "command sandbox -- the network sandbox only allows HTTPS to "
-        "specific allowlisted hosts, so raw SSH on port 22 is blocked "
-        "outright. This is NOT the ssh-agent socket, which is already open. "
-        "If that's why this failed, re-run with dangerouslyDisableSandbox: "
-        "true, or fix it durably by switching the remote to HTTPS: `git "
-        "remote set-url origin https://github.com/OWNER/REPO.git` (and, if "
-        "cloning/forking fresh via gh, `gh config set -h github.com "
-        "git_protocol https`)."
+        "Heads up: git over SSH (push, fetch, pull, clone, ls-remote, or "
+        "`gh pr checkout`/`gh repo sync` against an SSH remote) is KNOWN to "
+        "fail under the Claude Code command sandbox when nothing tunnels it: "
+        "raw TCP to port 22 is blocked. If your setup routes agent SSH "
+        "through a local relay (an ssh ProxyCommand to an allowlisted "
+        "localhost proxy), this usually means the relay is down: check it "
+        "first (`ssh -T git@github.com`, `ssh -G github.com | grep -i "
+        "proxycommand`) and restart it rather than unsandboxing. With no "
+        "relay, re-run with dangerouslyDisableSandbox: true. Don't switch "
+        "the remote to HTTPS to get around this: that pushes with a "
+        "different credential than the SSH key, silently changing who "
+        "authenticates."
     ),
     "keychain-write": (
         "Heads up: writing to the macOS Keychain (`gh auth login`/`refresh`/"
-        "`logout`/`setup-git`, or `security add-*-password`/`delete-*-"
-        "password`) is KNOWN to fail under the Claude Code command sandbox "
-        "-- Keychain reads are fine (gh reading an already-stored token "
-        "works), but the write call is denied outright. If that's why this "
-        "failed, re-run with dangerouslyDisableSandbox: true. There's no "
-        "sandbox setting that fixes this durably; the practical workaround "
-        "is to run the auth/write step once outside the sandbox -- reads "
-        "of the resulting credential work fine sandboxed afterward."
+        "`logout`/`setup-git`, `security add-*-password`/`delete-*-"
+        "password`, or a tool that stores a credential, like `cenv create` "
+        "or `fnox set`) is KNOWN to fail under the Claude Code command "
+        "sandbox. Keychain reads work sandboxed; writes are denied outright. "
+        "Re-run just the write step with dangerouslyDisableSandbox: true; "
+        "later reads of that credential work sandboxed. Note `security "
+        "delete-generic-password` can print success and still exit 161 "
+        "sandboxed: the item is NOT deleted."
+    ),
+    "bun-tmpdir": (
+        "Heads up: bun is KNOWN to fail under the Claude Code command sandbox "
+        "when its default temp dir isn't writable. Fix it in-sandbox: re-run "
+        "with BUN_TMPDIR=\"$TMPDIR\" set (e.g. `BUN_TMPDIR=\"$TMPDIR\" "
+        "<command>`). No need to unsandbox."
+    ),
+    "gem-spec-cache": (
+        "Heads up: RubyGems is KNOWN to fail under the Claude Code command "
+        "sandbox writing its spec cache (~/.cache/gem/specs). Fix it "
+        "in-sandbox: re-run with GEM_SPEC_CACHE=\"$TMPDIR/gemspecs\" set. "
+        "No need to unsandbox."
     ),
 }
 
@@ -207,12 +353,12 @@ def _error_text(payload: dict) -> str:
     """Serialize the payload EXCEPT tool_input, so fingerprints match the
     failure output regardless of which field carries it, without
     false-matching the command text (which lives in tool_input)."""
-    rest = {k: v for k, v in payload.items() if k != "tool_input"}
+    rest = {k: v for k, v in payload.items() if k not in ("tool_input", "cwd")}
     return json.dumps(rest, default=str)
 
 
-def decide_advice(payload: dict):
-    """Return advisory text to inject, or None to stay silent."""
+def decide_mode(payload: dict):
+    """Return the failure mode for this payload, or None to stay silent."""
     tool_input = payload.get("tool_input") or {}
     command = tool_input.get("command") or ""
     if not command:
@@ -220,14 +366,26 @@ def decide_advice(payload: dict):
     # Loop guard: if it already ran unsandboxed, "re-run unsandboxed" is wrong.
     if tool_input.get("dangerouslyDisableSandbox"):
         return None
+    text = _error_text(payload)
+    mode = error_only_mode(text)
+    if mode:
+        return mode
     mode = classify_command(command)
     if mode is None:
         return None
     # Require one of THIS mode's fingerprints in the failure payload, so an
     # srb type-error or a non-sandbox git error does not trigger advice.
-    if not matches_mode_fingerprints(_error_text(payload), mode):
+    if not matches_mode_fingerprints(text, mode):
         return None
-    return _ADVICE[mode]
+    if mode == "git-write":
+        return classify_git_write(command, text, payload.get("cwd") or "")
+    return mode
+
+
+def decide_advice(payload: dict):
+    """Return advisory text to inject, or None to stay silent."""
+    mode = decide_mode(payload)
+    return _ADVICE[mode] if mode else None
 
 
 def main() -> None:
