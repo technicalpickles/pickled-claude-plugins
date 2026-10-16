@@ -119,6 +119,12 @@
       "source": "./plugins/come-on",
       "version": "0.2.0",
       "description": "Catch Claude stopping short: unchecked claims, giving up early, inherited conclusions, unresearched options, and replies that don't land"
+    },
+    {
+      "name": "wait-for-it",
+      "source": "./plugins/wait-for-it",
+      "version": "0.1.0",
+      "description": "Turn \"tell me when X happens\" into a zero-token shell watch instead of a prompt loop"
     }
   ]
 }
