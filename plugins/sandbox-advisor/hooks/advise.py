@@ -5,10 +5,8 @@ import os
 import re
 import sys
 
-# Modes whose error text is distinctive enough to identify on its own, no
-# matter what command produced it. Checked first: a sorbet LMDB abort looks
-# the same whether it came from `bin/srb tc`, `bundle exec srb`, or a test
-# runner that shells out to sorbet three wrappers deep.
+# Distinctive enough to identify without the command: a sorbet LMDB abort
+# looks the same however many wrappers deep sorbet ran.
 _ERROR_ONLY_FINGERPRINTS = {
     "srb": (
         "mdb_error",
@@ -27,14 +25,9 @@ _ERROR_ONLY_FINGERPRINTS = {
     ),
 }
 
-# Per-mode error fingerprints for modes picked by command shape, matched
-# case-insensitively against the failure text. The command decides which mode
-# applies; the fingerprint confirms it was the sandbox and not an ordinary
-# failure of that command.
+# The command picks the mode; one of these confirms it was the sandbox.
 _MODE_FINGERPRINTS = {
-    # An actual EPERM, or the downstream message a mid-checkout deny leaves
-    # with no EPERM line visible. A bare "index.lock" isn't enough: `File
-    # exists` on index.lock is a concurrent git process, not the sandbox.
+    # Not bare "index.lock": `File exists` on it is a concurrent git, not the sandbox.
     "git-write": (
         "operation not permitted",
         "could not reset index file",
@@ -61,16 +54,13 @@ _MODE_FINGERPRINTS = {
         "failed to run git: exit status",
     ),
     "keychain-write": (
-        # Safe to include the generic EPERM here because the command matcher
-        # for this mode is narrow (gh auth writes, security add/delete).
+        # Generic EPERM is safe here: the command matcher is narrow.
         "seckeychainitemcreatefromcontent",
         "operation not permitted",
     ),
 }
 
-# git-write splits further by what the failure text names. Order matters:
-# a worktree-delete failure can also mention a .git path, and a path deny can
-# also show up next to an index.lock line.
+# Checked in this order: a worktree-delete error can name a .git path too.
 _GIT_WORKTREE_DELETE_FPS = ("failed to delete '",)
 _GIT_PATH_DENY_FPS = (
     ".claude/agents",
@@ -84,8 +74,7 @@ _GIT_PATH_DENY_FPS = (
     "could not lock config file",
     "could not write config file",
     "could not reset index file",
-    # Shell rc basenames are denied at any depth, so a dotfiles repo that
-    # tracks them can't check them out sandboxed.
+    # Shell rc basenames are denied at any depth.
     ".gitconfig'",
     ".zshrc'",
     ".zprofile'",
@@ -109,7 +98,6 @@ def matches_mode_fingerprints(text: str, mode: str) -> bool:
 
 
 def error_only_mode(text: str):
-    """Return a mode identified by error text alone, or None."""
     if not text:
         return None
     low = text.lower()
@@ -130,7 +118,6 @@ _GIT_WRITE_SUBCOMMANDS = {
     "checkout", "switch", "init", "stash", "worktree", "branch", "tag",
 }
 
-# git subcommands that talk to a remote.
 _GIT_NETWORK_SUBCOMMANDS = {"push", "fetch", "pull", "clone", "ls-remote"}
 
 _SRB_RE = re.compile(r"^(bundle\s+exec\s+)?(\./)?(bin/)?srb(\s|$)")
@@ -150,8 +137,7 @@ _GH_AUTH_WRITE_RE = re.compile(
 _SECURITY_WRITE_RE = re.compile(
     r"^security\s+(add|delete)-(generic|internet)-password(\s|$)"
 )
-# `wt` (worktrunk) wraps git worktree, so its create and remove hit the same
-# denies as `git worktree add`/`remove`.
+# worktrunk wraps `git worktree add`/`remove`, so it hits the same denies.
 _WT_WRITE_RE = re.compile(r"^wt\s+(remove|switch)(\s|$)")
 _ENV_PREFIX_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*=\S*\s+)+")
 
@@ -219,12 +205,7 @@ def _under(path: str, root: str) -> bool:
 
 
 def _targets_outside_cwd(command: str, error_text: str, cwd: str) -> bool:
-    """True if the failing git op targeted a repo outside the session's cwd.
-
-    The sandbox anchors write access to the session's working directory, and
-    a shell `cd` doesn't move it. So a lock/temp-file EPERM on a path outside
-    `cwd` is the scope mismatch (fix: EnterWorktree), not a blocked path.
-    """
+    # Write access is anchored to the session cwd; a shell `cd` doesn't move it.
     if not cwd:
         return False
     home = os.path.expanduser("~")
@@ -241,7 +222,6 @@ def _targets_outside_cwd(command: str, error_text: str, cwd: str) -> bool:
 
 
 def classify_git_write(command: str, error_text: str, cwd: str) -> str:
-    """Split a git-write failure into the case that decides the fix."""
     low = error_text.lower()
     if any(fp in low for fp in _GIT_WORKTREE_DELETE_FPS):
         return "git-worktree-delete"
@@ -254,10 +234,8 @@ def classify_git_write(command: str, error_text: str, cwd: str) -> str:
     return "git-write"
 
 
-# Advisory, not directive. We acknowledge the command is a KNOWN sandbox
-# failure mode and that this is likely (not certainly) why it failed, then
-# offer the fix. Unsandboxing is the last resort, named only for cases with
-# no in-sandbox fix.
+# Advisory: "KNOWN to fail" + "if that's why", never "definitely the sandbox".
+# Unsandboxing is named only for modes with no in-sandbox fix.
 _ADVICE = {
     "git-path-deny": (
         "Heads up: this git write touched a path the Claude Code command "
@@ -358,7 +336,6 @@ def _error_text(payload: dict) -> str:
 
 
 def decide_mode(payload: dict):
-    """Return the failure mode for this payload, or None to stay silent."""
     tool_input = payload.get("tool_input") or {}
     command = tool_input.get("command") or ""
     if not command:
