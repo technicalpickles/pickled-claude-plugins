@@ -55,15 +55,15 @@ def test_git_push_ssh_eperm_advises_unsandbox():
     result = _run_fixture("git-push-ssh-eperm.json")
     assert result.returncode == 0
     advice = _advice(result)
-    assert advice and "dangerouslyDisableSandbox" in advice
-    assert "https" in advice.lower()
+    assert advice and "relay" in advice.lower()
+    assert "set-url" not in advice
 
 
 def test_gh_checkout_ssh_eperm_advises_unsandbox():
     result = _run_fixture("gh-checkout-ssh-eperm.json")
     assert result.returncode == 0
     advice = _advice(result)
-    assert advice and "ssh-agent" in advice.lower()
+    assert advice and "relay" in advice.lower()
 
 
 def test_gh_unrelated_error_stays_silent():
