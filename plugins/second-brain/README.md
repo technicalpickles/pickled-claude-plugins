@@ -72,6 +72,30 @@ Requires the [pickled-claude-plugins marketplace](../../README.md#installation).
 └─────────────────────────────────────────────────────────────┘
 ```
 
+## Devlog sidechain (experimental)
+
+A Claude Code mod (`hooks/devlog-sidechain/register.ts`, loaded through the
+`modules` entry in `hooks/hooks.json`) that judges devlog-worthiness outside
+the turn. After a long turn it forks the session transcript with
+`$.model.fork`, asks "did the assistant just finish something or hit a
+non-obvious gotcha?", and appends an entry if so. The main agent never spends
+a turn on it. The fork rides the session's prompt cache, so each check costs a
+cache read plus a few output tokens.
+
+It does not write to the vault yet. Entries land in
+`~/.local/state/devlog-sidechain/<session-id>.md`, and every check (including
+`none` outcomes) logs token usage to `<session-id>.usage.jsonl` beside it.
+
+| Knob | Default | Meaning |
+|------|---------|---------|
+| `DEVLOG_SIDECHAIN_EVERY` | `4` | Check after this many qualifying turns |
+| `DEVLOG_SIDECHAIN_MIN_MS` | `15000` | Turns shorter than this don't count |
+| `DEVLOG_SIDECHAIN_DIR` | `~/.local/state/devlog-sidechain` | Where entries and usage logs go |
+
+`/devlog-check [turns]` forces a check now and reports the outcome and token
+counts. Needs a Claude Code build with mods (2.1.300+). Run the module's tests
+with `claude plugin test plugins/second-brain`.
+
 ## Configuration
 
 ### Global: `~/.claude/second-brain.md`

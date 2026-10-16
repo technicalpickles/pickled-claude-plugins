@@ -10,5 +10,6 @@
         ]
       }
     ]
-  }
+  },
+  "modules": ["./devlog-sidechain/register.ts"]
 }
