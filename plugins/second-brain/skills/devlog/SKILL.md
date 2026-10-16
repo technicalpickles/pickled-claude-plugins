@@ -145,7 +145,7 @@ below) using the Edit tool. Don't touch its frontmatter.
 
 ### Step 2b: Create the note
 
-Staged and written in one unsandboxed Bash call:
+Staged and written in one Bash call:
 
 ```bash
 STAGE=$(mktemp)
@@ -159,14 +159,15 @@ npx @techpickles/sb note create \
 rm -f "$STAGE"
 ```
 
-Run this with the Bash tool's `dangerouslyDisableSandbox: true` set from
-the start, not as a retry. Two reasons, same as the retired
-distill-conversation flow documented: vault paths symlink outside the
-sandbox's writable allowlist (a sandboxed attempt always EPERMs), and
-`$TMPDIR` resolves to a *different path* under
-`dangerouslyDisableSandbox: true` than under the normal sandbox — staging
-and reading have to happen in the same call under the same mode or the
-read can miss the file. The staged file must be a fresh `mktemp` path,
+Run it sandboxed first. It works sandboxed when the vault's real path is in
+the sandbox's `allowWrite` (for example `~/Vaults/<vault>/**/*.md`). Name
+the real directory, not a symlink to it: the sandbox matches the resolved
+path. If the call fails with `Operation not permitted` on the vault path,
+the vault isn't allowlisted. Re-run the *whole* call with the Bash tool's
+`dangerouslyDisableSandbox: true`, not just the `sb` line: `$TMPDIR`
+resolves to a *different path* unsandboxed, so staging and reading have to
+happen in the same call under the same mode or the read can miss the file.
+Either way, the staged file must be a fresh `mktemp` path,
 not a fixed filename: `$TMPDIR` is shared across every Claude Code
 session on the machine, and a fixed-name file can be overwritten or read
 by a stale write from a different session.
