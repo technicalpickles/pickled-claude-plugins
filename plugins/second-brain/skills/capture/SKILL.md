@@ -47,23 +47,44 @@ npx @techpickles/sb config qmd-collection
 Read the vault's own `CLAUDE.md` if you haven't this session. Vault-specific policy (destinations,
 status vocabulary, disambiguation rules) overrides the defaults here.
 
-## Step 1: Search before creating - never skip this
+## Step 1: Open - search, start the fetch, ask why
 
-Run a `lex` + `vec` pair through the **qmd MCP tools**, not the shell. (`mcp__qmd__query` is the
-working path; shelling out to `qmd` hits Metal-init failures under the sandbox.)
+Do these in order, then end the turn. Nothing is written yet.
 
-```
-mcp__qmd__query
-  searches: [{type: 'lex', query: '<topic terms>'},
-             {type: 'vec', query: '<what the note would say>'}]
-  collection: <from sb config qmd-collection>
-  intent: '<why you are searching>'
-  rerank: false        # CPU-only box, reranking is not worth the latency here
-```
+1. **Start reading the source in the background** (Bash with `run_in_background`), using the first
+   rung of [references/fetch-ladder.md](references/fetch-ladder.md). Step 2 collects the result.
+2. **Search the vault while it runs.** Through the **qmd MCP tools**, not the shell (shelling out
+   to `qmd` hits Metal-init failures under the sandbox):
 
-Show the user what already exists - **path + score + snippet** - before anything gets written.
-Often the right move is extending a note, not minting one. If a result is a strong match, say so
-and ask which way to go instead of quietly creating a duplicate.
+   ```
+   mcp__qmd__query
+     searches: [{type: 'lex', query: '<one distinctive term>'},
+                {type: 'lex', query: '<another term>'},
+                {type: 'vec', query: '<what the note would say>'}]
+     collection: <from sb config qmd-collection>
+     intent: '<why you are searching>'
+     rerank: false        # CPU-only box, reranking is not worth the latency here
+   ```
+
+   Each `lex` is one or two terms, because lex ANDs its terms. Also Glob today's inbox captures
+   (`*/11 Inbox*/<YYYYMMDD>*.md`), since the qmd index lags same-day notes.
+3. **Send one message** with: the hits (path + snippet + why each looks strong or weak, since qmd
+   scores are only ranks), the question "what made you grab this?", and on a strong match "extend
+   <note> or start a new one?".
+4. **End the turn.**
+
+Then, keyed to what you observe:
+
+- **If the request already states a reason:** skip the why question, and the turn continues.
+- **If the fetch has already failed when you send the message:** say so there, in one line, and ask
+  the same questions. The why question and the hits don't wait on the fetch.
+- **If the fetch finishes before a reply:** write the note with `**Why I saved this:** TODO`.
+- **If a strong-match question is open:** wait for the reply, then write.
+- **If qmd tools aren't loaded yet:** use the Grep tool, say it was keyword-only, and run qmd
+  before writing.
+- **If a qmd path starts with `second-brain/`:** strip that prefix to get the path on disk.
+- **If the thing's name is unfamiliar:** let the fetch land before the `vec` query, so it reflects
+  what the thing is.
 
 ### When search comes up empty
 
