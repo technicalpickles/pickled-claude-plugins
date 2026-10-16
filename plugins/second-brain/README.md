@@ -76,8 +76,7 @@ Requires the [pickled-claude-plugins marketplace](../../README.md#installation).
 
 A Claude Code mod (`hooks/devlog-sidechain/register.ts`, loaded through the
 `modules` entry in `hooks/hooks.json`) that judges devlog-worthiness outside
-the turn. Off by default: the `devlog_mode` plugin setting (`/config`, or
-`pluginConfigs` in settings) picks who writes entries, so the two never double-log:
+the turn. Off by default: the `devlog_mode` plugin setting picks who writes entries, so the two never double-log:
 
 | `devlog_mode` | SessionStart nudge | Sidechain mod |
 |---------------|--------------------|---------------|
@@ -99,6 +98,17 @@ It does not write to the vault yet. Entries land in
 | `DEVLOG_SIDECHAIN_EVERY` | `4` | Check after this many qualifying turns |
 | `DEVLOG_SIDECHAIN_MIN_MS` | `15000` | Turns shorter than this don't count |
 | `DEVLOG_SIDECHAIN_DIR` | `~/.local/state/devlog-sidechain` | Where entries and usage logs go |
+
+To switch modes, run `/plugin configure second-brain@pickled-claude-plugins` in
+Claude Code, or from a shell:
+
+```bash
+echo '{"devlog_mode":"sidechain"}' | claude plugin configure second-brain@pickled-claude-plugins --values-stdin
+```
+
+It's stored as `pluginConfigs["second-brain@pickled-claude-plugins"].options.devlog_mode`
+in settings, and takes effect on the next session start. Until it's set, the
+mode is `nudge`.
 
 `/devlog-check [turns]` forces a check now and reports the outcome and token
 counts. Needs a Claude Code build with mods (2.1.300+). Run the module's tests
