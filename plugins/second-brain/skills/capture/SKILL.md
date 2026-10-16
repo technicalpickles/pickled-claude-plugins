@@ -103,19 +103,40 @@ outcome and is more useful than a plausible note that is wrong.
 ## Step 3: Create the note through sb
 
 ```bash
-npx @techpickles/sb note create --source auto --title "<title>" --dry-run   # check the path first
-npx @techpickles/sb note create --source auto --title "<title>"            # returns JSON with path
+npx @techpickles/sb note create --source auto --title "<title>"   # returns JSON with the path
 ```
 
-Then write the body at the returned path with `Write`/`Edit`.
+Then replace the whole file at that path with this skeleton, filled in. Keep `captured` from sb's
+scaffold; everything else in the scaffold goes.
 
-**Do not hand-roll the destination path.** sb resolves the inbox, the zettelkasten timestamp, and
-the filename slug (`202608141249 note-title.md` - space after the timestamp, hyphens inside the
-slug). Hand-rolled `Write` calls are how captures end up in the inbox the pipeline never reads:
-as of 2026-08-14 that had orphaned 46 notes, and untangling it took a single 211-message session.
+```markdown
+---
+status: seedling
+tags: [topic-tag, another-tag]
+created: YYYY-MM-DD
+captured: <from sb's scaffold>
+source: <the URL or file path you read>
+---
 
-For a title, prefer the source's own framing over a topic label. `# Glide browser` beats
-`# Notes on a keyboard-driven browser`.
+# <Title, in the source's own framing>
+
+<What it is, in a sentence or two, with an inline link to the source.>
+
+**Why I saved this:** <the user's reason, in their words - or TODO>
+
+<The content: 3+ parallel items become bullets with a bold lead-in; every named tool, project,
+paper, or doc gets its link from the source; every sentence restates the source.>
+
+## Related
+
+- [[<note a search returned>]] - <why it relates>
+```
+
+Each slot's rules, with a worked example: [references/note-format.md](references/note-format.md).
+
+**sb owns the path.** It resolves the inbox, the zettelkasten timestamp, and the filename slug
+(`202608141249 note-title.md`). Hand-rolled `Write` paths land in folders the pipeline never reads;
+that once orphaned 46 notes.
 
 ## Step 4: Leave it in the inbox for `process-inbox` to route
 
