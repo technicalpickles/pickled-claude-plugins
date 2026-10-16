@@ -1,8 +1,54 @@
 # come-on
 
-For the moments you want to say "come on" to Claude. It catches Claude stopping short, on the work or on the telling, and makes it finish.
+Do any of these sound familiar?
 
-Each angle is a verb that finishes the sentence "come on, ___":
+- "That test failure is unrelated to my one-file change."
+- "I can't from here."
+- "The handoff says it's done."
+- "Here are the options: A, B, or C?"
+- "Go with option B, the grp-7 approach."
+- _[four paragraphs of background]_ "...so yes, it works."
+
+Each one is a moment where you'd say "come on," and Claude stops short in enough different ways that each gets its own flavor. This plugin is one way to give the nudge: it fires when it spots the moment, and you can throw it yourself when it doesn't.
+
+## The angles
+
+Six angles, each a verb that finishes the sentence "come on, ___":
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="https://media.giphy.com/media/bjB3gtFvREqqr5NAHW/giphy.gif" width="260" alt="Tim Robinson looking deeply skeptical, as if asking 'are you sure about that?'"><br>
+      come on, <b>check</b>
+    </td>
+    <td align="center" width="33%">
+      <img src="https://media.giphy.com/media/exQrMRVK2x9rW/giphy.gif" width="260" alt="Shia LaBeouf shouting 'Just do it!'"><br>
+      come on, <b>try</b>
+    </td>
+    <td align="center" width="33%">
+      <img src="https://media.giphy.com/media/WRQBXSCnEFJIuxktnw/giphy.gif" width="260" alt="The math lady meme: a woman looking suspicious as equations float around her, as if saying 'show me the math'"><br>
+      come on, <b>rederive</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://media.giphy.com/media/zbzNUbpFnlw8E/giphy.gif" width="260" alt="A little girl shrugging: 'why not both?'"><br>
+      come on, <b>weigh</b>
+    </td>
+    <td align="center">
+      <img src="https://media.giphy.com/media/2hgs0dO9V8Ekj8Wvfe/giphy.gif" width="260" alt="A man throwing his hands up: 'I don't even know what that means'"><br>
+      come on, <b>unpack</b>
+    </td>
+    <td align="center">
+      <img src="https://media.giphy.com/media/bWM2eWYfN3r20/giphy.gif" width="260" alt="Sweet Brown: 'Ain't nobody got time for that'"><br>
+      come on, <b>simplify</b>
+    </td>
+  </tr>
+</table>
+
+## Usage
+
+The skill fires on its own when Claude is about to do what the middle column describes, and you can invoke any angle directly.
 
 | Angle | Fires when Claude is about to... | Invoke directly |
 |---|---|---|
@@ -13,46 +59,7 @@ Each angle is a verb that finishes the sentence "come on, ___":
 | unpack | put options or a question in front of you that assumes context you don't have | `/come-on unpack [for reader]` |
 | simplify | send a long reply with no clear answer up top | `/come-on simplify [for shape]` |
 
-### The vibe
-
-<table>
-  <tr>
-    <td align="center" width="33%">
-      <img src="https://media.giphy.com/media/bjB3gtFvREqqr5NAHW/giphy.gif" width="260" alt="Tim Robinson asking 'are you sure about that?'"><br>
-      <b>check</b><br>
-      <i>"Are you sure about that?"</i>
-    </td>
-    <td align="center" width="33%">
-      <img src="https://media.giphy.com/media/exQrMRVK2x9rW/giphy.gif" width="260" alt="Shia LaBeouf shouting 'just do it'"><br>
-      <b>try</b><br>
-      <i>"It was a timeout. Just do it."</i>
-    </td>
-    <td align="center" width="33%">
-      <img src="https://media.giphy.com/media/WRQBXSCnEFJIuxktnw/giphy.gif" width="260" alt="The math lady meme, equations floating around her"><br>
-      <b>rederive</b><br>
-      <i>"Okay, but show me the math on that old conclusion."</i>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <img src="https://media.giphy.com/media/zbzNUbpFnlw8E/giphy.gif" width="260" alt="A little girl shrugging, 'why not both?'"><br>
-      <b>weigh</b><br>
-      <i>"Two options, and one of them is both."</i>
-    </td>
-    <td align="center">
-      <img src="https://media.giphy.com/media/2hgs0dO9V8Ekj8Wvfe/giphy.gif" width="260" alt="A man throwing his hands up: 'I don't even know what that means'"><br>
-      <b>unpack</b><br>
-      <i>"I don't even know what that means."</i>
-    </td>
-    <td align="center">
-      <img src="https://media.giphy.com/media/bWM2eWYfN3r20/giphy.gif" width="260" alt="Sweet Brown: 'ain't nobody got time for that'"><br>
-      <b>simplify</b><br>
-      <i>"Ain't nobody got time for that."</i>
-    </td>
-  </tr>
-</table>
-
-The skill fires on its own at those moments, and angles stack (a choice usually gets `weigh` and `unpack` together). `/come-on` with no mode means "apply whatever fits the last turn". It's one skill on purpose: every manual use counts toward the skill that has to auto-fire, and Claude Code keeps descriptions for the skills you use most when the skill listing runs out of room.
+Angles stack (a choice usually gets `weigh` and `unpack` together). `/come-on` with no mode means "apply whatever fits the last turn". It's one skill on purpose: every manual use counts toward the skill that has to auto-fire, and Claude Code keeps descriptions for the skills you use most when the skill listing runs out of room.
 
 ## Provenance
 
