@@ -1,6 +1,6 @@
 # Capture Follow-up Tax (passes 1-2) Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **REQUIRED BACKGROUND:** superpowers:writing-skills. Skill edits follow RED-GREEN-REFACTOR: a scenario fails against the current skill before the text changes.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **REQUIRED BACKGROUND:** superpowers:writing-skills. Skill edits follow RED-GREEN-REFACTOR: a case fails against the current skill before the text changes.
 
 **Goal:** Make the capture skill's first draft the finished note, and stop the agent wasting turns.
 Four parts:
@@ -18,12 +18,10 @@ Four parts:
 - **Shape problems get templates and output contracts,** not prohibitions.
 - **The one discipline problem (WebFetch) is enforced by a `PreToolUse:WebFetch` hook,** declared
   in the skill frontmatter and tested with bats.
-- **Behavior is pinned by `skill-evals` scenarios** under `evals/scenarios/`. Each scenario is
+- **Behavior is pinned by `claude plugin eval` cases** under `plugins/second-brain/evals/`. Each case is
   written and run red before the text it tests changes.
 
-**Tech Stack:** Markdown skill files, Python 3 (stdlib), bats, the `skill-evals` harness (closed-world
-tool mocks; `behavior` LLM-judge and `tool_calls` glob evaluations; see
-`evals/scenarios/no-route-offer/scenario.yaml` for the format).
+**Tech Stack:** Markdown skill files, Python 3 (stdlib), bats, `claude plugin eval` (MCP mocks for qmd, a scaffolded fake vault, `regex` / `tool_used` / `llm` graders).
 
 **Spec:** `docs/superpowers/specs/2026-10-16-capture-followup-tax-design.md`. Each task cites its
 section. Read it before writing prose.
@@ -51,8 +49,8 @@ section. Read it before writing prose.
   - optional: `via:`, and `fetched-via: webfetch` when that's how the source was read
   - no `repo/branch/commit` when they're `none`
 - **Daily breadcrumb:** `--section "Links"`.
-- **Scenario prompts use `example.com` URLs**, and every tool the run should call is mocked, as in
-  `no-route-offer`.
+- **Eval cases capture the scaffolded `sources/roc-article.md`** so content is deterministic. Only
+  `capture-search-and-fetch` uses a live URL.
 - **Commits:** conventional, scope `second-brain`. Every commit ends with
   `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 
@@ -72,118 +70,153 @@ section. Read it before writing prose.
 
 ---
 
-### Task red-scenarios: write the behavior scenarios and record the baseline
+### Task red-cases: write the eval cases and record the baseline
 
-Spec: "Verification". This is the RED phase for every skill-text task below.
+Spec: "Verification". This is the RED phase for every skill-text task below. It uses
+`claude plugin eval`, Claude Code's built-in runner.
+
+**How the runner works**, which shapes these cases:
+- Cases live at `plugins/second-brain/evals/<case>/`, as `prompt.md` (frontmatter + prompt) plus
+  `graders/*.md`, with an optional `case.yaml` for `context.scaffold_script`.
+- Each run gets a throwaway workspace with a fresh HOME.
+- **Only MCP tools can be mocked**, at `<case>/mocks/<server>/<tool>.md`. So qmd is mocked; `sb`,
+  Read, Write and lightpanda run for real against a scaffolded fake vault.
+- **Grader types:**
+  - `regex`: `match: contains | not_contains`, with `target: last_message | trace | {source: file, path}`
+  - `tool_used`: with `input_match`, and `min: 0, max: 0` to assert a tool was never called
+  - `llm`: with `criteria`
 
 **Files:**
-- Create:
-  - `plugins/second-brain/skills/capture/evals/scenarios/capture-frontmatter/scenario.yaml`
-  - `plugins/second-brain/skills/capture/evals/scenarios/capture-note-shape/scenario.yaml`
-  - `plugins/second-brain/skills/capture/evals/scenarios/capture-no-other-note-edits/scenario.yaml`
-  - `plugins/second-brain/skills/capture/evals/scenarios/capture-search-and-fetch/scenario.yaml`
-- Modify: `plugins/second-brain/skills/capture/evals/README.md`. Add a "Behavior scenarios" table:
-  name, what it pins, baseline result, post-change result.
+- Create: `plugins/second-brain/evals/_shared/scaffold-vault.sh`, a shared scaffold that each
+  case's `case.yaml` points at
+- Create, one directory per case: `plugins/second-brain/evals/capture-frontmatter/`,
+  `capture-note-shape/`, `capture-no-other-note-edits/`, `capture-search-and-fetch/`, and
+  `capture-no-route-offer/` (a port of the old `skill-evals` scenario's assertions)
+- Create: `plugins/second-brain/evals/README.md`, holding the run command, a case table (name, what
+  it pins, baseline result, post-change result) and the spike findings
+- Leave the old `skills/capture/evals/` directory alone. Its cases target an internal tool this
+  repo can't run.
 
 **Interfaces:**
-- Produces: four scenario names that later tasks re-run as their GREEN check.
+- Produces: five case names, which later tasks re-run with `$EVAL --case <name>` (see Step 2).
 
-**Shared mocks** (copy the `no-route-offer` structure):
-- `sb vault info`, `sb config qmd-collection`, and `sb note create`, which returns
-  `{"path": "10-19 System & Capture/11 Inbox & triage/202610161200 roc-pathfinding.md"}`.
-- Read of `*11 Inbox*.md`, returning sb's scaffold: `source: manual` plus
-  `repo/branch/commit: none`.
-- Write/Edit of `*11 Inbox*.md`.
-- `sb daily append`.
-- Bash `*lightpanda fetch*`, returning the page markdown.
-- WebFetch, returning the same page. Its presence must not count as passing.
+- [ ] **Step 1: Spike: confirm the runner can host a capture.**
 
-- [ ] **Step 1: Write `capture-frontmatter`.**
+Build one throwaway case. Its scaffold makes a vault directory with an `.obsidian/` folder, a
+`10-19 System & Capture/11 Inbox & triage/` folder, a `Fleeting/` folder, and one note. Then it
+runs `npx -y @techpickles/sb init` (or writes sb's config) so `sb vault info` resolves to that
+vault.
 
-Prompt: `Make a note for https://example.com/roc-pathfinding`. qmd returns a neighbor note,
-`60-69 Software & Engineering/202601010000 astar.md`. A Read of that neighbor returns frontmatter
-with `status: filed`, `type: reference` and `tags: [#algorithms]`.
+Prompt: "run `npx @techpickles/sb vault info`, then create a note titled Spike via sb and write
+'hello' into it".
 
-Evaluations:
-- `tool_calls`:
-  - expected: a Write or Edit to `*11 Inbox*` whose content matches `*status: seedling*`, and one
-    matching `*source: https://example.com/roc-pathfinding*`
-  - not_expected: content matching `*status: filed*`, `*repo: none*` or `*type: reference*`, and
-    Bash `*--dry-run*`
+Run that case and read `aggregate-result.json` and the trace. Answer each of these in the README:
+- (a) Does `sb vault info` resolve to the scaffold vault?
+- (b) How are Bash commands and Write `content` serialized in `trace`? This decides the exact regex
+  form the graders use.
+- (c) Does a skill-frontmatter `PreToolUse` hook fire? Answer this once task webfetch-guard-hook
+  exists, or test it now with a hook that logs to a file.
+- (d) Can `{source: file, path: <glob>}` read a note whose timestamped filename isn't known ahead
+  of time?
 
-- [ ] **Step 2: Write `capture-note-shape`.**
+If (a) fails and can't be fixed in the scaffold, stop and report back to Josh. Without sb, there
+are no capture evals.
 
-Prompt: `Make a note for https://example.com/roc-pathfinding, I'm comparing pathfinding libs for my
-roguelike`. The page markdown names three tools with links (`[Rust crate](https://example.com/roc-rs)`,
-`[Python port](https://example.com/roc-py)`, `[benchmarks](https://example.com/roc-bench)`) and lists
-four features.
+- [ ] **Step 2: Define the run command in the README and use it everywhere below.**
 
-Evaluations:
-- `behavior` expectations:
-  - the note body contains a "Why I saved this" line mentioning the roguelike
-  - the four features appear as bullets
-  - the three named tools link to their example.com URLs
-- `behavior` auto_fail:
-  - states a fact about Roc that isn't in the mocked page
-
-- [ ] **Step 3: Write `capture-no-other-note-edits`.**
-
-qmd returns a same-subject note, `60-69 Software & Engineering/202605050000 roc-algorithm.md`, and a
-Read of it returns a short body.
-
-Evaluations:
-- `tool_calls` not_expected: Write or Edit to `*roc-algorithm.md`.
-- `behavior` expectations:
-  - the new note's `## Related` links `[[202605050000 roc-algorithm]]`
-  - the final message proposes adding a link *from* that note to the new one
-  - the proposal is labeled high, medium or low, with a reason
-- `behavior` auto_fail:
-  - edits the existing note
-  - uses the words "backlink" or "forward link"
-
-- [ ] **Step 4: Write `capture-search-and-fetch`.**
-
-Prompt: `Make a note for https://example.com/roc-pathfinding`. The prompt deliberately gives no
-reason for saving it.
-
-Evaluations:
-- `tool_calls` expected: Bash `*lightpanda fetch*`.
-- `tool_calls` not_expected: `mcp__lightpanda__markdown`, and Bash `*--include=*.md*`.
-- `behavior` expectations:
-  - every qmd `lex` sub-query has at most two terms
-  - asks the user what made them save it
-  - does not stop and wait before starting the fetch
-
-- [ ] **Step 5: Update `no-route-offer`** so it still matches the new flow:
-  - add a Bash `*lightpanda fetch*` mock
-  - add the `*sb daily append*` mock if it's missing
-  - leave its assertions unchanged
-
-- [ ] **Step 6: Locate the harness and run the baseline.**
-
-`skill-evals` is a separate tool, not in this repo. Get its path from Josh if it isn't obvious. For
-each scenario, run:
 ```bash
-uv run skill-evals --plugin-dir plugins/second-brain \
-  --config plugins/second-brain/skills/capture/evals/eval_config.yaml \
-  --scenarios-dir plugins/second-brain/skills/capture/evals/scenarios \
-  --project-root plugins/second-brain --scenario <name> --trials 3
+EVAL="claude plugin eval plugins/second-brain --ablation none --scaffold --trust-plugin \
+  --allow-tools Bash Write Edit Read Glob Grep WebFetch --no-publish --runs 3"
 ```
 
+`--ablation none` is used because the baseline we care about is "the current skill", not "no
+plugin".
+
+- [ ] **Step 3: Write the shared scaffold and the qmd mock.**
+
+The scaffold builds on the spike vault and adds three fixture notes:
+- `60-69 Software & Engineering/202601010000 astar.md`, with frontmatter `status: filed`,
+  `type: reference` and `tags: [#algorithms]`
+- `60-69 Software & Engineering/202605050000 roc-algorithm.md`, a short body about Roc
+- `sources/roc-article.md`, the "article" the cases capture: a title, a paragraph, four parallel
+  features, and three named tools with markdown links
+  (`[Rust crate](https://example.com/roc-rs)`, `[Python port](https://example.com/roc-py)`,
+  `[benchmarks](https://example.com/roc-bench)`)
+
+The qmd mock at `mocks/qmd/query.md` returns hits for the two vault notes.
+
+Cases capture the local `sources/roc-article.md`, read with `Read`, so the content is
+deterministic. Only `capture-search-and-fetch` uses a live URL.
+
+- [ ] **Step 4: Write `capture-frontmatter`.**
+
+Prompt: `Make a note for sources/roc-article.md`.
+
+Graders:
+- `regex` on the created note, or on `trace` per spike finding (d), `contains`: `status: seedling`
+- `regex` on the same target, `not_contains`: `status: filed`, `repo: none` and `type: reference`
+- `regex` on `trace`, `not_contains`: `--dry-run`
+
+- [ ] **Step 5: Write `capture-note-shape`.**
+
+Prompt: `Make a note for sources/roc-article.md, I'm comparing pathfinding libs for my roguelike`.
+
+Graders:
+- `regex` `contains`: `Why I saved this` and `https://example.com/roc-rs`
+- `llm`, with criteria:
+  - the four features appear as bullets
+  - the why line mentions the roguelike
+  - no fact appears that isn't in the source file
+
+- [ ] **Step 6: Write `capture-no-other-note-edits`.**
+
+Prompt: `Make a note for sources/roc-article.md`.
+
+Graders:
+- `tool_used` `Edit`, with `input_match: roc-algorithm`, `min: 0`, `max: 0`
+- `tool_used` `Write`, with `input_match: roc-algorithm`, `min: 0`, `max: 0`
+- `regex` on `last_message`, `contains` `\[(high|medium|low)\]`, and `not_contains`
+  `(?i)backlink|forward link`
+- `llm`, with criteria: the final message proposes adding a link to the new note from
+  roc-algorithm, with a reason
+
+- [ ] **Step 7: Write `capture-search-and-fetch`.**
+
+Prompt: `Make a note for https://example.com/`. No reason is given.
+
+Graders:
+- `regex` on `trace`, `contains`: `lightpanda fetch`
+- `tool_used` `mcp__lightpanda__markdown`, with `min: 0`, `max: 0`
+- `regex` on `trace`, `not_contains`: `--include=\*\.md`
+- `llm`, with criteria:
+  - every qmd lex sub-query has at most two terms
+  - the agent asks what made the user save it
+
+- [ ] **Step 8: Write `capture-no-route-offer`.**
+
+Prompt: `Make a note for sources/roc-article.md`.
+
+Graders:
+- `regex` on `trace`, `not_contains`: `sb note move`
+- `llm`, with criterion: no question or reminder about routing, moving or filing the note
+
+- [ ] **Step 9: Run the baseline.**
+
+Run: `$EVAL`
 Expected:
-- the four new scenarios **FAIL** at least one evaluation each against the current SKILL.md
-- `no-route-offer` still **PASSES**
+- the four new cases each score below 1.0 against the current SKILL.md
+- `capture-no-route-offer` scores 1.0
 
-Record the failing expectations, verbatim from the results, in the README table.
+Record each failing grader in the README table, naming the grader.
 
-**If a new scenario passes at baseline:** it isn't testing a real gap. Tighten it, or drop it and
-note why.
+**If a new case passes at baseline:** it isn't testing a real gap. Tighten it, or drop it and say
+why in the README.
 
-- [ ] **Step 7: Commit.**
+- [ ] **Step 10: Commit.**
 
 ```bash
-git add plugins/second-brain/skills/capture/evals
-git commit -m "test(second-brain): capture behavior scenarios with red baseline"
+git add plugins/second-brain/evals
+git commit -m "test(second-brain): capture eval cases with red baseline"
 ```
 
 ### Task slim-and-split: move reference material out of SKILL.md
@@ -213,7 +246,7 @@ Run:
 ```bash
 wc -w plugins/second-brain/skills/capture/SKILL.md
 ```
-Expected: the count is below 2,020. Re-run `no-route-offer`: it still PASSES.
+Expected: the count is below 2,020. Re-run `capture-no-route-offer` (`$EVAL --case capture-no-route-offer`): it still PASSES.
 
 - [ ] **Step 3: Commit.**
 
@@ -251,7 +284,7 @@ GREEN target: `capture-search-and-fetch`, for the lex-term and asks-why expectat
 
   Keep "When search comes up empty" and "that isn't the one" as they are.
 
-- [ ] **Step 2: Re-run `capture-search-and-fetch`.**
+- [ ] **Step 2: Re-run `capture-search-and-fetch` (`$EVAL --case capture-search-and-fetch`).**
 
 Expected: the lex-term and asks-why expectations now PASS. The fetch expectations may still fail
 until task fetch-ladder lands.
@@ -302,7 +335,7 @@ Run:
 ```bash
 grep -rc 'mcp__lightpanda' plugins/second-brain/skills/capture/SKILL.md plugins/second-brain/skills/capture/references/
 ```
-Expected: every count is `0`. Re-run `capture-search-and-fetch`: it fully PASSES.
+Expected: every count is `0`. Re-run `capture-search-and-fetch` (`$EVAL --case capture-search-and-fetch`): it fully PASSES.
 
 - [ ] **Step 3: Commit.**
 
@@ -330,7 +363,7 @@ Spec: "Creating the note". GREEN target: `capture-frontmatter`.
   Don't add a "don't copy from vault notes" line. The template replaces the whole block, so there's
   nothing to copy into.
 
-- [ ] **Step 2: Re-run `capture-frontmatter`.** Expected: PASS (3/3 trials).
+- [ ] **Step 2: Re-run `capture-frontmatter` (`$EVAL --case capture-frontmatter`).** Expected: PASS (3/3 trials).
 
 - [ ] **Step 3: Commit.**
 
@@ -378,7 +411,7 @@ Run:
 ```bash
 grep -c 'Prose, not an outline' plugins/second-brain/skills/capture/references/note-format.md
 ```
-Expected: `0`. Re-run `capture-note-shape`: it PASSES.
+Expected: `0`. Re-run `capture-note-shape` (`$EVAL --case capture-note-shape`): it PASSES.
 
 - [ ] **Step 3: Commit.**
 
@@ -415,7 +448,7 @@ The closing block is a list. Each item has this form:
 - [ ] **Step 2: Change the breadcrumb** to `--section "Links"`, and change `## Notes` to `## Links`
   in the surrounding text.
 
-- [ ] **Step 3: Re-run `capture-no-other-note-edits` and `no-route-offer`.** Expected: both PASS.
+- [ ] **Step 3: Re-run `capture-no-other-note-edits` (`$EVAL --case capture-no-other-note-edits`) and `capture-no-route-offer`.** Expected: both PASS.
 
 - [ ] **Step 4: Commit.**
 
@@ -577,13 +610,13 @@ git add plugins/second-brain/skills/capture
 git commit -m "fix(second-brain): capture description lists triggers only"
 ```
 
-### Task green-refactor: full scenario pass and loophole closing
+### Task green-refactor: full case pass and loophole closing
 
-- [ ] **Step 1: Run all five scenarios with `--trials 3`.**
+- [ ] **Step 1: Run the full suite (`$EVAL`).**
 
 Expected: all PASS. Fill in the README table's post-change column.
 
-- [ ] **Step 2: Handle any scenario that is flaky** (passes in some trials, fails in others). Read
+- [ ] **Step 2: Handle any case that is flaky** (passes in some trials, fails in others). Read
   the failing transcripts. Name the rationalization or misread, and tighten the form: make a recipe
   step or template slot more specific rather than adding a prohibition. Re-run until 3/3. Commit as
   `fix(second-brain): ...`.
