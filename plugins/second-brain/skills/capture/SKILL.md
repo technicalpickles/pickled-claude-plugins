@@ -85,15 +85,9 @@ lookup failing twice across two separate sessions.
 
 ## Step 2: Read the actual primary source
 
-**Never write a note from search snippets.** Fetch the real thing:
-
-| Source | Tool |
-|--------|------|
-| Web page | `mcp__lightpanda__markdown {url}` preferred; `WebFetch` as fallback |
-| Tweet / thread | `xtweet <url-or-id>` (`-q` for quoted chain, `-r` for replies) |
-| PDF or local file | `Read` |
-| Notion page | `mcp__notiongusto__notion-fetch` |
-| Slack thread | the `slack` skill |
+**Never write a note from search snippets.** Read the real thing through the ladder in
+[references/fetch-ladder.md](references/fetch-ladder.md): lightpanda first, WebFetch last. If Josh
+names a fetch method, use it or say why you can't.
 
 **If you cannot reach the source, or cannot find the thing the user described, stop and say so.**
 Do not write a note containing a URL you did not load, a title you inferred, or details you filled
