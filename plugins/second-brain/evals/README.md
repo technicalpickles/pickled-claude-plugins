@@ -14,8 +14,10 @@ home directory, so it runs straight from this checkout:
 
 ```bash
 orb -m capture-evals bash plugins/second-brain/evals/_shared/run-in-vm.sh <case>
-RUNS=3 JOBS=3 orb -m capture-evals bash plugins/second-brain/evals/_shared/run-in-vm.sh <case>
+orb -m capture-evals env RUNS=3 JOBS=3 bash plugins/second-brain/evals/_shared/run-in-vm.sh <case>
 ```
+
+`RUNS`/`JOBS` set on the Mac side don't cross into the VM (you silently get 1 run); pass them with `env` as above.
 
 Results land in `/tmp/<case>.json` inside the VM (`orb -m capture-evals cat` it
 back) and as an HTML report under `evals/results/` (git-ignored).
@@ -52,3 +54,4 @@ the skeleton in SKILL.md Step 3 is there so a skipped reference can't do that.
 | `harness-smoke` | sb resolves the scaffold vault; file graders work | pass | - |
 | `capture-frontmatter` | seedling/created/real source; no sb placeholders; no copied legacy shape; no `--dry-run`; breadcrumb under `## Links` | frontmatter 3/3 correct; `--dry-run` 3/3; breadcrumb to `Notes` 3/3 | 3/3 pass |
 | `capture-note-shape` | outbound links kept; 3+ parallel items as bullets; `**Why I saved this:**` line; no facts beyond the source (LLM judge) | bullets 0/3, why-line 0/3, invented use-case speculation 2/3 (links 3/3) | 3/3 pass |
+| `capture-no-other-note-edits` | same-subject note is never edited (no reciprocal link); closing block of `[high|medium|low]` proposals in plain words | closing-proposals 0/3 (weak-link question, no labels); roc note untouched 3/3 already | 3/3 pass |

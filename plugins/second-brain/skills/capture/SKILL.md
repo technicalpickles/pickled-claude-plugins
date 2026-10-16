@@ -166,19 +166,36 @@ note's content. Only ever link notes **confirmed to exist** by an actual search 
 `[[link]]` you have not verified, and never a side note created on your own initiative (offer
 those, don't make them - see Constraints).
 
-Split what the search turns up by confidence, and don't ask about the confident ones:
+Only the note you just created changes on its own. Split what the search turns up:
 
-- **Confident - add it, don't ask.** The existing note passes either test: **same subject** (same
-  tool/person/project/event as the new note, not just a shared theme) or **named in the source**
-  (the source text itself references the thing that note covers). Add it under `## Related` with a
-  few words on *why* it relates - a bare link list decays - and mention it in your summary
-  (`Linked to <note>.`), but don't stop to ask first.
-- **Weak - offer, don't add.** Same theme or category but a different subject (e.g. two notes both
-  about "self-hosted family tooling" but covering different products). Surface these as a suggestion
-  ("Want me to link X too?") and let the user decide.
+- **Confident - add it to the new note, don't ask.** The existing note passes either test: **same
+  subject** (same tool/person/project/event as the new note, not just a shared theme) or **named in
+  the source** (the source text itself references the thing that note covers). Add it under
+  `## Related` with a few words on *why* it relates - a bare link list decays - and mention it in
+  your summary (`Linked to <note>.`). Check the target's basename exists before writing the link.
+- **Everything else - propose it** in the closing block below, never do it.
 
 If in doubt which bucket a match falls in, try writing the "why" clause without the words "theme"
-or "similar" - if you can't, it's weak.
+or "similar" - if you can't, it's a proposal.
+
+### Closing proposals
+
+End the summary with a list, one item per line, in exactly this shape:
+
+```
+- [high|medium|low] <action in plain words> - <reason> (<path of the existing note>)
+```
+
+Actions, in plain words:
+
+- `Add a link to this note from <note>`
+- `Make a note for <thing the source cites>`
+- `Add this to <hub or list note>`
+- `Merge with <note>?`
+- `Link <note> too?`
+
+Confidence is how sure you are Josh would say yes, with the reason as proof. Every target is a
+note a search found, named by its path. Skip the block when there is nothing to propose.
 
 Then append the daily-note breadcrumb yourself - this is no longer a yes/no:
 
@@ -240,14 +257,12 @@ yourself once all notes exist, since connections need the whole set in view.
 - **Inbox by default.** Routing is `process-inbox`'s job — capture never asks or
   routes, except an explicit user-named destination, resolved via `sb vault
   structure` like `route` does, never hand-rolled.
-- **Confident links and the breadcrumb are automatic; new notes and weak links are offered.**
-  A confident link (same subject, or named in the source) gets added and mentioned, not asked
-  about. A weak link (same theme, different subject) and any brand-new note get offered as a
-  suggestion, never created outright - unless the user's phrasing already covers the whole batch
-  (see "Capturing several sources at once"). The daily-note breadcrumb append happens automatically
-  every time regardless.
-- **Editing the note just written doesn't need permission.** A confident related link or a
-  direct follow-up answer about the note's subject (Step 6) both count as finishing the note
-  already in progress, not starting something new.
+- **Only the new note changes without a yes.** Confident links go inside it, and the daily-note
+  breadcrumb append is automatic. Every other note edit (links back to the new note, hub or list
+  updates, merges) and every new side note is a line in the closing proposals, never an action,
+  unless the user's phrasing already covers the whole batch (see "Capturing several sources at
+  once").
+- **Finishing the note in progress doesn't need permission.** A confident related link or a direct
+  follow-up answer about the note's subject (Step 6) both count as part of the note just written.
 - **One note, one idea.** If the source carries several distinct ideas, say so and offer to split
   rather than writing one sprawling note.
