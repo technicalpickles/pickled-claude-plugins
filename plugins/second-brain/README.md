@@ -76,7 +76,15 @@ Requires the [pickled-claude-plugins marketplace](../../README.md#installation).
 
 A Claude Code mod (`hooks/devlog-sidechain/register.ts`, loaded through the
 `modules` entry in `hooks/hooks.json`) that judges devlog-worthiness outside
-the turn. After a long turn it forks the session transcript with
+the turn. Off by default: the `devlog_mode` plugin setting (`/config`, or
+`pluginConfigs` in settings) picks who writes entries, so the two never double-log:
+
+| `devlog_mode` | SessionStart nudge | Sidechain mod |
+|---------------|--------------------|---------------|
+| `nudge` (default) | on | off |
+| `sidechain` | silent | on |
+| `both` | on | on (for comparing) |
+ After a long turn it forks the session transcript with
 `$.model.fork`, asks "did the assistant just finish something or hit a
 non-obvious gotcha?", and appends an entry if so. The main agent never spends
 a turn on it. The fork rides the session's prompt cache, so each check costs a

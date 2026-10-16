@@ -88,7 +88,11 @@ async function judgeInBackground($: EngineInterface, sessionId: string, turns: n
   }
 }
 
-export const register: Register = on => {
+export const register: Register = (on, options) => {
+  // devlog_mode picks who writes devlog entries: the SessionStart nudge (default), this
+  // sidechain, or both. The nudge script reads the same setting from its environment.
+  if ((options.devlog_mode ?? 'nudge') === 'nudge') return
+
   const inFlight = new Set<string>()
   const pending = new Map<string, number>()
 

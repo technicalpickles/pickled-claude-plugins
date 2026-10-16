@@ -2,6 +2,7 @@ import type { On } from 'claude-code'
 import { type Engine, expect, mock, test } from 'claude-code/testing'
 import { CHECK_EVERY, parseEntry } from './register'
 
+const sidechain = { options: { devlog_mode: 'sidechain' } }
 const usage = { input_tokens: 1, output_tokens: 1, cache_creation_input_tokens: 0, cache_read_input_tokens: 900 }
 
 function turn(overrides: { durationMs?: number; agentId?: string } = {}) {
@@ -50,7 +51,7 @@ async function longTurns($: Engine, n: number) {
   for (let i = 0; i < n; i++) await $.turn.complete(turn())
 }
 
-test('forks once every CHECK_EVERY long turns, after the turn returns', async ($, on) => {
+test('forks once every CHECK_EVERY long turns, after the turn returns', sidechain, async ($, on) => {
   const w = world(on, 'ENTRY: Mods can fork the transcript off-turn.')
   await longTurns($, CHECK_EVERY - 1)
   await w.clock.settle()
@@ -69,7 +70,7 @@ test('forks once every CHECK_EVERY long turns, after the turn returns', async ($
   expect(log?.text).toContain('"cache_read_input_tokens":900')
 })
 
-test('NONE logs usage but writes no entry', async ($, on) => {
+test('NONE logs usage but writes no entry', sidechain, async ($, on) => {
   const w = world(on, 'NONE')
   await longTurns($, CHECK_EVERY)
   await w.clock.settle()
@@ -78,7 +79,7 @@ test('NONE logs usage but writes no entry', async ($, on) => {
   expect(w.writes[0]?.text).toContain('"outcome":"none"')
 })
 
-test('env knobs: every turn, no minimum, custom dir', async ($, on) => {
+test('env knobs: every turn, no minimum, custom dir', sidechain, async ($, on) => {
   const w = world(on, 'ENTRY: knob test', {
     DEVLOG_SIDECHAIN_EVERY: '1',
     DEVLOG_SIDECHAIN_MIN_MS: '0',
@@ -91,7 +92,7 @@ test('env knobs: every turn, no minimum, custom dir', async ($, on) => {
   expect(w.writes.some(x => x.path === '/scratch/out/abcdef01.md')).toBe(true)
 })
 
-test('/devlog-check forks now and reports the outcome and tokens', async ($, on) => {
+test('/devlog-check forks now and reports the outcome and tokens', sidechain, async ($, on) => {
   const w = world(on, 'ENTRY: checked by hand')
   const r = await $.command.run({
     command: 'devlog-check',
@@ -105,7 +106,7 @@ test('/devlog-check forks now and reports the outcome and tokens', async ($, on)
   expect(JSON.stringify(r)).toContain('cache read 900')
 })
 
-test('short turns and subagent turns never count', async ($, on) => {
+test('short turns and subagent turns never count', sidechain, async ($, on) => {
   const w = world(on, 'ENTRY: nope')
   for (let i = 0; i < CHECK_EVERY; i++) {
     await $.turn.complete(turn({ durationMs: 2_000 }))
@@ -113,4 +114,19 @@ test('short turns and subagent turns never count', async ($, on) => {
   }
   await w.clock.settle()
   expect(w.forks()).toBe(0)
+})
+
+test('default mode (nudge) leaves the mod inert', async ($, on) => {
+  const w = world(on, 'ENTRY: should never be asked')
+  await longTurns($, CHECK_EVERY)
+  await w.clock.settle()
+  expect(w.forks()).toBe(0)
+  expect(w.writes.length).toBe(0)
+})
+
+test('both mode runs the sidechain too', { options: { devlog_mode: 'both' } }, async ($, on) => {
+  const w = world(on, 'ENTRY: both modes fork.')
+  await longTurns($, CHECK_EVERY)
+  await w.clock.settle()
+  expect(w.forks()).toBe(1)
 })

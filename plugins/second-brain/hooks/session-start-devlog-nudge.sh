@@ -5,6 +5,12 @@
 # stay-on-target uses for its "Focused Development Mode" banner - it only
 # fires once, but the instruction it plants governs the whole session.
 
+# devlog_mode (userConfig) = sidechain hands entry-writing to the devlog-sidechain
+# mod, so stay silent. Unset (older Claude Code, or never configured) means nudge.
+if [ "${CLAUDE_PLUGIN_OPTION_DEVLOG_MODE:-nudge}" = "sidechain" ]; then
+  exit 0
+fi
+
 read -r -d '' CONTEXT <<'EOF'
 ## Devlog
 
