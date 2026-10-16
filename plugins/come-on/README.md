@@ -13,6 +13,45 @@ Each angle is a verb that finishes the sentence "come on, ___":
 | unpack | put options or a question in front of you that assumes context you don't have | `/come-on unpack [for reader]` |
 | simplify | send a long reply with no clear answer up top | `/come-on simplify [for shape]` |
 
+### The vibe
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="https://media.giphy.com/media/bjB3gtFvREqqr5NAHW/giphy.gif" width="260" alt="Tim Robinson asking 'are you sure about that?'"><br>
+      <b>check</b><br>
+      <i>"Are you sure about that?"</i>
+    </td>
+    <td align="center" width="33%">
+      <img src="https://media.giphy.com/media/exQrMRVK2x9rW/giphy.gif" width="260" alt="Shia LaBeouf shouting 'just do it'"><br>
+      <b>try</b><br>
+      <i>"It was a timeout. Just do it."</i>
+    </td>
+    <td align="center" width="33%">
+      <img src="https://media.giphy.com/media/WRQBXSCnEFJIuxktnw/giphy.gif" width="260" alt="The math lady meme, equations floating around her"><br>
+      <b>rederive</b><br>
+      <i>"Okay, but show me the math on that old conclusion."</i>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://media.giphy.com/media/zbzNUbpFnlw8E/giphy.gif" width="260" alt="A little girl shrugging, 'why not both?'"><br>
+      <b>weigh</b><br>
+      <i>"Two options, and one of them is both."</i>
+    </td>
+    <td align="center">
+      <img src="https://media.giphy.com/media/2hgs0dO9V8Ekj8Wvfe/giphy.gif" width="260" alt="A man throwing his hands up: 'I don't even know what that means'"><br>
+      <b>unpack</b><br>
+      <i>"I don't even know what that means."</i>
+    </td>
+    <td align="center">
+      <img src="https://media.giphy.com/media/bWM2eWYfN3r20/giphy.gif" width="260" alt="Sweet Brown: 'ain't nobody got time for that'"><br>
+      <b>simplify</b><br>
+      <i>"Ain't nobody got time for that."</i>
+    </td>
+  </tr>
+</table>
+
 The skill fires on its own at those moments, and angles stack (a choice usually gets `weigh` and `unpack` together). `/come-on` with no mode means "apply whatever fits the last turn". It's one skill on purpose: every manual use counts toward the skill that has to auto-fire, and Claude Code keeps descriptions for the skills you use most when the skill listing runs out of room.
 
 ## Provenance
