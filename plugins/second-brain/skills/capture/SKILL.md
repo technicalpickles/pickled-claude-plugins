@@ -184,10 +184,10 @@ Then append the daily-note breadcrumb yourself - this is no longer a yes/no:
 
 1. **Append:**
    ```bash
-   npx @techpickles/sb daily append --section "Notes" --content "- [[<note>]] - <one-line why>"
+   npx @techpickles/sb daily append --section "Links" --content "- [[<note>]] - <one-line why>"
    ```
    One command does the whole job. `sb` creates today's daily note from the vault's configured
-   Obsidian daily template when it doesn't exist yet, and matches the existing `## Notes` heading
+   Obsidian daily template when it doesn't exist yet, and matches the existing `## Links` heading
    when it does. Keep the breadcrumb to links unless asked for more, and do not restructure or
    rewrite the daily note.
 

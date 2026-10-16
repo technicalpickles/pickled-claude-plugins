@@ -50,5 +50,5 @@ the skeleton in SKILL.md Step 3 is there so a skipped reference can't do that.
 | Case | Pins | Baseline (1.17.0 text, 3 runs) | After |
 |------|------|------|------|
 | `harness-smoke` | sb resolves the scaffold vault; file graders work | pass | - |
-| `capture-frontmatter` | seedling/created/real source; no sb placeholders; no copied legacy shape; no `--dry-run` | frontmatter 3/3 correct; `--dry-run` used 3/3 | 3/3 pass |
+| `capture-frontmatter` | seedling/created/real source; no sb placeholders; no copied legacy shape; no `--dry-run`; breadcrumb under `## Links` | frontmatter 3/3 correct; `--dry-run` 3/3; breadcrumb to `Notes` 3/3 | 3/3 pass |
 | `capture-note-shape` | outbound links kept; 3+ parallel items as bullets; `**Why I saved this:**` line; no facts beyond the source (LLM judge) | bullets 0/3, why-line 0/3, invented use-case speculation 2/3 (links 3/3) | 3/3 pass |
