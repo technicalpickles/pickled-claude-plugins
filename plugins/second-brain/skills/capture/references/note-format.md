@@ -57,8 +57,14 @@ source-capture it mostly isn't. So:
 ```markdown
 # Glide browser
 
-A [Firefox fork](https://glide-browser.app/firefox) that is keyboard-focused, with a Vim-style
-modal interface and a TypeScript config surface.
+A [Firefox fork](https://glide-browser.app/firefox) built for keyboard-driven browsing.
+
+**Why I saved this:** looking for a Vimium replacement that survives Firefox updates.
+
+- **Modal interface:** Vim-style normal and insert modes, no extension required.
+- **Config:** a TypeScript config file instead of an options page, documented in the
+  [config reference](https://glide-browser.app/config).
+- **Status:** pre-1.0, macOS and Linux builds only.
 
 ## Related
 
@@ -66,15 +72,23 @@ modal interface and a TypeScript config surface.
 - [[202106271223 pareto principle]] - same name as the pareto-optimal note, different idea
 ```
 
-Rules:
+The body is these parts, in this order:
 
-- **`# Title` matches the note's title.** Sentence case, the source's own framing.
-- **Prose, not an outline.** One to three paragraphs for a clip. Headings only once there's enough
-  content to need them; a three-paragraph note with five `##` sections is noise.
-- **Link out inline** to the primary source. The reader should be able to get to the real thing.
-- **`## Related` last**, with a few words on why each link relates. Bare link lists decay into
-  unreadable piles - the "why" is what makes them still useful in six months.
-- **Only verified links.** Every `[[target]]` must be a note a search actually returned.
+1. **`# Title`.** Sentence case, the source's own framing.
+2. **What it is, in a sentence or two,** with an inline link to the primary source.
+3. **`**Why I saved this:**`** followed by the user's reason, in their words. Take it from the
+   request ("…for my roguelike") or from their answer when you asked. If neither gave one, write
+   `**Why I saved this:** TODO`. This line is the only place the user's situation appears.
+4. **The content.**
+   - When the source lists 3 or more parallel items (features, options, steps, findings), write
+     them as bullets with a **bold lead-in**, one item per bullet. Otherwise, a short paragraph.
+   - Every tool, project, paper, or doc the source names gets an inline link, using the URL the
+     source itself gives.
+   - Every sentence restates something the fetched source says. Leave out anything you'd need
+     outside knowledge or inference to write: implications for the user's use case, comparisons,
+     numbers, history.
+5. **`## Related`, last.** Only notes a search actually returned, each with a few words on why it
+   relates. Bare link lists decay into unreadable piles.
 
 ## Filenames
 
