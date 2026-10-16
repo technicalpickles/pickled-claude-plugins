@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/subagent-done-marker.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
