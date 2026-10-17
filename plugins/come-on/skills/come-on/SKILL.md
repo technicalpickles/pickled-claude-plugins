@@ -17,15 +17,16 @@ Arguments: "$ARGUMENTS"
 
 ## The core (every angle)
 
-1. **Name the thin basis** in one line: "I'm about to [claim / give up / build on / offer options / send this] based on [memory / one attempt / an old conclusion / an unweighed pick / what I read and the reader didn't]."
-2. **Do the cheap work** for each angle that fired. Angles stack.
-3. **Come back with the receipt**: what you ran, read, or found.
+1. **List the loose claims.** Go through the reply you're about to send (or just sent) and pull out every statement the user will act on that you haven't verified this turn: a claim of done or fixed, a "can't", something inherited from a handoff or old conclusion, an option set you haven't weighed. Usually there are several. Each gets its own check.
+2. **Do the cheap work for each one**, for each angle that fired. Independent checks run in parallel.
+3. **Reply in this shape:**
+   - The answer first, in plain words. If a check flipped something you said earlier, that comes first.
+   - Then one line per claim: what you checked, what you found.
+   - Then anything you couldn't check, and why.
 
 Why: the user can't see what you didn't check. A claim built on memory reads exactly like one built on evidence, and they pay for it later.
 
 **Skip** when the step is trivial and easy to undo, or the claim rests on output from this same turn. If you're arguing with yourself about whether it's trivial, it isn't.
-
-**If the work flips an earlier answer, say so plainly.** Flipping after checking means this worked.
 
 ## Angles
 

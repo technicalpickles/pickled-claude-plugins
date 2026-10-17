@@ -4,8 +4,8 @@
 
 ### check: before claiming done / fixed / found / pre-existing
 
-- State the claim precisely, then verify it this session: read the file, run the command, grep the evidence. Memory and the handoff don't count.
-- Report: confirmed, not true, or partial, with the evidence.
+- State each claim precisely, then verify it this session: read the file, run the command, grep the evidence. Memory and the handoff don't count. One claim, one check; don't let a single check stand in for several.
+- Report per claim: confirmed, not true, or partial, with the evidence.
 - **Hard rule:** never call a failure pre-existing, unrelated, or flaky without reproducing it on a clean base this session (`main`, commit your WIP and re-run on the parent, or `git blame`). A guess here sends the user chasing the wrong cause.
 
 ### try: before "can't" / "impossible" / "blocked" / "say the word"
@@ -18,10 +18,10 @@
 
 ### rederive: before building on an earlier conclusion
 
-- Say where the conclusion came from (handoff, design doc, past investigation, "the usual way") and how old it is.
-- Re-establish it from current evidence: runs, code, recent sessions, the data.
+- Say where each conclusion came from (handoff, design doc, past investigation, "the usual way") and how old it is. A handoff usually carries several; take them one at a time.
+- Re-establish each from current evidence: runs, code, recent sessions, the data.
 - Expensive to reverse? Offer a clean-room pass (below).
-- Report what still holds, what doesn't, and what changed.
+- Report what still holds, what doesn't, and what changed, per conclusion.
 
 ### weigh: before putting options in front of the user
 
