@@ -62,6 +62,7 @@ See individual plugin READMEs for details on what each plugin provides.
 | [taskwarrior](plugins/taskwarrior) | Token-dense recipes for taskwarrior CLI: dense listings, single-field lookups, batched exports, full-text search | taskwarrior |
 | [tool-routing](plugins/tool-routing) | Route tool calls to better alternatives (e.g., gh CLI instead of WebFetch for GitHub PRs) | – |
 | [wait-for-it](plugins/wait-for-it) | Turn "tell me when X happens" into a zero-token shell watch instead of a prompt loop | wait-for-it |
+| [woodpecker](plugins/woodpecker) | Investigate failed Woodpecker CI pipelines through woodpecker-cli (state, step states, first failed step log tail) and author .woodpecker.yml | woodpecker-authoring-pipelines, woodpecker-investigating-pipelines |
 | [working-in-monorepos](plugins/working-in-monorepos) | Navigate and execute commands in monorepo subprojects | working-in-monorepos |
 | [writing-tools](plugins/writing-tools) | Prose skills plus a send-time hook that keeps em-dashes out of content you author | checking-for-undisclosed-context, writing-for-scannability |
 <!-- END GENERATED PLUGINS -->

@@ -1,0 +1,35 @@
+name: woodpecker plugin tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'plugins/woodpecker/scripts/**'
+      - 'plugins/woodpecker/tests/**'
+      - 'plugins/woodpecker/pyproject.toml'
+      - 'plugins/woodpecker/uv.lock'
+      - '.github/workflows/woodpecker-plugin-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    name: pytest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugins/woodpecker
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v8.1.0
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --frozen --no-install-project
+
+      - name: Run pytest
+        run: uv run pytest tests/ -v
