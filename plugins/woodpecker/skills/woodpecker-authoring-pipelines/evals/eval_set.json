@@ -1,0 +1,82 @@
+[
+  {
+    "query": "does this .woodpecker/build.yaml look valid? run whatever check you've got before i push",
+    "should_trigger": true
+  },
+  {
+    "query": "port .github/workflows/ci.yml to woodpecker. it uses a postgres service and setup-node",
+    "should_trigger": true
+  },
+  {
+    "query": "my woodpecker step does `[[ -n \"$TOKEN\" ]] && source ./env.sh` and dies with a syntax error in CI but it's fine in my shell",
+    "should_trigger": true
+  },
+  {
+    "query": "tests that assert a file is unreadable pass in woodpecker but fail on my machine. what's different about the runner",
+    "should_trigger": true
+  },
+  {
+    "query": "my integration tests can't reach the db at localhost:5432 inside a woodpecker step, the postgres service is declared",
+    "should_trigger": true
+  },
+  {
+    "query": "add a lint step to .woodpecker.yml that runs only on pull requests, and make sure the config still lints",
+    "should_trigger": true
+  },
+  {
+    "query": "woodpecker says Config is valid but warns about a when block with an event filter. do i need to care",
+    "should_trigger": true
+  },
+  {
+    "query": "typecheck is red in woodpecker but the pipeline is green. i think someone put failure: ignore on it, how should that be set up",
+    "should_trigger": true
+  },
+  {
+    "query": "we're moving off drone. translate this .drone.yml to the woodpecker format",
+    "should_trigger": true
+  },
+  {
+    "query": "scaffold a .woodpecker/ directory with separate workflows for test, lint and release",
+    "should_trigger": true
+  },
+  {
+    "query": "fix the failing GitHub Actions workflow, the cache key never hits",
+    "should_trigger": false
+  },
+  {
+    "query": "why did woodpecker pipeline 55 fail? the log tail is what i need",
+    "should_trigger": false
+  },
+  {
+    "query": "add a docker-compose healthcheck so postgres is ready before the api starts locally",
+    "should_trigger": false
+  },
+  {
+    "query": "write a Buildkite pipeline.yml with a parallel rspec step",
+    "should_trigger": false
+  },
+  {
+    "query": "set up a GitLab CI config with build and deploy stages",
+    "should_trigger": false
+  },
+  {
+    "query": "my shell script uses [[ ]] and fails on macOS /bin/sh, port it to POSIX",
+    "should_trigger": false
+  },
+  {
+    "query": "how do i run the container tests as a non-root user in my Dockerfile",
+    "should_trigger": false
+  },
+  {
+    "query": "configure the woodpecker server's WOODPECKER_ADMIN list and rotate the agent secret",
+    "should_trigger": false
+  },
+  {
+    "query": "add a new skill to the woodpecker plugin for managing secrets and update the README",
+    "should_trigger": false
+  },
+  {
+    "query": "write a unit test for my python retry decorator",
+    "should_trigger": false
+  }
+]
