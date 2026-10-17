@@ -44,6 +44,7 @@ See individual plugin READMEs for details on what each plugin provides.
 |--------|-------------|--------|
 | [actually-lsp](plugins/actually-lsp) | Closes the LSP activation gap end-to-end (detection, setup, activation, failure diagnosis) for Rust, TypeScript, and Ruby projects | actually-lsp-doctor, actually-lsp-ignore |
 | [agent-meta](plugins/agent-meta) | Meta-development tools for agentic workflows | harness-binary-spelunking, park, snapshot, unpark |
+| [automic-vault](plugins/automic-vault) | Teach agents what Automic Vault (av) is and how to use it as the credential manager: inject secrets, read approval history, and diagnose sandbox, locked-Mac and refused-agent errors | automic-vault-credentials |
 | [buildkite](plugins/buildkite) | Buildkite CI tools: build investigation, pipeline development, and tool preference enforcement | developing-pipelines, investigating-builds |
 | [ci-cd-tools](plugins/ci-cd-tools) | CI/CD pipeline tools and integrations | fixing-ci |
 | [come-on](plugins/come-on) | Catch Claude stopping short: unchecked claims, giving up early, inherited conclusions, unresearched options, and replies that don't land | come-on |
