@@ -1,0 +1,27 @@
+name: wait-for-it plugin tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'plugins/wait-for-it/**'
+      - '.github/workflows/wait-for-it-plugin-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  bats:
+    name: bats
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugins/wait-for-it
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bats
+        run: sudo apt-get update && sudo apt-get install -y bats
+
+      - name: Run bats
+        run: bats tests/

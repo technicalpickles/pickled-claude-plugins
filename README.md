@@ -44,6 +44,7 @@ See individual plugin READMEs for details on what each plugin provides.
 |--------|-------------|--------|
 | [actually-lsp](plugins/actually-lsp) | Closes the LSP activation gap end-to-end (detection, setup, activation, failure diagnosis) for Rust, TypeScript, and Ruby projects | actually-lsp-doctor, actually-lsp-ignore |
 | [agent-meta](plugins/agent-meta) | Meta-development tools for agentic workflows | harness-binary-spelunking, park, snapshot, unpark |
+| [automic-vault](plugins/automic-vault) | Teach agents what Automic Vault (av) is and how to use it as the credential manager: inject secrets, read approval history, and diagnose sandbox, locked-Mac and refused-agent errors | automic-vault-credentials |
 | [buildkite](plugins/buildkite) | Buildkite CI tools: build investigation, pipeline development, and tool preference enforcement | developing-pipelines, investigating-builds |
 | [ci-cd-tools](plugins/ci-cd-tools) | CI/CD pipeline tools and integrations | fixing-ci |
 | [come-on](plugins/come-on) | Catch Claude stopping short: unchecked claims, giving up early, inherited conclusions, unresearched options, and replies that don't land | come-on |
@@ -60,6 +61,7 @@ See individual plugin READMEs for details on what each plugin provides.
 | [tailscale](plugins/tailscale) | Tailscale CLI reference and safe patterns for exposing local services over a tailnet | tailscale-cli, tailscale-serve-patterns |
 | [taskwarrior](plugins/taskwarrior) | Token-dense recipes for taskwarrior CLI: dense listings, single-field lookups, batched exports, full-text search | taskwarrior |
 | [tool-routing](plugins/tool-routing) | Route tool calls to better alternatives (e.g., gh CLI instead of WebFetch for GitHub PRs) | – |
+| [wait-for-it](plugins/wait-for-it) | Turn "tell me when X happens" into a zero-token shell watch instead of a prompt loop | wait-for-it |
 | [working-in-monorepos](plugins/working-in-monorepos) | Navigate and execute commands in monorepo subprojects | working-in-monorepos |
 | [writing-tools](plugins/writing-tools) | Prose skills plus a send-time hook that keeps em-dashes out of content you author | checking-for-undisclosed-context, writing-for-scannability |
 <!-- END GENERATED PLUGINS -->

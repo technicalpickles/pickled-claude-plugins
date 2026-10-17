@@ -39,7 +39,7 @@
     {
       "name": "second-brain",
       "source": "./plugins/second-brain",
-      "version": "1.17.0"
+      "version": "1.19.0"
     },
     {
       "name": "tool-routing",
@@ -101,7 +101,7 @@
     {
       "name": "sandbox-advisor",
       "source": "./plugins/sandbox-advisor",
-      "version": "0.2.0"
+      "version": "0.3.0"
     },
     {
       "name": "tailscale",
@@ -119,6 +119,18 @@
       "source": "./plugins/come-on",
       "version": "0.2.1",
       "description": "Catch Claude stopping short: unchecked claims, giving up early, inherited conclusions, unresearched options, and replies that don't land"
+    },
+    {
+      "name": "wait-for-it",
+      "source": "./plugins/wait-for-it",
+      "version": "0.1.0",
+      "description": "Turn \"tell me when X happens\" into a zero-token shell watch instead of a prompt loop"
+    },
+    {
+      "name": "automic-vault",
+      "source": "./plugins/automic-vault",
+      "version": "0.1.0",
+      "description": "Teach agents what Automic Vault (av) is and how to use it as the credential manager: inject secrets, read approval history, and diagnose sandbox, locked-Mac and refused-agent errors"
     }
   ]
 }
