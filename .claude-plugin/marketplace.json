@@ -131,6 +131,12 @@
       "source": "./plugins/automic-vault",
       "version": "0.1.0",
       "description": "Teach agents what Automic Vault (av) is and how to use it as the credential manager: inject secrets, read approval history, and diagnose sandbox, locked-Mac and refused-agent errors"
+    },
+    {
+      "name": "woodpecker",
+      "source": "./plugins/woodpecker",
+      "version": "0.1.0",
+      "description": "Investigate failed Woodpecker CI pipelines through woodpecker-cli (state, step states, first failed step log tail) and author .woodpecker.yml"
     }
   ]
 }
