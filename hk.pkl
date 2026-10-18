@@ -1,5 +1,5 @@
-amends "package://github.com/jdx/hk/releases/download/v1.35.0/hk@1.35.0#/Config.pkl"
-import "package://github.com/jdx/hk/releases/download/v1.35.0/hk@1.35.0#/Builtins.pkl"
+amends "package://github.com/jdx/hk/releases/download/v2.0.0/hk@2.0.0#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v2.0.0/hk@2.0.0#/Builtins.pkl"
 
 // Plugin version validation
 local validate_versions = new Step {
@@ -19,15 +19,13 @@ local validate_commit_scope = new Step {
   check = "./scripts/check-commit-scope.sh {{commit_msg_file}}"
 }
 
-hooks {
-  // Pre-commit: validate plugin versions
-  ["pre-commit"] {
-    steps {
-      ["validate-versions"] = validate_versions
-      ["bash-compat"] = bash_compat
-    }
-  }
+// Shared by the implicit check, fix, and pre-commit hooks (hk 2.0)
+steps {
+  ["validate-versions"] = validate_versions
+  ["bash-compat"] = bash_compat
+}
 
+hooks {
   // Commit-msg: enforce conventional commits with valid scopes
   ["commit-msg"] {
     steps {

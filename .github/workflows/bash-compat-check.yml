@@ -1,4 +1,4 @@
-name: Bash Compat Check
+name: Bash Compat Check Tests
 
 on:
   pull_request:
@@ -9,14 +9,11 @@ permissions:
 
 jobs:
   check-bash-compat:
-    name: Reject bash 4+ constructs
+    name: Test the bash 3.2 compat check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Check shell scripts run on bash 3.2
-        run: ./scripts/check-bash-compat.sh
 
       - name: Test the check
         run: ./tests/scenarios/test-bash-compat.sh
