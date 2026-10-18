@@ -19,15 +19,13 @@ local validate_commit_scope = new Step {
   check = "./scripts/check-commit-scope.sh {{commit_msg_file}}"
 }
 
-hooks {
-  // Pre-commit: validate plugin versions
-  ["pre-commit"] {
-    steps {
-      ["validate-versions"] = validate_versions
-      ["bash-compat"] = bash_compat
-    }
-  }
+// Shared by the implicit check, fix, and pre-commit hooks (hk 2.0)
+steps {
+  ["validate-versions"] = validate_versions
+  ["bash-compat"] = bash_compat
+}
 
+hooks {
   // Commit-msg: enforce conventional commits with valid scopes
   ["commit-msg"] {
     steps {
