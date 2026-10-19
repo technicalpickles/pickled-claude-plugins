@@ -1,6 +1,6 @@
 # Command effects and `--safe`
 
-Added in hk 1.55 (2026-08-11). Not available before that. Verified on hk 2.0.0.
+Added in hk 1.55 (2026-08-11). Not available before that. Verified on hk 2.0.0 and 2.7.1.
 
 ## What it is
 
@@ -44,7 +44,7 @@ fix   = new CommandSpec { command = "fmt {{files}}"; effect = "write" }
 
 - **Pure linters and format checks: `read`.** The command reads files and prints findings.
 - **Fixers: `write`.**
-- **Type checkers, compilers, and anything that populates a cache or `obj/`/`target/`: `write`.** Upstream's own `mypy`, `tsc`, and `dotnet_format` builtins use `write` for this reason. Mislabeling something as `read` is the dangerous direction; when unsure, say `write`.
+- **Type checkers, compilers, and anything that populates a cache or `obj/`/`target/`: usually `write`.** Upstream's own `mypy`, `tsc`, and `dotnet_format` builtins use `write` because they leave caches or build output in the tree. Don't assume it from the category: run the tool and diff the tree before and after. `pyrefly check` leaves nothing behind, so brineworks declares it `read` (technicalpickles/brineworks#65). Mislabeling something as `read` is the dangerous direction; when unsure, say `write`.
 - **`destructive`** for commands that delete or irreversibly rewrite. `--safe` will never run them, which is the point.
 - **Scripts you wrote that only inspect the repo** (version validators, link checkers): `read`, once you've read the script.
 
@@ -58,4 +58,4 @@ Every builtin command declares an effect (1.55 and later; no builtin is `destruc
 
 ## Where this bites
 
-Coding-agent hooks (`hk agent hooks --target claude-code`) run `hk run check --safe`. A project with custom string-command steps gets a Stop hook that refuses until each step has an effect. That's expected: declare them once.
+Coding-agent hooks (`hk agent hooks --target claude-code` calls `hk agent stop-hook`, which runs `hk run check --safe`). A project with custom string-command steps gets a Stop hook that refuses until each step has an effect. That's expected: declare them once.

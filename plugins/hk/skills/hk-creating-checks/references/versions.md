@@ -1,6 +1,6 @@
 # hk versions: what changes for checks
 
-Source: upstream `docs/` and GitHub release notes for jdx/hk, current as of v2.7.1 (2026-10-19). Examples in this skill were run against hk 2.0.0; anything from a later release is sourced from release notes and not run here. 1.x syntax could not be run in the authoring sandbox (hk 1.x shells out to the `pkl` CLI, which needs network access to fetch the schema package).
+Source: upstream `docs/` and GitHub release notes for jdx/hk, current as of v2.7.1 (2026-10-19). Examples in this skill were run against hk 2.0.0 and 2.7.1; behavior from releases in between is sourced from release notes and not run here. 1.x syntax could not be run in the authoring sandbox (hk 1.x shells out to the `pkl` CLI, which needs network access to fetch the schema package).
 
 ## Timeline
 
@@ -13,6 +13,8 @@ Source: upstream `docs/` and GitHub release notes for jdx/hk, current as of v2.7
 | 2.4 | 2026-09-28 | `check_diff` with `effect = "read"` runs under read locks, in parallel. |
 | 2.5 | 2026-10-04 | Read-only `check` steps run in parallel in fix hooks. `hk agent stop-hook` (Stop hooks now call it). `--safe` refuses a hook-level `report` with unknown effect. |
 | 2.6 | 2026-10-12 | `hk agent stop-hook` passes in projects with no hk config or no `check` hook. |
+
+The `hk` plugin in this repo targets 2.5 and later for that reason: its Stop hook is `hk agent stop-hook`, and hk older than 2.5 gets no hook from it.
 
 ## Same step, three ways
 
@@ -33,7 +35,7 @@ hooks {
 
 **hk 1.55 and later 1.x**: same shape, but `check = new CommandSpec { command = "..."; effect = "read" }` so `--safe` accepts it.
 
-**hk 2.x** (verified on 2.0.0):
+**hk 2.x** (verified on 2.0.0 and 2.7.1):
 
 ```pkl
 amends "package://github.com/jdx/hk/releases/download/v2.0.0/hk@2.0.0#/Config.pkl"

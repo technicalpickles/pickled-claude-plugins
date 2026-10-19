@@ -1,6 +1,6 @@
 # Anatomy of a step
 
-The minimal step, the command forms, and builtin overrides below were run against hk 2.0.0. The field table comes from the upstream docs (hk 2.7.1) and was not run here. On 1.x the same fields apply, but commands are plain strings (no `CommandSpec`) and the step lives under `hooks { ["<hook>"] { steps { ... } } }`.
+The minimal step, the command forms, and builtin overrides below were run against hk 2.0.0 and 2.7.1. The field table comes from the upstream docs (hk 2.7.1) and was not run here. On 1.x the same fields apply, but commands are plain strings (no `CommandSpec`) and the step lives under `hooks { ["<hook>"] { steps { ... } } }`.
 
 ## Minimal step (2.x)
 
@@ -53,7 +53,7 @@ check = "eslint {{files}} | tee eslint.log"
 check = new Command { argv = List("grep", "-q", "hi", "{{files}}") }
 ```
 
-**With an effect (1.55 and later).** The effect goes on a `CommandSpec`. For argv, nest the `Command` (verified on 2.0.0):
+**With an effect (1.55 and later).** The effect goes on a `CommandSpec`. For argv, nest the `Command` (verified on 2.0.0 and 2.7.1):
 
 ```pkl
 check = new CommandSpec {

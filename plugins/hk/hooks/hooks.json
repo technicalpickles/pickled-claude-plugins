@@ -15,7 +15,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stop-hk-check.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stop-hk-check.sh",
+            "timeout": 600
           }
         ]
       }

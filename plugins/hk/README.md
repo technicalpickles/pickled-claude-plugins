@@ -1,6 +1,8 @@
 # hk Plugin
 
-Wires up what `hk agent hooks` and `hk agent instructions` print for Claude Code, so you don't have to paste it into every project. Both hooks do nothing unless there is an `hk.pkl` at or above the working directory and `hk` actually runs there (a mise shim with no version set doesn't count). hk older than 1.55 has neither `hk agent` nor `--safe`, so those projects are skipped too.
+Wires up what `hk agent hooks` and `hk agent instructions` print for Claude Code, so you don't have to paste it into every project. It targets hk 2.5 and later, where `hk agent stop-hook` exists.
+
+Both hooks do nothing unless the project has an hk config (`hk.pkl`, `hk.local.pkl`, or either under `.config/`) at or above the working directory, and `hk` runs there and knows `agent stop-hook`. A mise shim with no version set doesn't count, and neither does hk older than 2.5 (where `agent stop-hook` is a usage error that exits 2, which Claude Code would treat as a block).
 
 ## Installation
 
@@ -17,7 +19,7 @@ How to write a check (step) in `hk.pkl` on the hk version the project actually r
 ## Hooks
 
 - **SessionStart** injects the output of `hk agent instructions --target claude-code`, run at session start so it tracks the project's hk version.
-- **Stop** runs `hk run check --safe --format json`. A failing check blocks Stop (exit 2) and hands hk's output back to Claude; hk 2.0.0 exits 1 on failure, which Claude Code would treat as non-blocking. It stands down when `stop_hook_active` is set so an unfixable failure can't loop, and passes when `hk.pkl` has no `check` hook.
+- **Stop** runs `hk agent stop-hook --target claude-code --timeout 570`, which is exactly what `hk agent hooks --target claude-code` prints. hk does the work: it runs `hk run check --safe`, stands down when `stop_hook_active` is set, passes when there is no `check` hook, and prints `{"decision":"block",...}` when the check fails. The plugin's script only checks that hk is there to ask.
 
 `--safe` refuses steps whose effect is unknown, so custom steps in `hk.pkl` need an `effect` (`read` or `write`) or Stop will block until they have one.
 

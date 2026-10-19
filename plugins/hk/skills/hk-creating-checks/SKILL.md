@@ -58,4 +58,4 @@ If `--safe` fails with `effect is unknown`, the step needs a `CommandSpec`. If i
 
 ## Sources
 
-Built from the upstream hk docs and release notes, current as of hk 2.7.1 (2026-10-19). Examples marked verified were run against a real hk 2.0.0. See [references/versions.md](references/versions.md) for how to refresh.
+Built from the upstream hk docs and release notes, current as of hk 2.7.1 (2026-10-19). Examples marked verified were run against real hk 2.0.0 and 2.7.1. See [references/versions.md](references/versions.md) for how to refresh.
