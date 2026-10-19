@@ -17,11 +17,11 @@ Exit 0 prints `Config is valid`. Errors print one line each and exit 1. It needs
 
 ## Where "works locally, fails in CI" comes from
 
-These are Woodpecker runtime facts, seen in real pipelines. Details in [references/runtime-facts.md](references/runtime-facts.md).
+These were seen on a Docker-backend setup with Debian-based images. Each depends on the image, user or backend, so confirm before relying on one. Details and the checks are in [references/runtime-facts.md](references/runtime-facts.md).
 
-- Step `commands` run under `sh` (dash on Debian images), not bash. Bashisms such as `[[ ]]` and `source` fail.
-- The clone is owned by root and steps run as root. Tests that check file permissions or refuse to run as root behave differently.
-- Services are reached by their service name (`postgres:5432`), not `localhost`.
+- Step `commands` run under `sh` (dash on Debian images; check the image), not bash. Bashisms such as `[[ ]]` and `source` fail.
+- With default settings the clone is owned by root and steps run as root (a `user:` setting or non-root image changes that). Tests that check file permissions or refuse to run as root behave differently.
+- On the Docker backend, services are reached by their service name (`postgres:5432`), not `localhost`.
 - A step with `failure: ignore` can fail while the pipeline shows green.
 
 ## Conventions
