@@ -8,7 +8,10 @@
 # shellcheck source=hk-common.sh
 . "$(dirname "${BASH_SOURCE[0]}")/hk-common.sh"
 
-hk_ready || exit 0
+payload=$(cat)
+dir=$(hk_payload_dir "$payload")
 
-cd "$(hk_project_dir)" || exit 0
-printf '%s' "$HOOK_INPUT" | exec hk agent stop-hook --target claude-code --timeout 570
+hk_ready "$dir" || exit 0
+
+cd "$dir" || exit 0
+printf '%s' "$payload" | exec hk agent stop-hook --target claude-code --timeout 570

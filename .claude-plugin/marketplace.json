@@ -142,7 +142,7 @@
       "name": "hk",
       "source": "./plugins/hk",
       "version": "0.1.0",
-      "description": "Auto-wire hk's coding-agent hooks (Stop check, SessionStart instructions) in projects that have an hk.pkl"
+      "description": "Auto-wire hk's coding-agent integration (Stop check, SessionStart instructions, MCP server) in projects that have an hk config"
     }
   ]
 }

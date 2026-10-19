@@ -4,6 +4,7 @@
 
 START="$BATS_TEST_DIRNAME/../session-start-hk-instructions.sh"
 STOP="$BATS_TEST_DIRNAME/../stop-hk-check.sh"
+MCP="$BATS_TEST_DIRNAME/../hk-mcp.sh"
 
 setup() {
   PROJECT="$BATS_TEST_TMPDIR/project"
@@ -17,6 +18,9 @@ setup() {
 case "$1" in
   --version)
     [ -z "${HK_STUB_BROKEN:-}" ] && echo "hk 2.7.1" || { echo "mise: no version set" >&2; exit 1; } ;;
+  mcp)
+    echo "args: $*" > "$HK_STUB_CALLS"
+    echo "stub hk mcp" ;;
   agent)
     case "$2" in
       stop-hook)
@@ -150,4 +154,52 @@ payload() { # payload <cwd>
   [ "$status" -eq 0 ]
   [ -z "$output" ]
   [ ! -e "$CALLS" ]
+}
+
+mcp_request() { # mcp_request <id> <method>
+  jq -nc --argjson id "$1" --arg method "$2" \
+    '{jsonrpc: "2.0", id: $id, method: $method, params: {protocolVersion: "2025-06-18"}}'
+}
+
+@test "MCP launcher becomes hk mcp for the project root in an hk project" {
+  run bash "$MCP" "$PROJECT" <<< "$(mcp_request 1 initialize)"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"stub hk mcp"* ]]
+  grep -q -- "args: mcp --root $PROJECT" "$CALLS"
+}
+
+@test "MCP launcher serves an inert session when the project has no hk config" {
+  rm "$PROJECT/hk.pkl"
+
+  run bash "$MCP" "$PROJECT" <<< "$(mcp_request 1 initialize)"
+
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.id == 1 and .result.serverInfo.version == "inactive" and .result.capabilities == {}'
+  [ ! -e "$CALLS" ]
+}
+
+@test "MCP launcher serves an inert session on hk older than 2.5" {
+  HK_STUB_OLD=1 run bash "$MCP" "$PROJECT" <<< "$(mcp_request 1 initialize)"
+
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.result.serverInfo.version == "inactive"'
+  [ ! -e "$CALLS" ]
+}
+
+@test "MCP inert session echoes the client's protocol version, answers ping, ignores notifications" {
+  rm "$PROJECT/hk.pkl"
+  requests=$(printf '%s\n' \
+    "$(jq -nc '{jsonrpc: "2.0", id: 7, method: "initialize", params: {protocolVersion: "2024-11-05"}}')" \
+    '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+    "$(mcp_request 8 ping)" \
+    "$(mcp_request 9 tools/list)")
+
+  run bash "$MCP" "$PROJECT" <<< "$requests"
+
+  [ "$status" -eq 0 ]
+  [ "$(echo "$output" | wc -l | tr -d ' ')" -eq 3 ]
+  echo "$output" | sed -n 1p | jq -e '.result.protocolVersion == "2024-11-05"'
+  echo "$output" | sed -n 2p | jq -e '.id == 8 and .result == {}'
+  echo "$output" | sed -n 3p | jq -e '.id == 9 and .error.code == -32601'
 }

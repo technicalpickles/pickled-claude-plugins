@@ -6,9 +6,11 @@
 # shellcheck source=hk-common.sh
 . "$(dirname "${BASH_SOURCE[0]}")/hk-common.sh"
 
-hk_ready || exit 0
+dir=$(hk_payload_dir "$(cat)")
 
-instructions=$(cd "$(hk_project_dir)" && hk agent instructions --target claude-code 2>/dev/null) || exit 0
+hk_ready "$dir" || exit 0
+
+instructions=$(cd "$dir" && hk agent instructions --target claude-code 2>/dev/null) || exit 0
 [ -n "$instructions" ] || exit 0
 
 jq -n --arg context "$instructions" '{
