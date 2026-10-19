@@ -26,4 +26,15 @@ Each item says where it was seen. "Observed" means a real pipeline hit it. "Upst
 
 ## Local runs
 
-- **Upstream:** `woodpecker-cli exec [path]` runs a pipeline locally, with `--backend-engine` to pick Docker or the local backend. Not tried here.
+- **Observed (brineworks, OrbStack, 2026-10-18):** `woodpecker-cli exec` runs a full pipeline locally in Docker, services included (a Postgres `services:` entry worked).
+- **Observed:** pass `--pipeline-event push` (or whatever event the `when:` blocks name). `exec` defaults the event to `manual`, so a pipeline filtered to `push` skips every step.
+- **Observed:** run it against a real clone, not a linked git worktree. A worktree's `.git` is a file pointing outside the mounted directory, which breaks steps that call `git rev-parse --git-dir`. brineworks' `scripts/ci-local` does a throwaway `git clone --local` of HEAD into a temp dir and passes `--repo-path`, so uncommitted changes are not tested.
+- **Upstream:** `--backend-engine` picks Docker or the local backend; `--local` runs from the local directory; `--commit-branch` sets `CI_COMMIT_BRANCH` (default `main`).
+
+A working invocation, from brineworks:
+
+```bash
+woodpecker-cli exec --local --repo-path "$WORK/src" --backend-engine docker \
+  --pipeline-event push --commit-branch "$BRANCH" --commit-sha "$SHA" \
+  "$WORK/src/.woodpecker.yml"
+```

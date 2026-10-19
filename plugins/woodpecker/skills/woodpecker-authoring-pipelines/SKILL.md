@@ -13,7 +13,7 @@ woodpecker-cli lint .woodpecker.yml    # a file, or a .woodpecker/ directory
 
 Exit 0 prints `Config is valid`. Errors print one line each and exit 1. It needs no server and no login, so it works on any machine with the CLI. A warning like "consider adding a `when` block with an `event` filter" is advice, not an error: without one, a step runs on every event.
 
-`woodpecker-cli exec` runs a pipeline locally in Docker. It is documented upstream but untested here, so treat the first run as an experiment.
+`woodpecker-cli exec` runs a pipeline locally in Docker, services included. Pass `--pipeline-event push` (the default is `manual`, which skips steps filtered to `push`) and run it from a real clone, not a linked git worktree. See [references/runtime-facts.md](references/runtime-facts.md#local-runs) for a full invocation.
 
 ## Where "works locally, fails in CI" comes from
 
