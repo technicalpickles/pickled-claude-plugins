@@ -8,6 +8,12 @@ Wires up what `hk agent hooks` and `hk agent instructions` print for Claude Code
 /plugin install hk@pickled-claude-plugins
 ```
 
+## Skills
+
+### hk-creating-checks
+
+How to write a check (step) in `hk.pkl` on the hk version the project actually runs: builtin vs custom step, command forms, declaring `read`/`write`/`destructive` effects so `--safe` accepts it, and what differs across 1.x, 1.55, and 2.x. Built from upstream docs and release notes (current as of hk 2.7.1); examples were run against hk 2.0.0.
+
 ## Hooks
 
 - **SessionStart** injects the output of `hk agent instructions --target claude-code`, run at session start so it tracks the project's hk version.
