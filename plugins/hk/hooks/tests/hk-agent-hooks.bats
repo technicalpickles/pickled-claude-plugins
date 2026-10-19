@@ -17,18 +17,13 @@ setup() {
 #!/usr/bin/env bash
 case "$1" in
   --version)
-    [ -z "${HK_STUB_BROKEN:-}" ] && echo "hk 2.7.1" || { echo "mise: no version set" >&2; exit 1; } ;;
+    [ -z "${HK_STUB_BROKEN:-}" ] && echo "hk ${HK_STUB_VERSION:-2.7.1}" || { echo "mise: no version set" >&2; exit 1; } ;;
   mcp)
     echo "args: $*" > "$HK_STUB_CALLS"
     echo "stub hk mcp" ;;
   agent)
     case "$2" in
       stop-hook)
-        if [ "${3:-}" = "--help" ]; then
-          # hk before 2.5: clap usage error, exit 2
-          [ -n "${HK_STUB_OLD:-}" ] && { echo "error: unrecognized subcommand 'stop-hook'" >&2; exit 2; }
-          exit 0
-        fi
         echo "args: $*" > "$HK_STUB_CALLS"
         echo "stdin: $(cat)" >> "$HK_STUB_CALLS"
         echo "pwd: $PWD" >> "$HK_STUB_CALLS"
@@ -89,8 +84,8 @@ payload() { # payload <cwd>
   [ -z "$output" ]
 }
 
-@test "SessionStart is silent on hk older than 2.5" {
-  HK_STUB_OLD=1 run bash "$START" <<< "$(payload "$PROJECT")"
+@test "SessionStart is silent on hk 2.5" {
+  HK_STUB_VERSION=2.5.4 run bash "$START" <<< "$(payload "$PROJECT")"
 
   [ "$status" -eq 0 ]
   [ -z "$output" ]
@@ -141,8 +136,8 @@ payload() { # payload <cwd>
   [ ! -e "$CALLS" ]
 }
 
-@test "Stop is silent on hk older than 2.5, where agent stop-hook is a usage error" {
-  HK_STUB_OLD=1 run bash "$STOP" <<< "$(payload "$PROJECT")"
+@test "Stop is silent on hk 2.5, which blocks when there is no check hook" {
+  HK_STUB_VERSION=2.5.4 run bash "$STOP" <<< "$(payload "$PROJECT")"
 
   [ "$status" -eq 0 ]
   [ -z "$output" ]
@@ -179,8 +174,8 @@ mcp_request() { # mcp_request <id> <method>
   [ ! -e "$CALLS" ]
 }
 
-@test "MCP launcher serves an inert session on hk older than 2.5" {
-  HK_STUB_OLD=1 run bash "$MCP" "$PROJECT" <<< "$(mcp_request 1 initialize)"
+@test "MCP launcher serves an inert session on hk 2.5" {
+  HK_STUB_VERSION=2.5.4 run bash "$MCP" "$PROJECT" <<< "$(mcp_request 1 initialize)"
 
   [ "$status" -eq 0 ]
   echo "$output" | jq -e '.result.serverInfo.version == "inactive"'
@@ -211,4 +206,15 @@ mcp_request() { # mcp_request <id> <method>
 
   [ "$status" -eq 0 ]
   grep -q -- "args: mcp --root $PROJECT" "$CALLS"
+}
+
+@test "version gate: 2.6.0 and later are ready, earlier or unparseable are not" {
+  for v in 2.6.0 2.7.1 2.10.0 3.0.0; do
+    HK_STUB_VERSION=$v run bash "$START" <<< "$(payload "$PROJECT")"
+    [[ "$output" == *"stub hk instructions"* ]] || { echo "expected ready on $v"; return 1; }
+  done
+  for v in 2.5.9 2.0.0 1.55.0 1.40.0 garbage; do
+    HK_STUB_VERSION=$v run bash "$START" <<< "$(payload "$PROJECT")"
+    [ -z "$output" ] || { echo "expected silent on $v"; return 1; }
+  done
 }

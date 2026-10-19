@@ -14,7 +14,7 @@ Source: upstream `docs/` and GitHub release notes for jdx/hk, current as of v2.7
 | 2.5 | 2026-10-04 | Read-only `check` steps run in parallel in fix hooks. `hk agent stop-hook` (Stop hooks now call it). `--safe` refuses a hook-level `report` with unknown effect. |
 | 2.6 | 2026-10-12 | `hk agent stop-hook` passes in projects with no hk config or no `check` hook. |
 
-The `hk` plugin in this repo targets 2.5 and later because its Stop hook is `hk agent stop-hook`; on hk older than 2.5 all three of its pieces stay off. On 2.5.x, `agent stop-hook` may still block in a project whose config has no `check` hook; 2.6 fixed that.
+The `hk` plugin in this repo targets 2.6 and later: its Stop hook is `hk agent stop-hook` (2.5), and 2.6 is the first release where that passes in a project whose config has no `check` hook. On older hk all three of its pieces stay off.
 
 ## Same step, three ways
 

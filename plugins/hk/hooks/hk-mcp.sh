@@ -3,7 +3,7 @@
 #
 # A plugin MCP server starts in every project where the plugin is enabled and
 # can't be made conditional, and a command that fails shows up as a failed server.
-# So in a project that doesn't use hk (or has an hk older than 2.5) this serves an
+# So in a project that doesn't use hk (or has an hk older than 2.6) this serves an
 # inert MCP session with no tools instead, and in one that does it becomes the real
 # `hk mcp --root <project>`.
 
@@ -30,7 +30,7 @@ while IFS= read -r line; do
         protocolVersion: (.params.protocolVersion // "2025-06-18"),
         capabilities: {},
         serverInfo: {name: "hk", version: "inactive"},
-        instructions: "No hk 2.5+ project here, so this server offers no tools."}}' ;;
+        instructions: "No hk 2.6+ project here, so this server offers no tools."}}' ;;
     ping)
       printf '{"jsonrpc":"2.0","id":%s,"result":{}}\n' "$id" ;;
     *)

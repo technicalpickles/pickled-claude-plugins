@@ -14,7 +14,7 @@ hk can print what an agent needs: a Stop hook (`hk agent hooks`), a block of ins
 /plugin install hk@pickled-claude-plugins
 ```
 
-Requires hk 2.5 or later in the project, and `jq` on PATH.
+Requires hk 2.6 or later in the project, and `jq` on PATH.
 
 ## When it's active
 
@@ -22,9 +22,9 @@ All three pieces stay off unless every one of these holds, and they do nothing a
 
 - An hk config file exists at or above the directory Claude is working in: `hk.pkl`, `hk.local.pkl`, or either under `.config/`. This is the same upward walk hk does, and it checks only that the file exists, so a broken `hk.pkl` still counts.
 - `hk` runs there. A mise shim with no hk version set fails this, as does `hk` missing from PATH.
-- hk is 2.5 or later, checked by running `hk agent stop-hook --help`. Older hk answers that with a usage error that exits 2, which Claude Code would treat as a block.
+- hk is 2.6 or later, read from `hk --version`. hk 2.5 added `agent stop-hook` and 2.6 made it pass quietly in a project whose config has no `check` hook (2.5.x blocks there). Older hk answers `agent stop-hook` with a usage error that exits 2, which Claude Code would treat as a block.
 
-The same check gates all three pieces, even though `hk agent instructions` and `hk mcp` exist from 1.55, because the plugin is built around the Stop hook and a project on 1.55 to 2.4 would otherwise get half of it. The check runs `hk` twice per SessionStart, Stop and MCP launch.
+The same check gates all three pieces, even though `hk agent instructions` and `hk mcp` exist from 1.55, because the plugin is built around the Stop hook and a project on an older hk would otherwise get half of it. The check runs `hk --version` once per SessionStart, Stop and MCP launch.
 
 ## Hooks
 
@@ -34,8 +34,6 @@ Both hooks take the directory from the hook payload's `cwd` and run hk there.
 - **Stop** runs `hk agent stop-hook --target claude-code --timeout 570`, which is what `hk agent hooks --target claude-code` prints. hk does the work. It runs `hk run check --safe`, passes when `stop_hook_active` is set (Claude Code's flag for "already continuing because of a Stop hook", so a check Claude can't fix doesn't trap it in a loop), and prints `{"decision":"block","reason":...}` when the check fails. By hk's docs it always exits 0. `--timeout` is in seconds: hk stops the check at 570 and reports a block, and `hooks.json` gives Claude Code's side 600. The script relays hk's output and exit status unchanged.
 
 `--safe` refuses steps whose effect is unknown, so custom steps in `hk.pkl` need an `effect` (`read` or `write`) or Stop will block until they have one. See the `hk-creating-checks` skill.
-
-On hk 2.5.x, Stop may block in a project whose config has no `check` hook. hk 2.6 and later pass.
 
 ## MCP server
 

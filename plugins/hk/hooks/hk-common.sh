@@ -1,21 +1,20 @@
-#!/usr/bin/env bash
 # Shared gate for the hk agent hooks and MCP launcher (sourced, not run).
 #
-# Everything targets hk 2.5 and later, where `hk agent stop-hook` exists. hk has no
-# "is this project configured" probe (`hk validate` also fails for unrelated
-# reasons), so the gate is: an hk config file at or above the project dir, and an
-# hk that runs and knows `agent stop-hook`. The last two matter because the mise
-# shim errors in directories with no hk version set, and older hk answers
-# `agent stop-hook` with a usage error that exits 2, which Claude Code treats as a
-# block. Any miss means the sourcing script stays silent.
+# Everything targets hk 2.6 and later. 2.5 added `hk agent stop-hook` and 2.6 made it
+# pass quietly in a project whose config has no `check` hook (2.5.x blocks there).
+# Older hk answers `agent stop-hook` with a usage error that exits 2, which Claude
+# Code treats as a block. hk has no "is this project configured" probe (`hk validate`
+# also fails for unrelated reasons), so the gate is: an hk config file at or above
+# the project dir, and an hk that runs and reports version 2.6 or later. `hk
+# --version` failing covers the mise shim, which errors in directories with no hk
+# version set. Any miss means the sourcing script stays silent.
 #
 # One gate covers all three scripts on purpose. `hk agent instructions` and `hk mcp`
-# exist since hk 1.55, but the plugin is built around the Stop hook, which needs 2.5,
-# and a project on 1.55 to 2.4 would otherwise get instructions and an MCP server with
-# no Stop hook behind them. Probing hk once is simpler than three capability checks.
-# The config walk goes up to `/`, same as hk's own discovery, and checks only that a
-# file exists: a broken hk.pkl still counts as present (`hk validate` can fail for
-# unrelated reasons, so it isn't used).
+# exist since hk 1.55, but the plugin is built around the Stop hook, and a project on
+# an older hk would otherwise get instructions and an MCP server with no Stop hook
+# behind them. Probing hk once is simpler than three capability checks. The config
+# walk goes up to `/`, same as hk's own discovery, and checks only that a file
+# exists: a broken hk.pkl still counts as present.
 #
 # This file reads nothing from stdin: the MCP launcher's stdin is the MCP stream.
 
@@ -38,10 +37,19 @@ hk_config_present() {
   done
 }
 
-# 0 when the project at $1 uses hk and this hk is 2.5 or later.
+# 0 when hk, run from $1, reports version 2.6 or later.
+hk_version_ok() {
+  local major minor
+  set -- $(cd "$1" && hk --version 2>/dev/null | sed -n '1s/^hk \([0-9][0-9]*\)\.\([0-9][0-9]*\).*/\1 \2/p')
+  major=${1:-} minor=${2:-}
+  [ -n "$major" ] && [ -n "$minor" ] || return 1
+  [ "$major" -gt 2 ] || { [ "$major" -eq 2 ] && [ "$minor" -ge 6 ]; }
+}
+
+# 0 when the project at $1 uses hk and this hk is 2.6 or later.
 hk_ready() {
   local dir=$1
   [ -d "$dir" ] || return 1
   hk_config_present "$dir" || return 1
-  (cd "$dir" && hk --version >/dev/null 2>&1 && hk agent stop-hook --help >/dev/null 2>&1)
+  hk_version_ok "$dir"
 }
