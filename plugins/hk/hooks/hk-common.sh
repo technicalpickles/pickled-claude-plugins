@@ -27,11 +27,13 @@ hk_config_present() {
   done
 }
 
-# 0 when hk.pkl exists and hk runs from the project dir.
+# 0 when hk.pkl exists and hk runs from the project dir. `hk agent` shipped in
+# hk 1.55 alongside `--safe`; older hk rejects `--safe` outright, which the Stop
+# hook would report as a failing check, so those versions count as not ready.
 hk_ready() {
   local dir
   dir=$(hk_project_dir)
   [ -d "$dir" ] || return 1
   hk_config_present "$dir" || return 1
-  (cd "$dir" && hk --version >/dev/null 2>&1)
+  (cd "$dir" && hk --version >/dev/null 2>&1 && hk agent --help >/dev/null 2>&1)
 }

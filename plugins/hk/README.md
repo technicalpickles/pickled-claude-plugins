@@ -1,6 +1,6 @@
 # hk Plugin
 
-Wires up what `hk agent hooks` and `hk agent instructions` print for Claude Code, so you don't have to paste it into every project. Both hooks do nothing unless there is an `hk.pkl` at or above the working directory and `hk` actually runs there (a mise shim with no version set doesn't count).
+Wires up what `hk agent hooks` and `hk agent instructions` print for Claude Code, so you don't have to paste it into every project. Both hooks do nothing unless there is an `hk.pkl` at or above the working directory and `hk` actually runs there (a mise shim with no version set doesn't count). hk older than 1.55 has neither `hk agent` nor `--safe`, so those projects are skipped too.
 
 ## Installation
 

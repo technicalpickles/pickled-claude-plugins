@@ -15,7 +15,7 @@ setup() {
 #!/usr/bin/env bash
 case "$1" in
   --version) [ -z "${HK_STUB_BROKEN:-}" ] && echo "hk 2.0.0" || { echo "mise: no version set" >&2; exit 1; } ;;
-  agent) echo "- stub hk instructions" ;;
+  agent) [ -n "${HK_STUB_NO_AGENT:-}" ] && { echo "error: unrecognized subcommand 'agent'" >&2; exit 2; }; echo "- stub hk instructions" ;;
   run) echo "${HK_STUB_CHECK_OUT:-}"; exit "${HK_STUB_CHECK_EXIT:-0}" ;;
 esac
 STUB
@@ -104,4 +104,17 @@ payload() { # payload <cwd> [stop_hook_active]
   HK_STUB_BROKEN=1 HK_STUB_CHECK_EXIT=1 run bash "$STOP" <<< "$(payload "$PROJECT")"
 
   [ "$status" -eq 0 ]
+}
+
+@test "Stop is silent on hk older than 1.55, which has no agent subcommand or --safe" {
+  HK_STUB_NO_AGENT=1 HK_STUB_CHECK_EXIT=2 run bash "$STOP" <<< "$(payload "$PROJECT")"
+
+  [ "$status" -eq 0 ]
+}
+
+@test "SessionStart is silent on hk older than 1.55" {
+  HK_STUB_NO_AGENT=1 run bash "$START" <<< "$(payload "$PROJECT")"
+
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
 }
