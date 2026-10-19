@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import glob
 import json
 import os
 import re
+import shutil
 import subprocess
 from dataclasses import dataclass
 from typing import Callable, List, Optional, Sequence
@@ -89,6 +91,31 @@ def classify_error(stderr: str) -> WpError:
     return WpError(kind, message)
 
 
+def _version_key(path: str):
+    # .../installs/<tool>/<version>/...; compare numerically so 3.19.0 > 3.9.0.
+    parts = path.split(os.sep)
+    version = parts[parts.index("installs") + 2] if "installs" in parts else ""
+    return [int(n) for n in re.findall(r"\d+", version)]
+
+
+def find_binary(binary: str = "woodpecker-cli") -> str:
+    """The CLI on PATH, else the newest mise-installed copy, else the bare name.
+
+    Agents often run with a PATH that lacks mise's shims, so a pinned install is
+    invisible even though it's on disk. Returning the bare name when nothing is
+    found lets the runner raise FileNotFoundError, which reports as not installed.
+    """
+    found = shutil.which(binary)
+    if found:
+        return found
+    data = os.environ.get("MISE_DATA_DIR") or os.path.join(os.path.expanduser("~"), ".local", "share", "mise")
+    pattern = os.path.join(data, "installs", "*woodpecker*cli*", "*", "**", binary)
+    candidates = [c for c in glob.glob(pattern, recursive=True) if os.access(c, os.X_OK) and os.path.isfile(c)]
+    if candidates:
+        return max(candidates, key=_version_key)
+    return binary
+
+
 Runner = Callable[[Sequence[str], Optional[str]], "subprocess.CompletedProcess"]
 
 
@@ -104,11 +131,11 @@ def _default_runner(argv: Sequence[str], cwd: Optional[str]):
 class WoodpeckerCli:
     def __init__(
         self,
-        binary: str = "woodpecker-cli",
+        binary: Optional[str] = None,
         cwd: Optional[str] = None,
         runner: Optional[Runner] = None,
     ):
-        self.binary = binary
+        self.binary = binary or find_binary()
         self.cwd = cwd
         self.runner = runner or _default_runner
         self._injected = runner is not None
@@ -119,7 +146,7 @@ class WoodpeckerCli:
         try:
             result = self.runner(argv, self.cwd)
         except FileNotFoundError:
-            raise WpError(WpError.NOT_INSTALLED, "woodpecker-cli is not on PATH")
+            raise WpError(WpError.NOT_INSTALLED, "woodpecker-cli was not found on PATH or in a mise install dir")
         except subprocess.TimeoutExpired:
             raise WpError(WpError.UNREACHABLE, "woodpecker-cli timed out after 60s")
         if result.returncode != 0:
