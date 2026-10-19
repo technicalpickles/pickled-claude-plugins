@@ -10,7 +10,10 @@
 # shellcheck source=hk-common.sh
 . "$(dirname "${BASH_SOURCE[0]}")/hk-common.sh"
 
-root=${1:-${CLAUDE_PROJECT_DIR:-$PWD}}
+# $1 is ${CLAUDE_PROJECT_DIR} substituted by Claude Code. If that ever arrives
+# unsubstituted (a literal string, not a directory), fall back instead of going inert.
+root=${1:-}
+[ -d "$root" ] || root=${CLAUDE_PROJECT_DIR:-$PWD}
 
 if hk_ready "$root"; then
   cd "$root" || exit 1

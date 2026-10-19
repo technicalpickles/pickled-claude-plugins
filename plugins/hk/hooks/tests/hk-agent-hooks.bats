@@ -118,7 +118,7 @@ payload() { # payload <cwd>
   grep -q '^stdin: .*"stop_hook_active": *false' "$CALLS"
 }
 
-@test "Stop runs hk from the project directory" {
+@test "Stop runs hk from the working directory the hook payload names" {
   run bash "$STOP" <<< "$(payload "$PROJECT/sub/dir")"
 
   grep -q "pwd: .*project/sub/dir" "$CALLS"
@@ -202,4 +202,13 @@ mcp_request() { # mcp_request <id> <method>
   echo "$output" | sed -n 1p | jq -e '.result.protocolVersion == "2024-11-05"'
   echo "$output" | sed -n 2p | jq -e '.id == 8 and .result == {}'
   echo "$output" | sed -n 3p | jq -e '.id == 9 and .error.code == -32601'
+}
+
+@test "MCP launcher falls back when the project dir argument is not a directory" {
+  export CLAUDE_PROJECT_DIR="$PROJECT"
+
+  run bash "$MCP" '${CLAUDE_PROJECT_DIR}' <<< "$(mcp_request 1 initialize)"
+
+  [ "$status" -eq 0 ]
+  grep -q -- "args: mcp --root $PROJECT" "$CALLS"
 }

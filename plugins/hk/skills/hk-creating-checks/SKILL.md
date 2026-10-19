@@ -1,11 +1,11 @@
 ---
 name: hk-creating-checks
-description: Use when adding, writing, or fixing a check (step) in an hk.pkl, picking a builtin or writing a custom command, declaring an effect for `--safe`, or when hk reports "effect is unknown", "unexpected argument '--safe'", or "Hook 'check' not found". Also use when a step's syntax differs between hk 1.x and 2.x.
+description: Use when adding, writing, or fixing a check (step) in an hk.pkl, picking a builtin or writing a custom command, declaring an effect for `--safe`, or when hk reports "effect is unknown", "unexpected argument '--safe'", or "Hook 'check' not found". Also use when a step's syntax differs between hk 1.x and 2.x. For installing hk, hook basics, or the builtin list, use `dev-tools:hk` instead; this skill is about writing steps.
 ---
 
 # Creating hk checks
 
-A check is an hk **step**: a name, the files it applies to, and `check` / `fix` commands. This skill is about writing one that works on the hk version the project actually runs.
+A check is an hk **step**: a name, the files it applies to, and `check` / `fix` commands, defined in `hk.pkl` (hk's config, written in the Pkl language). This skill is about writing one that works on the hk version the project actually runs.
 
 ## First: which hk?
 
@@ -29,7 +29,7 @@ The `amends` URL decides what syntax is valid; the binary decides what runs. The
 
 1. **Look for a builtin first.** `hk builtins | grep -i <tool>`. Use `Builtins.<name>` and override only what differs: `(Builtins.ruff) { glob = List("src/**/*.py") }`. Builtins already declare effects (1.55 and later).
 2. **Otherwise write a step.** See [references/step-anatomy.md](references/step-anatomy.md) for fields, command forms (shell string vs `argv`), templates like `{{files}}`, and `check` vs `fix` vs `check_diff`.
-3. **Declare the effect** (1.55 and later). `--safe` refuses a step whose effect is unknown, and coding-agent hooks run `--safe`. See [references/effects.md](references/effects.md) for how to choose `read`, `write`, or `destructive`.
+3. **Declare the effect** (1.55 and later), using `CommandSpec`, hk's wrapper that lets a command carry an `effect`. `--safe` refuses a step whose effect is unknown, and coding-agent hooks run `--safe`. See [references/effects.md](references/effects.md) for how to choose `read`, `write`, or `destructive`.
 4. **Wire it into hooks.** On 2.x, put it under top-level `steps` and it appears in `check`, `fix`, and `pre-commit`. On 1.x, add it to each `hooks { ... steps { } }` block.
 5. **Verify** (below).
 

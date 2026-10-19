@@ -7,7 +7,15 @@
 # hk that runs and knows `agent stop-hook`. The last two matter because the mise
 # shim errors in directories with no hk version set, and older hk answers
 # `agent stop-hook` with a usage error that exits 2, which Claude Code treats as a
-# block. Any miss means the caller stays silent.
+# block. Any miss means the sourcing script stays silent.
+#
+# One gate covers all three scripts on purpose. `hk agent instructions` and `hk mcp`
+# exist since hk 1.55, but the plugin is built around the Stop hook, which needs 2.5,
+# and a project on 1.55 to 2.4 would otherwise get instructions and an MCP server with
+# no Stop hook behind them. Probing hk once is simpler than three capability checks.
+# The config walk goes up to `/`, same as hk's own discovery, and checks only that a
+# file exists: a broken hk.pkl still counts as present (`hk validate` can fail for
+# unrelated reasons, so it isn't used).
 #
 # This file reads nothing from stdin: the MCP launcher's stdin is the MCP stream.
 

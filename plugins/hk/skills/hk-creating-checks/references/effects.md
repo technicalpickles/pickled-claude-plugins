@@ -44,13 +44,13 @@ fix   = new CommandSpec { command = "fmt {{files}}"; effect = "write" }
 
 - **Pure linters and format checks: `read`.** The command reads files and prints findings.
 - **Fixers: `write`.**
-- **Type checkers, compilers, and anything that populates a cache or `obj/`/`target/`: usually `write`.** Upstream's own `mypy`, `tsc`, and `dotnet_format` builtins use `write` because they leave caches or build output in the tree. Don't assume it from the category: run the tool and diff the tree before and after. `pyrefly check` leaves nothing behind, so brineworks declares it `read` (technicalpickles/brineworks#65). Mislabeling something as `read` is the dangerous direction; when unsure, say `write`.
+- **Type checkers, compilers, and anything that populates a cache or `obj/`/`target/`: usually `write`.** Upstream's own `mypy`, `tsc`, and `dotnet_format` builtins use `write` because they leave caches or build output in the tree. Don't assume it from the category: run the tool and diff the tree before and after. `pyrefly check` leaves nothing behind (checked by diffing the tree around a run, in the author's brineworks repo, technicalpickles/brineworks#65), so that repo declares it `read`. Mislabeling something as `read` is the dangerous direction; when unsure, say `write`.
 - **`destructive`** for commands that delete or irreversibly rewrite. `--safe` will never run them, which is the point.
 - **Scripts you wrote that only inspect the repo** (version validators, link checkers): `read`, once you've read the script.
 
 ## Why `read` is a promise
 
-From hk 2.4 and 2.5, steps declared `read` run in parallel, including in fix hooks, and a `check_diff` with `effect = "read"` computes its patch under read locks. A step that claims `read` but writes will race with other steps. Declare `read` only if it really only reads the step's files.
+From hk 2.4, a `check_diff` with `effect = "read"` computes its patch under read locks and runs in parallel with other steps. From 2.5, steps with only a `check` declared `read` also run in parallel inside fix hooks. A step that claims `read` but writes will race with other steps. Declare `read` only if it really only reads the step's files.
 
 ## Builtins
 
