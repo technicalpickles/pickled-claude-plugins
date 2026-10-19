@@ -135,7 +135,7 @@
     {
       "name": "woodpecker",
       "source": "./plugins/woodpecker",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "description": "Investigate failed Woodpecker CI pipelines through woodpecker-cli (state, step states, first failed step log tail) and author .woodpecker.yml"
     },
     {

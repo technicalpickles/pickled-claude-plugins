@@ -94,14 +94,14 @@ def format_problem(err: WpError, repo: Optional[str]) -> str:
     kind = err.kind
     if kind == WpError.NOT_INSTALLED:
         state, lines = states.NOT_SET_UP, [
-            "woodpecker-cli is not on PATH.",
-            'Pin it in mise.toml: "aqua:woodpecker-ci/woodpecker/woodpecker-cli" = "<server version>" (or brew install woodpecker-cli).',
+            "woodpecker-cli was not found on PATH (or in a mise install dir, which is also checked).",
+            "Install it by whatever method fits this machine, matching the server version (see the plugin README, Setup).",
             "Then log in once with `woodpecker-cli setup --server <url>`. Details: references/setup.md",
         ]
     elif kind == WpError.NOT_CONFIGURED:
         state, lines = states.NOT_SET_UP, [
             "woodpecker-cli has no saved login.",
-            "Run once, outside the command sandbox (it writes the Keychain): woodpecker-cli setup --server <url>",
+            "Run once, outside any command sandbox (it stores the token in the system keychain): woodpecker-cli setup --server <url>",
             "The browser step needs Chrome or Firefox; Safari blocks it. Details: references/setup.md",
         ]
     elif kind == WpError.UNAUTHORIZED:

@@ -85,3 +85,38 @@ def test_missing_binary_is_not_installed():
     with pytest.raises(WpError) as exc:
         WoodpeckerCli(runner=runner).pipelines("o/n")
     assert exc.value.kind == WpError.NOT_INSTALLED
+
+
+def _fake_install(root, version, sub=""):
+    d = root / "installs" / "aqua-woodpecker-ci-woodpecker-woodpecker-cli" / version / sub
+    d.mkdir(parents=True)
+    exe = d / "woodpecker-cli"
+    exe.write_text("#!/bin/sh\n")
+    exe.chmod(0o755)
+    return str(exe)
+
+
+def test_find_binary_prefers_path(monkeypatch, tmp_path):
+    from woodpecker_snapshot import cli
+
+    monkeypatch.setattr(cli.shutil, "which", lambda b: "/usr/bin/woodpecker-cli")
+    monkeypatch.setenv("MISE_DATA_DIR", str(tmp_path))
+    assert cli.find_binary() == "/usr/bin/woodpecker-cli"
+
+
+def test_find_binary_falls_back_to_newest_mise_install(monkeypatch, tmp_path):
+    from woodpecker_snapshot import cli
+
+    monkeypatch.setattr(cli.shutil, "which", lambda b: None)
+    monkeypatch.setenv("MISE_DATA_DIR", str(tmp_path))
+    _fake_install(tmp_path, "3.9.0")
+    newest = _fake_install(tmp_path, "3.18.1", "bin")
+    assert cli.find_binary() == newest
+
+
+def test_find_binary_returns_bare_name_when_absent(monkeypatch, tmp_path):
+    from woodpecker_snapshot import cli
+
+    monkeypatch.setattr(cli.shutil, "which", lambda b: None)
+    monkeypatch.setenv("MISE_DATA_DIR", str(tmp_path))
+    assert cli.find_binary() == "woodpecker-cli"

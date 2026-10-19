@@ -16,7 +16,7 @@ Rewording the descriptions did not move recall, so the descriptions are unchange
 ## Baselines (no skill)
 
 - 16 single-shot runs reading helper output (no pipeline, failed-but-ignored step, still running, empty `gh pr checks`): all correct. The state table adds nothing for those cases.
-- 9 tool-using runs in a repo with `woodpecker-cli` off PATH: 0 of 6 investigation runs found the CLI (it only lives under mise), none claimed a pass. 3 of 3 authoring runs linted through the `woodpeckerci/woodpecker-cli:v3` image and caught localhost vs service name.
+- 9 tool-using runs in a repo with `woodpecker-cli` off PATH: 0 of 6 investigation runs found the CLI (in that repo it was installed only via mise), none claimed a pass. 3 of 3 authoring runs linted through the `woodpeckerci/woodpecker-cli:v3` image and caught localhost vs service name.
 
 ## Re-running
 
