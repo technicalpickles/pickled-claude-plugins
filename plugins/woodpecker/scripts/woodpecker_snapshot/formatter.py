@@ -94,8 +94,8 @@ def format_problem(err: WpError, repo: Optional[str]) -> str:
     kind = err.kind
     if kind == WpError.NOT_INSTALLED:
         state, lines = states.NOT_SET_UP, [
-            "woodpecker-cli is not on PATH, and no mise install was found under ~/.local/share/mise/installs (or $MISE_DATA_DIR).",
-            'Pin it in mise.toml: "aqua:woodpecker-ci/woodpecker/woodpecker-cli" = "<server version>" (or brew install woodpecker-cli).',
+            "woodpecker-cli was not found on PATH (or in a mise install dir, which is also checked).",
+            "Install it by whatever method fits this machine, matching the server version (see the plugin README, Setup).",
             "Then log in once with `woodpecker-cli setup --server <url>`. Details: references/setup.md",
         ]
     elif kind == WpError.NOT_CONFIGURED:

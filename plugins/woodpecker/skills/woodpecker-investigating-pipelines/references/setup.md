@@ -4,7 +4,7 @@ For the `not set up`, `unauthorized` and `unreachable` states. The login and ins
 
 ## What the CLI needs
 
-- **Installed.** The snapshot looks on `PATH`, then under the mise installs dir (`~/.local/share/mise/installs/`, or `$MISE_DATA_DIR`). Agent shells often lack mise's shims. When calling `woodpecker-cli` directly, use `mise exec -- woodpecker-cli ...` or that path.
+- **Installed.** The snapshot uses `PATH`, and as a last resort looks in a mise install dir (a convenience, not an assumption about how it was installed). If it reports the CLI missing, find out how this machine installs tools before suggesting a method; don't assume one. Agent shells often have a different `PATH` than the user's terminal.
 - **Logged in.** `woodpecker-cli setup --server <url>` saves a context file and stores the token in the system keychain. Keychain writes are blocked inside a command sandbox, so the user runs it in their own terminal. Reading the saved login works fine in the sandbox afterwards.
 - **A matching version.** The CLI should match the server (`curl -s https://<server>/version`).
 

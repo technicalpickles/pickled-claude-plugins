@@ -146,7 +146,7 @@ class WoodpeckerCli:
         try:
             result = self.runner(argv, self.cwd)
         except FileNotFoundError:
-            raise WpError(WpError.NOT_INSTALLED, "woodpecker-cli is not on PATH or under the mise installs dir")
+            raise WpError(WpError.NOT_INSTALLED, "woodpecker-cli was not found on PATH or in a mise install dir")
         except subprocess.TimeoutExpired:
             raise WpError(WpError.UNREACHABLE, "woodpecker-cli timed out after 60s")
         if result.returncode != 0:

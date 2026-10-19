@@ -19,28 +19,21 @@ A declarative route in `tool-routes.yaml` blocks `WebFetch` on Woodpecker pipeli
 
 One-time per machine per Woodpecker server.
 
-1. **Install the CLI, pinned to the server's version** (`curl -s https://<server>/version`). With mise, use the full aqua name, since there's no short one:
+1. **Install the CLI, matching the server's version** (`curl -s https://<server>/version`), by whatever method fits your machine: a package manager, a release binary from the Woodpecker releases page, or a version manager.
 
-   ```toml
-   [tools]
-   "aqua:woodpecker-ci/woodpecker/woodpecker-cli" = "<server version>"
-   ```
-
-   `brew install woodpecker-cli` also works but only offers the current release.
-
-2. **Log in** from your own terminal (it writes the system keychain, which a command sandbox blocks):
+2. **Log in** from your own terminal (it stores the token in the OS credential store where there is one, which a command sandbox can block):
 
    ```bash
    woodpecker-cli setup --server https://<your-server>
    ```
 
-   The auth page hands the token back over `http://localhost:<port>`, which Safari blocks as mixed content. Use Chrome or Firefox. Without a browser, create a personal access token in the web UI and pass it with `--token`; read it silently so it stays out of shell history (`read -rsp`, then `unset`).
+   The auth page hands the token back over `http://localhost:<port>`, which some browsers (Safari, for one) block as mixed content. Try another browser. Without a browser, create a personal access token in the web UI and pass it with `--token`; read it silently so it stays out of shell history (`read -rsp`, then `unset`).
 
 3. **If you run Claude Code's command sandbox,** allow the server's host in its network allowlist.
 
 ## Requirements
 
-- `woodpecker-cli` (on `PATH`, or a mise install under `~/.local/share/mise/installs/`, which the snapshot finds by itself), logged in once with `woodpecker-cli setup`. See [the setup guide](skills/woodpecker-investigating-pipelines/references/setup.md).
+- `woodpecker-cli`, logged in once with `woodpecker-cli setup`. See [the setup guide](skills/woodpecker-investigating-pipelines/references/setup.md).
 - Python 3.9+
 - `gh`, only for `--pr`
 
