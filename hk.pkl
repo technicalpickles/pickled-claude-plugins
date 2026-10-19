@@ -3,12 +3,18 @@ import "package://github.com/jdx/hk/releases/download/v2.0.0/hk@2.0.0#/Builtins.
 
 // Plugin version validation
 local validate_versions = new Step {
-  check = "./scripts/validate-plugin-versions.sh"
+  check = new CommandSpec {
+    command = "./scripts/validate-plugin-versions.sh"
+    effect = "read"
+  }
 }
 
 // Shell scripts must run on bash 3.2 (macOS /bin/bash)
 local bash_compat = new Step {
-  check = "./scripts/check-bash-compat.sh"
+  check = new CommandSpec {
+    command = "./scripts/check-bash-compat.sh"
+    effect = "read"
+  }
 }
 
 // Conventional commit format check (basic)
