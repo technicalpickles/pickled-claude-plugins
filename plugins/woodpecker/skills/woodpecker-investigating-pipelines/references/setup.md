@@ -17,6 +17,8 @@ Then pin it in `mise.toml`:
 "aqua:woodpecker-ci/woodpecker/woodpecker-cli" = "3.19.0"
 ```
 
+`woodpecker-snapshot` finds the CLI on its own: it uses `PATH` if the CLI is there, otherwise the newest copy under `~/.local/share/mise/installs/` (or `$MISE_DATA_DIR`). Agent shells often lack mise's shims, so this matters. If neither exists it prints `State: not set up`. When calling `woodpecker-cli` directly, use `mise exec -- woodpecker-cli ...` or that installs path.
+
 mise has no short name for this tool, so use the full aqua name. The aqua backend verifies a sha256 checksum. `brew install woodpecker-cli` also works but only offers the current release.
 
 ## 2. Log in (outside the command sandbox)

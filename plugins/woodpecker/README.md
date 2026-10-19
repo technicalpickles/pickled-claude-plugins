@@ -11,9 +11,13 @@ Plugin for working with [Woodpecker CI](https://woodpecker-ci.org): find out why
 
 - **`woodpecker-snapshot`**: Python script (stdlib only) that drives `woodpecker-cli` to print one block: the pipeline's state, each step's state, and the first failed step's log tail. The first line is always `State: <state>`, one of passed, failed, running, queued, blocked, no pipeline, unreachable, unauthorized, not set up, or unknown. Invoked from the skill with `bash "${CLAUDE_PLUGIN_ROOT}/scripts/woodpecker-snapshot"`.
 
+## Tool routes
+
+A declarative route in `tool-routes.yaml` blocks `WebFetch` on Woodpecker pipeline URLs (`/repos/<id>/pipeline/<n>`, any host) and points at the investigating skill. Routes only fire if the [tool-routing](../tool-routing/README.md) plugin is installed.
+
 ## Requirements
 
-- `woodpecker-cli`, logged in once with `woodpecker-cli setup`. See [the setup guide](skills/woodpecker-investigating-pipelines/references/setup.md).
+- `woodpecker-cli` (on `PATH`, or a mise install under `~/.local/share/mise/installs/`, which the snapshot finds by itself), logged in once with `woodpecker-cli setup`. See [the setup guide](skills/woodpecker-investigating-pipelines/references/setup.md).
 - Python 3.9+
 - `gh`, only for `--pr`
 
