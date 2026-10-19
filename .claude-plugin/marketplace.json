@@ -137,6 +137,12 @@
       "source": "./plugins/woodpecker",
       "version": "0.1.0",
       "description": "Investigate failed Woodpecker CI pipelines through woodpecker-cli (state, step states, first failed step log tail) and author .woodpecker.yml"
+    },
+    {
+      "name": "hk",
+      "source": "./plugins/hk",
+      "version": "0.1.0",
+      "description": "Auto-wire hk's coding-agent hooks (Stop check, SessionStart instructions) in projects that have an hk.pkl"
     }
   ]
 }
