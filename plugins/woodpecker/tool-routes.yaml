@@ -1,0 +1,41 @@
+# Tool routes for the woodpecker plugin
+# Prevents WebFetch on Woodpecker pipeline URLs, redirects to the skill
+
+routes:
+  # Pipeline URLs: /repos/<id>/pipeline/<n>. Routes can't read plugin config, so
+  # this matches any host (known host: woodpecker.tail2023b7.ts.net).
+  woodpecker-pipeline:
+    tool: WebFetch
+    pattern: "https?://[^/]+/repos/\\d+/pipeline/\\d+"
+    message: |
+      Do not use WebFetch for Woodpecker pipeline URLs.
+
+      The web UI and REST API need a login WebFetch doesn't have. Instead,
+      invoke the woodpecker:woodpecker-investigating-pipelines skill, which
+      uses `woodpecker-snapshot <url>` (it parses the URL, and prints the
+      pipeline state, step states, and the first failed step's log tail).
+    tests:
+      - desc: "pipeline URL should block"
+        input:
+          tool_name: WebFetch
+          tool_input:
+            url: "https://woodpecker.tail2023b7.ts.net/repos/3/pipeline/42"
+        expect: block
+      - desc: "pipeline URL on another host should block"
+        input:
+          tool_name: WebFetch
+          tool_input:
+            url: "https://ci.example.com/repos/12/pipeline/7/12"
+        expect: block
+      - desc: "repo page URL should allow"
+        input:
+          tool_name: WebFetch
+          tool_input:
+            url: "https://woodpecker.tail2023b7.ts.net/repos/3"
+        expect: allow
+      - desc: "docs URL should allow"
+        input:
+          tool_name: WebFetch
+          tool_input:
+            url: "https://woodpecker-ci.org/docs/usage/workflow-syntax"
+        expect: allow
