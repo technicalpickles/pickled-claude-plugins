@@ -3,7 +3,7 @@
 
 routes:
   # Pipeline URLs: /repos/<id>/pipeline/<n>. Routes can't read plugin config, so
-  # this matches any host (known host: woodpecker.tail2023b7.ts.net).
+  # this matches any host.
   woodpecker-pipeline:
     tool: WebFetch
     pattern: "https?://[^/]+/repos/\\d+/pipeline/\\d+"
@@ -19,7 +19,7 @@ routes:
         input:
           tool_name: WebFetch
           tool_input:
-            url: "https://woodpecker.tail2023b7.ts.net/repos/3/pipeline/42"
+            url: "https://ci.example.com/repos/3/pipeline/42"
         expect: block
       - desc: "pipeline URL on another host should block"
         input:
@@ -31,7 +31,7 @@ routes:
         input:
           tool_name: WebFetch
           tool_input:
-            url: "https://woodpecker.tail2023b7.ts.net/repos/3"
+            url: "https://ci.example.com/repos/3"
         expect: allow
       - desc: "docs URL should allow"
         input:

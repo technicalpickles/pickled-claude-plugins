@@ -32,7 +32,7 @@ The first line is always `State: <state>`. Report that state, not a guess from t
 | `passed` | Mention any "failed but ignored" warning. It means a step fails on every run. |
 | `running`, `queued`, `blocked` | Say so and stop. Don't call it passed or failed. `blocked` needs approval in the Woodpecker UI, which is the user's step. |
 | `no pipeline` | Never read this as passing. Go through the listed causes. A silent webhook outage looks exactly like this. |
-| `not set up`, `unauthorized` | The login is the user's step (it writes the Keychain, which the command sandbox blocks). Show the printed fix and see [references/setup.md](references/setup.md). |
+| `not set up`, `unauthorized` | The login is the user's step (it stores a token in the system keychain, which a command sandbox may block). Show the printed fix and see [references/setup.md](references/setup.md). |
 | `unreachable` | Says nothing about the code. If the sandbox blocked the host, the printed fix is an allowlist entry. |
 | `unknown` | Show the raw status or error as printed. Don't interpret it. |
 

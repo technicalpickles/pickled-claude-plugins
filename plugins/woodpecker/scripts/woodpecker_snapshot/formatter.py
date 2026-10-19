@@ -101,7 +101,7 @@ def format_problem(err: WpError, repo: Optional[str]) -> str:
     elif kind == WpError.NOT_CONFIGURED:
         state, lines = states.NOT_SET_UP, [
             "woodpecker-cli has no saved login.",
-            "Run once, outside the command sandbox (it writes the Keychain): woodpecker-cli setup --server <url>",
+            "Run once, outside any command sandbox (it stores the token in the system keychain): woodpecker-cli setup --server <url>",
             "The browser step needs Chrome or Firefox; Safari blocks it. Details: references/setup.md",
         ]
     elif kind == WpError.UNAUTHORIZED:
