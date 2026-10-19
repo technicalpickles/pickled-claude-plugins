@@ -1,0 +1,18 @@
+{
+  "name": "hk",
+  "description": "Auto-wire hk's coding-agent integration (Stop check, SessionStart instructions, MCP server) in projects that have an hk config",
+  "author": {
+    "name": "Josh Nichols",
+    "email": "josh@technicalpickles.com"
+  },
+  "repository": "https://github.com/technicalpickles/pickled-claude-plugins",
+  "license": "MIT",
+  "mcpServers": {
+    "hk": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/hk-mcp.sh",
+      "args": [
+        "${CLAUDE_PROJECT_DIR}"
+      ]
+    }
+  }
+}
