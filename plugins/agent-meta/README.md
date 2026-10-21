@@ -34,6 +34,8 @@ Invoke by asking naturally ("park this session", "wrap this up", "unpark docs/ha
 
 Mode is picked at park time from your phrasing ("park to continue" vs "wrap this up"), inferred from the work's state, or asked if ambiguous.
 
+Every parked file is checked by `skills/park/scripts/check-size.sh` and must stay under 230 KB (90% of Claude's 256 KB default Read limit), so `unpark` can always read it back in one go.
+
 ## Scripts
 
 Analysis tools for post-hoc session review:

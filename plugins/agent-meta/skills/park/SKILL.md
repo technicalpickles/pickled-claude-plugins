@@ -1,7 +1,7 @@
 ---
 name: park
 description: Save current work context for later resumption
-allowed-tools: Bash(scripts/get-session-id.sh)
+allowed-tools: Bash(scripts/get-session-id.sh), Bash(scripts/check-size.sh *)
 ---
 
 # Park
@@ -162,9 +162,23 @@ Same Resume Prompt requirement as continuation: mandatory, specific, no filler.
 
 Filename: `[topic-slug]-checkpoint.md`
 
+## Verifying Size
+
+Applies to all three modes. After the file is written, run [scripts/check-size.sh](scripts/check-size.sh) on it via Bash, before sending it anywhere or reporting success:
+
+```
+scripts/check-size.sh [path]
+```
+
+Claude's default Read limit is 256 KB, and `unpark` has to read the file back. The script fails at 230 KB (235520 bytes, ~90% of that) to leave margin. This is a measured check, not an estimate: don't judge size by eye.
+
+- **Exit 0:** continue.
+- **Exit 1 (too large):** the file is not parked yet. Shrink it and re-run the check until it passes. Cut pasted logs, diffs, and file contents down to a path or a one-line summary; the next session can re-read the source. Don't split into several files, and don't report "Parked to ..." for a file that failed.
+- **Exit 2 (usage/unreadable):** the path is wrong. Fix it and re-run.
+
 ## Sending to a Destination
 
-If step 4 above found a `Park destination:` template, run it now, after the file is written:
+If step 4 above found a `Park destination:` template, run it now, after the file is written and has passed the size check:
 
 1. Substitute placeholders in the template: `{file}` → the full path just written, `{title}` → the topic slug/heading, `{mode}` → `continuation`, `close-out`, or `idle-checkpoint`.
 2. Run the substituted command via Bash. This happens as a normal, visible tool call — never assume it succeeded without checking the result.
