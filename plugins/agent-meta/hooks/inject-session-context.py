@@ -1,19 +1,12 @@
 #!/usr/bin/env python3
 """
-PostToolUse:Skill hook that injects the current session ID, transcript
-path, and (for park) a configured destination command into context when
-an agent-meta skill that needs them is invoked.
+PostToolUse:Skill hook that injects park's configured destination command
+into context when `agent-meta:park` is invoked through the Skill tool.
 
-Why: the `park` skill needs the Claude Code session ID to write a durable
-record of where this session lived. Previously it ran a Bash script that
-echoed $CLAUDE_SESSION_ID, but that env var is not reliably exported to
-Bash tool calls, so park often wrote "unknown" as the session.
-
-Hook payloads, on the other hand, always contain `session_id` and
-`transcript_path` as guaranteed top-level fields. By reading them here and
-emitting `hookSpecificOutput.additionalContext`, Claude sees the session
-details right after the Skill tool result, before it starts executing the
-skill's steps.
+The session ID is not injected here. A /agent-meta:park slash invocation
+makes no Skill tool call, so this hook never fires for it. Park gets the ID
+from the ${CLAUDE_SESSION_ID} substitution in its SKILL.md instead, which
+Claude Code fills in on both paths.
 
 This hook only injects context for skills that actually need it. Other
 Skill calls are silently ignored (no context pollution).
@@ -44,9 +37,7 @@ import os
 import subprocess
 import sys
 
-# Skills in the agent-meta plugin that benefit from knowing the session ID.
-# Keep this narrow: unparking a session doesn't need the current one, and
-# snapshot has its own flow.
+# Skills that take a destination command. Keep this narrow.
 TARGET_SKILLS = {
     "agent-meta:park",
 }
@@ -108,27 +99,14 @@ skill_name = tool_input.get("skill", "")
 if skill_name not in TARGET_SKILLS:
     sys.exit(0)
 
-session_id = payload.get("session_id", "")
-transcript_path = payload.get("transcript_path", "")
-
-lines = []
-if session_id:
-    lines.append(f"Session ID: {session_id}")
-    if transcript_path:
-        lines.append(f"Transcript: {transcript_path}")
-
 destination_template = resolve_destination_template()
-if destination_template:
-    lines.append(f"Park destination: {destination_template}")
-
-if not lines:
-    # Nothing useful to inject; let park fall back to its script.
+if not destination_template:
     sys.exit(0)
 
 output = {
     "hookSpecificOutput": {
         "hookEventName": "PostToolUse",
-        "additionalContext": "\n".join(lines),
+        "additionalContext": f"Park destination: {destination_template}",
     }
 }
 print(json.dumps(output))

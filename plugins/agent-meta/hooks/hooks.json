@@ -1,5 +1,5 @@
 {
-  "description": "Inject session ID and transcript path into context when agent-meta skills are invoked",
+  "description": "Inject the park destination command into context when agent-meta:park is invoked",
   "hooks": {
     "PostToolUse": [
       {

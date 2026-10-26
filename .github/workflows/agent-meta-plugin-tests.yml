@@ -1,0 +1,33 @@
+name: agent-meta plugin tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'plugins/agent-meta/**'
+      - '.github/workflows/agent-meta-plugin-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  bats:
+    name: bats
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugins/agent-meta
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Install bats and Claude Code
+        run: |
+          sudo apt-get update && sudo apt-get install -y bats
+          npm install -g @anthropic-ai/claude-code
+
+      - name: Run bats
+        run: bats tests/
