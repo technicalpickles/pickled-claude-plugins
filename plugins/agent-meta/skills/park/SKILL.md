@@ -36,8 +36,9 @@ Pick once and commit. Do not switch modes mid-write.
 ## Before Writing
 
 1. Resolve session ID:
-   - **Preferred:** Look for a `Session ID:` line in the PostToolUse hook context that this plugin injects when `agent-meta:park` is invoked. Use that value. A `Transcript:` line may also be present.
-   - **Fallback:** Run [scripts/get-session-id.sh](scripts/get-session-id.sh) via Bash. If empty, use `unknown`.
+   - **Session ID:** `${CLAUDE_SESSION_ID}`
+   - Claude Code fills in the value above when it loads this skill. If it is a UUID, use it.
+   - **Fallback:** If the value above is not a UUID (another harness left it unfilled), run [scripts/get-session-id.sh](scripts/get-session-id.sh) via Bash. If that prints nothing, use `unknown`.
 2. Gather git branch, worktree path, files touched.
 3. Resolve output location, in order:
    1. Project `CLAUDE.md` → `## Handoffs` or `## Parking` → `Location:`
