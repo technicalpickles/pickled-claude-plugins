@@ -28,7 +28,7 @@ SCRIPT="$PLUGIN_DIR/skills/park/scripts/get-session-id.sh"
   work="$BATS_TEST_TMPDIR/work"
   config="$BATS_TEST_TMPDIR/config"
   mkdir -p "$work" "$config"
-  sid=$(uuidgen | tr 'A-Z' 'a-z')
+  sid=$(python3 -c 'import uuid; print(uuid.uuid4())')
 
   cd "$work"
   run env -u CLAUDE_CODE_OAUTH_TOKEN \
