@@ -374,8 +374,56 @@ def test_lkg_from_holds_only_allowed_atoms():
     verdict = run(cur, lkg)
     nxt = lkg_from(verdict, cur)
     assert set(nxt.atoms) == {atom_key(ORIGIN_URL), atom_key(FETCH_HEADS)}
-    assert nxt.dirty is False
+    assert nxt.dirty is True  # the core.editor finding is still open
     assert nxt.anchor == cur.anchor
+
+
+def test_lkg_from_clean_verdict_is_not_dirty():
+    verdict = run(BASE, None)
+    assert verdict.findings == ()
+    assert lkg_from(verdict, BASE).dirty is False
+
+
+def test_lkg_from_carries_prev_atoms_behind_open_findings_only():
+    cur, prev, _ = CHANGED_URL
+    verdict = run(cur, prev, may_revert=False)
+    nxt = lkg_from(verdict, cur, prev)
+    assert set(nxt.atoms) == {atom_key(ORIGIN_URL), atom_key(FETCH_HEADS)}
+    assert nxt.dirty is True
+    # A prev atom with no open finding (here: a removed fetch refspec) is not carried.
+    gone = lkg_from(run(surface([ORIGIN_URL]), prev), surface([ORIGIN_URL]), prev)
+    assert set(gone.atoms) == {atom_key(ORIGIN_URL)}
+    assert gone.dirty is False
+
+
+def test_warned_url_change_stays_restorable_on_next_in_scope_tick():
+    """P5: tick 1 is out of scope, so the changed url is only warned about. The next LKG still holds
+    the old url, so tick 2 (in scope, nothing else changed) sets it back instead of unsetting it."""
+    cur, lkg0, _ = CHANGED_URL
+    tick1 = run(cur, lkg0, may_revert=False)
+    assert only(tick1).action is Action.WARN
+    lkg1 = lkg_from(tick1, cur, lkg0)
+    f = only(run(cur, lkg1))
+    assert f.action is Action.REVERT
+    assert f.restore == (
+        SetKey(
+            CONFIG,
+            ConfigKey.parse("remote.origin.url"),
+            old="git@github.com:a/b.git",
+            new="https://evil.example/x.git",
+        ),
+    )
+
+
+def test_warned_commondir_redirect_stays_revertible_on_next_in_scope_tick():
+    """P6: an open commondir redirect keeps its LKG bytes across a warn-only tick."""
+    cur, lkg0, _ = COMMONDIR
+    tick1 = run(cur, lkg0, may_revert=False)
+    assert only(tick1).action is Action.WARN
+    lkg1 = lkg_from(tick1, cur, lkg0)
+    f = only(run(cur, lkg1))
+    assert f.action is Action.REVERT
+    assert f.restore == (WriteFile(PurePosixPath("/r/a/.git/commondir"), b"../..\n", 0o644),)
 
 
 # -- trigger blindness ---------------------------------------------------------------------------

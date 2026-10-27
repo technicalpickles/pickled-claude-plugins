@@ -139,14 +139,21 @@ def _why(atom: Atom, kind: Kind) -> str:
     return f"{atom.role} {atom.path} is {kind.value} and matches no allowed state"
 
 
-def _lkg(cur: Surface, atoms) -> Lkg:
+def _lkg(cur: Surface, atoms, dirty: bool = False) -> Lkg:
     return Lkg(
         anchor=cur.anchor,
         common_dir=cur.common_dir,
         atoms={atom_key(a): a for a in atoms},
         fingerprint=cur.fingerprint,
-        dirty=False,
+        dirty=dirty,
     )
+
+
+def _identity(atom: Atom) -> tuple:
+    """Where an atom lives, without what it holds: git_dir, file and key for config, path for files."""
+    if isinstance(atom, ConfigEntry):
+        return ("cfg", atom.member.git_dir, atom.file, atom.key)
+    return ("file", atom.path)
 
 
 def judge(cur: Surface, lkg: Optional[Lkg], trust: TrustSet, rules: RuleSet, trig: Trigger) -> Verdict:
@@ -191,6 +198,12 @@ def judge(cur: Surface, lkg: Optional[Lkg], trust: TrustSet, rules: RuleSet, tri
     return Verdict(cur.anchor, tuple(findings), allowed, tuple(notes))
 
 
-def lkg_from(verdict: Verdict, cur: Surface) -> Lkg:
-    """The next LKG: only the atoms of `cur` that `verdict` allowed."""
-    return _lkg(cur, (a for a in _atoms(cur) if atom_key(a) in verdict.allowed_atoms))
+def lkg_from(verdict: Verdict, cur: Surface, prev: Optional[Lkg] = None) -> Lkg:
+    """The next LKG: the atoms of `cur` that `verdict` allowed, plus every `prev` atom whose
+    identity (see `_identity`) still has an open finding. Without the carry, a finding that was
+    only warned about (out of scope, or not revertible this tick) would drop its last good value,
+    and the next in-scope tick could no longer put it back. Dirty while any finding is open."""
+    open_ids = {_identity(f.atom) for f in verdict.findings}
+    carried = [a for a in prev.atoms.values() if _identity(a) in open_ids] if prev is not None else []
+    allowed = [a for a in _atoms(cur) if atom_key(a) in verdict.allowed_atoms]
+    return _lkg(cur, [*carried, *allowed], dirty=bool(verdict.findings))

@@ -264,7 +264,8 @@ class Trigger:
 
 @dataclass(frozen=True)
 class Lkg:
-    """Last known good, per anchor. Written only when it contains nothing unresolved."""
+    """Last known good, per anchor. Holds only good atoms: what passed at the last tick, plus the
+    previous good atoms behind any finding still open (which makes it dirty)."""
 
     anchor: Anchor
     common_dir: PurePosixPath
