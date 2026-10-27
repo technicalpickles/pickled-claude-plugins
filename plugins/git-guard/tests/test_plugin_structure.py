@@ -9,7 +9,8 @@ PLUGIN_ROOT = Path(__file__).parent.parent
 REPO_ROOT = PLUGIN_ROOT.parent.parent
 
 PURE_MODULES = ["model.py", "rules.py", "templates.py", "files.py", "judge.py"]
-FORBIDDEN_IMPORTS = {"os", "subprocess", "shutil"}
+FORBIDDEN_IMPORTS = {"os", "subprocess", "shutil", "io"}
+FORBIDDEN_BUILTINS = {"open"}  # called bare, as `open(...)`
 FORBIDDEN_CALLS = {
     "exists", "resolve", "read_text", "read_bytes",
     "stat", "open", "iterdir", "glob",
@@ -55,6 +56,9 @@ def _violations(path: Path) -> list[str]:
         elif isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
             if node.func.attr in FORBIDDEN_CALLS:
                 found.append(f"calls .{node.func.attr}() at line {node.lineno}")
+        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            if node.func.id in FORBIDDEN_BUILTINS:
+                found.append(f"calls {node.func.id}() at line {node.lineno}")
     return found
 
 
@@ -64,3 +68,14 @@ def test_pure_modules_do_no_io():
         path = PLUGIN_ROOT / "gitguard" / module
         assert path.exists(), module
         assert _violations(path) == [], module
+
+
+def test_io_check_catches_bare_open_and_io_import(tmp_path):
+    bad = tmp_path / "bad.py"
+    bad.write_text("import io\nfrom io import BytesIO\nopen('x')\nPath('x').read_text()\n")
+    assert _violations(bad) == [
+        "imports io",
+        "imports from io",
+        "calls open() at line 3",
+        "calls .read_text() at line 4",
+    ]

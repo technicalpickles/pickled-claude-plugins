@@ -262,8 +262,8 @@ def test_first_sight_in_session_plant_is_revertible():
     assert "first sight in session: synthetic LKG from passing atoms" in verdict.notes
 
 
-def test_first_sight_hosts_come_from_cur():
-    """Classification at first sight uses lkg=None, so the url's own host is trusted."""
+def test_documented_gap_first_sight_hosts_come_from_cur():
+    """Pins a documented gap (lkg=None at first sight trusts the url's own host); v0.1 should flip it."""
     cur = surface([entry("remote.origin.url", "git@gitlab.example:a/b.git")])
     assert run(cur, None, first_sight=True).findings == ()
 
