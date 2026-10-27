@@ -25,6 +25,8 @@ COMMON = MemberRef(PurePosixPath("/r/a/.git"), "common")
 
 # Where each link role lives relative to the common git dir (gitfile lives at the anchor's `.git`).
 _LINK_PATHS = {
+    "hooks-dir": "/r/a/.git/hooks",
+    "guard-state": "/r/a/.git/guard-state",
     "gitfile": "/r/a/.git",
     "commondir": "/r/a/.git/commondir",
     "admin-gitdir": "/r/a/.git/gitdir",
@@ -69,12 +71,21 @@ def hook(
     return _atom("hook", path, content, kind=kind, executable=executable, member=member)
 
 
-def link(role: str, content: Optional[bytes], *, path: Optional[str] = None) -> FileAtom:
-    """A link-class file atom. `content=None` means the file is absent."""
+def link(
+    role: str,
+    content: Optional[bytes],
+    *,
+    path: Optional[str] = None,
+    kind: Optional[str] = None,
+    executable: bool = False,
+) -> FileAtom:
+    """A non-hook file atom. `content=None` means the file is absent. `kind` overrides the default
+    ("absent" without content, else "file"); every role has a default path."""
     where = PurePosixPath(path if path is not None else _LINK_PATHS[role])
     member = None if role == "gitfile" else COMMON
-    kind = "absent" if content is None else "file"
-    return _atom(role, where, content, kind=kind, executable=False, member=member)
+    if kind is None:
+        kind = "absent" if content is None else "file"
+    return _atom(role, where, content, kind=kind, executable=executable, member=member)
 
 
 def surface(

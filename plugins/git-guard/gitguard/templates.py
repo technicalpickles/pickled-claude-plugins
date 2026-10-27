@@ -23,7 +23,7 @@ class HookTemplate:
     name: the template name reported to the caller.
     hook_names: the hook files this template may appear as.
     body_regex: applied with fullmatch to the decoded file. A named group `n`, if present, must equal
-        the file's own hook name.
+        the file's own hook name. A named group `bin`, if present, is the slot a notice reports.
     notice: True when a pass should still be mentioned to the user.
     """
 
@@ -94,7 +94,7 @@ _LFS_BODY = re.compile(
 # -- hooks: portool ----------------------------------------------------------------------------
 
 # Slot: an absolute path ending in /portool, without `"`, `$`, backtick, backslash, CR or LF.
-_PORTOOL_BIN = r'/(?:[^"$`\\\r\n\x00]*/)?portool'
+_PORTOOL_BIN = r'(?P<bin>/(?:[^"$`\\\r\n\x00]*/)?portool)'
 _PORTOOL_LINES = (
     "#!/bin/sh",
     "# installed by portool",
@@ -199,3 +199,16 @@ def hook_template_match(atom: FileAtom, templates: Templates) -> Optional[HookTe
             continue
         return template
     return None
+
+
+def hook_notice_slot(atom: FileAtom, template: HookTemplate) -> Optional[str]:
+    """The slot value a notice template reports for `atom` (portool: the binary path), or None when
+    the template has no such slot, the file has no content, or the content does not match."""
+    if atom.content is None or "bin" not in template.body_regex.groupindex:
+        return None
+    try:
+        text = atom.content.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+    found = template.body_regex.fullmatch(text)
+    return found["bin"] if found is not None else None

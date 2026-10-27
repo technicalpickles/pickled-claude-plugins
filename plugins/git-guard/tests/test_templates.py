@@ -11,6 +11,7 @@ from gitguard.templates import (
     DEFAULT_TEMPLATES,
     HookTemplate,
     config_template_match,
+    hook_notice_slot,
     hook_template_match,
 )
 from tests.support import FIXTURES, entry, hook, surface
@@ -405,3 +406,25 @@ def test_rules_template_check_hk_pair_and_orphan():
 
 def test_default_rules_carry_default_templates():
     assert default_rules().templates is DEFAULT_TEMPLATES
+
+
+# -- hooks: notice slot -------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("name", ["post-checkout", "post-merge"])
+def test_portool_notice_slot_is_the_binary_path(name):
+    atom = hook(name, fixture("portool", name))
+    template = hook_template_match(atom, T)
+    assert hook_notice_slot(atom, template) == "/home/u/.cargo/bin/portool"
+
+
+def test_notice_slot_none_for_template_without_slot():
+    atom = hook("pre-push", fixture("lfs-echo", "pre-push"))
+    template = hook_template_match(atom, T)
+    assert hook_notice_slot(atom, template) is None
+
+
+def test_notice_slot_none_without_content():
+    atom = hook("post-checkout", fixture("portool", "post-checkout"))
+    hashed_only = FileAtom(atom.member, atom.path, atom.role, atom.kind, atom.sha256, True, None)
+    assert hook_notice_slot(hashed_only, T.hooks[1]) is None

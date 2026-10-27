@@ -6,6 +6,7 @@ Pure module: no IO. Everything `judge()` needs is carried by these types.
 from __future__ import annotations
 
 import enum
+import hashlib
 from dataclasses import dataclass
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, ClassVar, Literal, Mapping, Optional, Union
@@ -120,6 +121,24 @@ class FileAtom:
 
 
 Atom = Union[ConfigEntry, FileAtom]
+
+
+def atom_key(atom: Atom) -> str:
+    """Stable identity of an atom: where it is and what it is called, not what it holds."""
+    if isinstance(atom, ConfigEntry):
+        return f"cfg|{atom.member.git_dir}|{atom.file}|{atom.key.dotted()}|{atom.value}"
+    return f"file|{atom.path}"
+
+
+def atom_hash(atom: Atom) -> str:
+    """What an `accept` grant pins. A config entry is its own key (the value is in it); a file also
+    covers its content hash, kind and exec bit, so changing any of them needs a fresh grant."""
+    key = atom_key(atom)
+    if isinstance(atom, ConfigEntry):
+        raw = key
+    else:
+        raw = f"{key}\0{atom.sha256 or ''}\0{atom.kind}\0{atom.executable}"
+    return hashlib.sha256(raw.encode()).hexdigest()
 
 
 @dataclass(frozen=True)
