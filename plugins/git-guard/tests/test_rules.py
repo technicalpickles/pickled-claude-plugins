@@ -48,11 +48,14 @@ ROW_EXAMPLES = [
     ("commit.gpgsign", "false", W, NONE),
     ("commit.gpgSign", "FALSE", W, NONE),
     ("commit.gpgsign", "true", U, NONE),
+    ("commit.gpgsign", "", W, NONE),
     ("tag.gpgsign", "no", W, NONE),
     ("tag.gpgsign", "yes", U, NONE),
     ("http.sslVerify", "false", W, NONE),
     ("http.https://x.example/.sslverify", "off", W, NONE),
     ("http.sslverify", "true", U, NONE),
+    ("http.sslverify", " 0", W, NONE),
+    ("http.sslverify", "0 ", W, NONE),
     ("transfer.fsckObjects", "0", W, NONE),
     ("transfer.fsckobjects", "1", U, NONE),
     ("fetch.fsckobjects", "false", W, NONE),
@@ -396,7 +399,8 @@ def test_make_ctx_collects_remotes_and_hosts():
         entry("lfs.url", "https://lfs.example/x"),
     ])
     ctx = make_ctx(s, None, rules)
-    assert ctx.remotes == frozenset({"origin", "fork", "bad"})
+    # Only names with a remote.<r>.url count: `fork` has just a pushurl.
+    assert ctx.remotes == frozenset({"origin", "bad"})
     assert ctx.hosts == frozenset(
         {"github.com", "gitlab.example", "code.example", "subs.example"}
     )
@@ -464,3 +468,71 @@ def test_reviewed_unknown_has_no_stale_entries():
     for var in _reviewed():
         assert var in kept, f"{var} is not in git-help-config.txt"
         assert not rows_for_key(_placeholder_key(var)), f"{var} now has a row; drop it from the list"
+
+
+# -- Fix round 1: hostile shapes -----------------------------------------------------------------
+
+_ORIGIN = entry("remote.origin.url", "https://github.com/o/r.git")
+_LKG = Lkg(ANCHOR, PurePosixPath("/r/a/.git"), {"k": _ORIGIN}, Fingerprint.EMPTY, False)
+
+
+@pytest.mark.parametrize("phantom", ["../evil", "git@evil.example:x", "/tmp/evil"])
+@pytest.mark.parametrize("lkg", [None, _LKG], ids=["no-lkg", "lkg"])
+@pytest.mark.parametrize("dotted", ["branch.main.remote", "branch.main.pushremote",
+                                    "remote.pushDefault"])
+def test_phantom_remote_name_is_checked_as_url(phantom, lkg, dotted):
+    """A URL-less remote's name is used as its URL, so a remote known only from
+    remote.<r>.prune (or any non-url var) is not a remote name."""
+    rules = default_rules()
+    plant = entry(f"remote.{phantom}.prune", "true")
+    pointer = entry(dotted, phantom)
+    ctx = make_ctx(surface([_ORIGIN, plant, pointer]), lkg, rules)
+    assert phantom not in ctx.remotes
+    assert classify_entry(pointer, ctx, rules) == (X, NONE)
+    assert classify_entry(entry(dotted, "origin"), ctx, rules)[1] is not NONE
+
+
+@pytest.mark.parametrize(
+    ("dotted", "value", "kw"),
+    [
+        ("core.hookspath", "sym/../.githooks", {}),
+        ("core.hookspath", "/r/a/sym/../.githooks", {}),
+        ("core.hookspath", "../a/sym/../.githooks", {}),
+        ("include.path", "sym/../extra.cfg", {}),
+        ("includeIf.gitdir:/r/a/.path", "/r/a/.git/sym/../extra.cfg", {}),
+        ("core.worktree", "sym/../..", {}),
+        ("core.worktree", "../../../x/../sub",
+         {"member": MODULE, "file": "/r/a/.git/modules/sub/config", "scope": "module"}),
+    ],
+)
+def test_dotdot_after_a_segment_fails(dotted, value, kw):
+    """`sym/..` normalizes away purely, but git follows the symlink first."""
+    rules = default_rules()
+    s = surface([entry("submodule.sub.active", "true", member=MODULE,
+                       file="/r/a/.git/modules/sub/config", scope="module")],
+                toplevels=["/r/a"], tracked_dirs=["/r/a/.githooks"])
+    assert classify_entry(entry(dotted, value, **kw), make_ctx(s, None, rules), rules) == (X, NONE)
+
+
+def test_leading_dotdot_still_allowed():
+    rules = default_rules()
+    s = surface([entry("submodule.sub.active", "true", member=MODULE,
+                       file="/r/a/.git/modules/sub/config", scope="module")],
+                toplevels=["/r/a"], tracked_dirs=["/r/a/.githooks"])
+    ctx = make_ctx(s, None, rules)
+    inc = entry("include.path", "../../config.extra", member=MODULE,
+                file="/r/a/.git/modules/sub/config", scope="module")
+    assert classify_entry(inc, ctx, rules) == (X, OK)  # /r/a/.git/config.extra
+    sub = entry("core.worktree", "../../../sub", member=MODULE,
+                file="/r/a/.git/modules/sub/config", scope="module")
+    assert classify_entry(sub, ctx, rules) == (X, OK)
+    assert classify_entry(entry("core.hookspath", "./.githooks"), ctx, rules) == (X, OK)
+
+
+@pytest.mark.parametrize("value", [".", "", "./", "hooks", "/r/a/.git", "../.git/modules/sub"])
+def test_core_worktree_inside_a_git_dir_fails(value):
+    rules = default_rules()
+    s = surface([entry("submodule.sub.active", "true", member=MODULE,
+                       file="/r/a/.git/modules/sub/config", scope="module")])
+    e = entry("core.worktree", value)
+    assert classify_entry(e, make_ctx(s, None, rules), rules) == (X, NONE)

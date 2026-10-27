@@ -280,6 +280,21 @@ def _inside(path: PurePosixPath, root: PurePosixPath) -> bool:
     return path == root or root in path.parents
 
 
+def _dotdot_after_segment(value: str) -> bool:
+    """True when a `..` follows a real segment (`sym/..`). Pure normpath would cancel the pair, but
+    git follows `sym` first if it is a symlink. Leading runs of `..` (`../../sub`) are fine."""
+    seen_real = False
+    for seg in value.split("/"):
+        if seg in ("", "."):
+            continue
+        if seg == "..":
+            if seen_real:
+                return True
+        else:
+            seen_real = True
+    return False
+
+
 def _expand(value: str, home: PurePosixPath) -> Optional[PurePosixPath]:
     """git's pathname expansion, as far as we can follow it purely. `~user/` and `%(prefix)/`
     are unresolvable here, so the caller treats them as failing."""
@@ -372,7 +387,7 @@ _BOOL_WORDS = frozenset({"true", "false", "yes", "no", "on", "off", "0", "1", ""
 _FALSE_WORDS = frozenset({"false", "no", "off"})
 # git_parse_maybe_bool falls back to git_parse_int (strtoimax base 0, unit suffix), so "00",
 # "0x0" and "0k" are all false too.
-_ZERO = re.compile(r"[+-]?(?:0x0+|0+)[kmg]?", re.IGNORECASE)
+_ZERO = re.compile(r"\s*[+-]?(?:0x0+|0+)[kmg]?\s*", re.IGNORECASE)
 _REFNAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._/@+-]*")
 _OWNER_REPO = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
 
@@ -384,7 +399,9 @@ def _env(env: Optional[CheckEnv]) -> CheckEnv:
 
 
 def _is_false(value: str, _: Optional[CheckEnv]) -> bool:
-    return value.lower() in _FALSE_WORDS or _ZERO.fullmatch(value) is not None
+    """git_parse_maybe_bool: an explicit empty value is false, and so is any integer zero
+    (strtoimax skips leading whitespace; trailing whitespace is accepted too, to be safe)."""
+    return value == "" or value.lower() in _FALSE_WORDS or _ZERO.fullmatch(value) is not None
 
 
 def _bool(value: str, _: Optional[CheckEnv]) -> bool:
@@ -409,6 +426,8 @@ def _fetch_refspec(value: str, env: Optional[CheckEnv]) -> bool:
 
 def _hooks_path(value: str, env: Optional[CheckEnv]) -> bool:
     e = _env(env)
+    if _dotdot_after_segment(value):
+        return False
     surface = e.ctx.surface
     pairs = _hooks_targets(value, surface)
     if not pairs:
@@ -437,12 +456,21 @@ def _same_targets_as_lkg(
 
 def _worktree_path(value: str, env: Optional[CheckEnv]) -> bool:
     e = _env(env)
-    target = _worktree_target(e.entry, e.ctx.surface)
-    return target is not None and _inside(target, e.ctx.surface.anchor.path)
+    if _dotdot_after_segment(value):
+        return False
+    surface = e.ctx.surface
+    target = _worktree_target(e.entry, surface)
+    if target is None or not _inside(target, surface.anchor.path):
+        return False
+    # A worktree at (or inside) a git dir would check files out over git's own control files.
+    git_dirs = [m.git_dir for m in surface.members] + [surface.common_dir]
+    return not any(_inside(target, g) for g in git_dirs)
 
 
 def _include_path(value: str, env: Optional[CheckEnv]) -> bool:
     e = _env(env)
+    if _dotdot_after_segment(value):
+        return False
     target = _include_target(e.entry, e.ctx.surface)
     return target is not None and any(_inside(target, m.git_dir) for m in e.ctx.surface.members)
 
@@ -522,10 +550,12 @@ _validate(ROWS)
 
 
 def make_ctx(cur: Surface, lkg: Optional[Lkg], rules: RuleSet) -> ClassifyCtx:
+    # Only remotes with a url count as names: git uses a URL-less remote's name as its URL, so
+    # `remote.../evil.prune=true` must not make `branch.main.remote=../evil` a remote name.
     remotes = frozenset(
         e.key.subsection
         for e in cur.entries
-        if e.key.section == "remote" and e.key.subsection is not None
+        if e.key.section == "remote" and e.key.subsection is not None and e.key.variable == "url"
     )
     source = (
         [a for a in lkg.atoms.values() if isinstance(a, ConfigEntry)]
