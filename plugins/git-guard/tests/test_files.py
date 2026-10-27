@@ -276,6 +276,31 @@ def test_gitfile_strips_only_trailing_line_endings(ending):
     assert classify(atom, **WT_KW) == (Kind.LINK, Pass.LITERAL, None)
 
 
+@pytest.mark.parametrize(
+    "target",
+    [
+        "/r/a/.git/worktrees/..",
+        "/r/a/.git/worktrees/sl/../wt",
+        "/r/a/.git/hooks/../worktrees/wt",
+        "../a/.git/worktrees/x/../wt",
+        "../a/.git/../.git/worktrees/wt",
+    ],
+)
+def test_gitfile_dotdot_after_a_segment_fails(target):
+    # git follows a symlinked segment before applying `..`, so collapsing the pair lexically is unsafe
+    atom = gitfile(f"gitdir: {target}\n".encode())
+    assert classify(atom, **WT_KW) == (Kind.LINK, Pass.NONE, None)
+
+
+@pytest.mark.parametrize(
+    "target",
+    ["../a/.git/worktrees/wt", "../../r/a/.git/worktrees/wt", "../../r/a/.git", "./../a/.git/worktrees/wt"],
+)
+def test_gitfile_leading_dotdot_runs_pass(target):
+    atom = gitfile(f"gitdir: {target}\n".encode())
+    assert classify(atom, **WT_KW) == (Kind.LINK, Pass.LITERAL, None)
+
+
 def test_gitfile_to_common_dir_itself_passes():
     # a submodule checkout's .git file points at its own gitdir, which is the surface's common dir
     atom = link("gitfile", b"gitdir: ../a/.git\n", path=f"{ANCHOR_WT}/.git")

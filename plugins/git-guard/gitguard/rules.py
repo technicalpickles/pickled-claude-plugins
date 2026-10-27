@@ -279,7 +279,7 @@ def _inside(path: PurePosixPath, root: PurePosixPath) -> bool:
     return path == root or root in path.parents
 
 
-def _dotdot_after_segment(value: str) -> bool:
+def dotdot_after_segment(value: str) -> bool:
     """True when a `..` follows a real segment (`sym/..`). Pure normpath would cancel the pair, but
     git follows `sym` first if it is a symlink. Leading runs of `..` (`../../sub`) are fine."""
     seen_real = False
@@ -427,7 +427,7 @@ def _fetch_refspec(value: str, env: Optional[CheckEnv]) -> bool:
 
 def _hooks_path(value: str, env: Optional[CheckEnv]) -> bool:
     e = _env(env)
-    if _dotdot_after_segment(value):
+    if dotdot_after_segment(value):
         return False
     surface = e.ctx.surface
     pairs = _hooks_targets(value, surface)
@@ -457,7 +457,7 @@ def _same_targets_as_lkg(
 
 def _worktree_path(value: str, env: Optional[CheckEnv]) -> bool:
     e = _env(env)
-    if _dotdot_after_segment(value):
+    if dotdot_after_segment(value):
         return False
     surface = e.ctx.surface
     target = _worktree_target(e.entry, surface)
@@ -470,7 +470,7 @@ def _worktree_path(value: str, env: Optional[CheckEnv]) -> bool:
 
 def _include_path(value: str, env: Optional[CheckEnv]) -> bool:
     e = _env(env)
-    if _dotdot_after_segment(value):
+    if dotdot_after_segment(value):
         return False
     target = _include_target(e.entry, e.ctx.surface)
     return target is not None and any(_inside(target, m.git_dir) for m in e.ctx.surface.members)

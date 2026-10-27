@@ -11,7 +11,7 @@ from pathlib import PurePosixPath
 from typing import Optional
 
 from gitguard.model import FileAtom, Kind, Lkg, Pass, RuleSet, atom_key
-from gitguard.rules import ClassifyCtx
+from gitguard.rules import ClassifyCtx, dotdot_after_segment
 from gitguard.templates import hook_notice_slot, hook_template_match
 
 # githooks(5), git 2.54.
@@ -79,12 +79,15 @@ def _classify_commondir(atom: FileAtom, ctx: ClassifyCtx) -> Result:
 
 def _gitfile_target(text: str) -> Optional[str]:
     """The path git's read_gitfile_gently would use: exact `gitdir: ` prefix, trailing CR/LF stripped,
-    nothing else trimmed. A CR, LF or NUL left inside the path makes git read something else."""
+    nothing else trimmed. A CR, LF or NUL left inside the path makes git read something else, and so does
+    a `..` after a real segment (a symlinked segment redirects before the `..` applies)."""
     if not text.startswith("gitdir: "):
         return None
     target = text[len("gitdir: "):].rstrip("\r\n")
     if not target or any(c in target for c in "\r\n\0"):
         return None
+    if dotdot_after_segment(target):
+        return None  # git follows a symlinked segment before it applies `..`; normpath would hide it
     return target
 
 
