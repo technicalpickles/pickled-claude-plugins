@@ -1,0 +1,8 @@
+#!/bin/sh
+# installed by portool
+PORTOOL_BIN="/home/u/.cargo/bin/portool"
+if ! [ -x "$PORTOOL_BIN" ]; then PORTOOL_BIN=portool; fi
+if command -v "$PORTOOL_BIN" >/dev/null 2>&1; then
+  "$PORTOOL_BIN" sync --quiet || echo 'portool: sync failed; Git was not blocked' >&2
+fi
+exit 0

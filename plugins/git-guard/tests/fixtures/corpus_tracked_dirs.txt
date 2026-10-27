@@ -1,0 +1,2 @@
+/home/u/src/repo-31/.githooks
+/home/u/src/repo-46/.githooks
