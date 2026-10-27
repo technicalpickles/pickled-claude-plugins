@@ -197,7 +197,7 @@ class Action(enum.Enum):
 class UnsetKey:
     file: PurePosixPath
     key: ConfigKey
-    value: str  # `git config --file F --fixed-value --unset K V`
+    value: str  # `git config --file F --fixed-value --unset-all K V`
 
 
 @dataclass(frozen=True)

@@ -209,6 +209,14 @@ def test_no_lkg_is_warn_only():
     assert (f.kind, f.action, f.restore) == (Kind.EXEC, Action.WARN, ())
 
 
+def test_same_bad_value_twice_in_one_file_is_one_finding():
+    """Two identical lines are one atom identity: one finding, one unset that removes both."""
+    cur = surface([ORIGIN_URL, FETCH_HEADS, _EDITOR, entry("core.editor", "x")])
+    f = only(run(cur, clean_lkg(BASE)))
+    assert f.action is Action.REVERT
+    assert f.restore == (UnsetKey(CONFIG, ConfigKey.parse("core.editor"), "x"),)
+
+
 def test_out_of_scope_caps_at_warn():
     f = only(run(*NEW_EXEC[:2], may_revert=False))
     assert f.action is Action.WARN

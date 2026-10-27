@@ -161,14 +161,19 @@ def judge(cur: Surface, lkg: Optional[Lkg], trust: TrustSet, rules: RuleSet, tri
         notes.insert(0, FIRST_SIGHT_NOTE)
 
     findings = []
+    seen: set[str] = set()
     for atom, kind, passed in classified:
         if passed is not Pass.NONE:
             continue
+        fid = finding_id(cur.anchor, atom)
+        if fid in seen:
+            continue  # the same value twice in one file: one finding, and --unset-all removes both
+        seen.add(fid)
         restore = restore_ops(atom, cur, restore_from)
         action = _base_action(atom, kind)
         if not trig.may_revert or restore == ():
             action = Action.WARN
-        findings.append(Finding(finding_id(cur.anchor, atom), atom, kind, _why(atom, kind), action, restore))
+        findings.append(Finding(fid, atom, kind, _why(atom, kind), action, restore))
 
     if lkg is not None:
         present = {atom_key(a) for a in _atoms(cur)}
