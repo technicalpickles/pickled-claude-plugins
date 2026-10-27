@@ -59,8 +59,8 @@ def _violations(path: Path) -> list[str]:
 
 
 def test_pure_modules_do_no_io():
-    """Checks each pure module that exists; vacuous until they are written."""
+    """Every pure module exists (so a rename can't silently drop coverage) and does no IO."""
     for module in PURE_MODULES:
         path = PLUGIN_ROOT / "gitguard" / module
-        if path.exists():
-            assert _violations(path) == [], module
+        assert path.exists(), module
+        assert _violations(path) == [], module
