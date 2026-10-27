@@ -6,6 +6,7 @@ the anchor is new this session; it never changes what is found, only what is don
 from __future__ import annotations
 
 import hashlib
+from pathlib import PurePosixPath
 from typing import Optional
 
 from gitguard.files import classify_file
@@ -83,7 +84,14 @@ def _values(entries, target: ConfigEntry) -> list[str]:
     ]
 
 
+def _in_repo(file: PurePosixPath, cur: Surface) -> bool:
+    return any(file == m.git_dir or m.git_dir in file.parents for m in cur.members)
+
+
 def _restore_entry(entry: ConfigEntry, cur: Surface, lkg: Lkg) -> tuple[RestoreOp, ...]:
+    if not _in_repo(entry.file, cur):
+        # An include target outside every git dir (~/.gitconfig.local, ../shared.cfg) is not ours to edit.
+        return ()
     old = _values(lkg.atoms.values(), entry)
     now = _values(cur.entries, entry)
     if len(old) == 1 and len(now) == 1:
@@ -109,7 +117,8 @@ def restore_ops(atom: Atom, cur: Surface, lkg: Optional[Lkg]) -> tuple[RestoreOp
     """Exact ops that bring `atom` back to `lkg`, or () when that cannot be done exactly.
 
     A key with one value in both LKG and `cur` is set back; any other config entry is unset by its
-    own value, so the good values of a multi-valued key are never touched. A file is rewritten from
+    own value, so the good values of a multi-valued key are never touched. A config entry from a
+    file outside every member git dir (an include target) is never edited. A file is rewritten from
     LKG bytes; a hook or attributes file LKG never had is moved aside."""
     if lkg is None:
         return ()

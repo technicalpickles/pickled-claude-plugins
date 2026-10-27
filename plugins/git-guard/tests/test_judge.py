@@ -200,6 +200,32 @@ def test_unchanged_peer_of_changed_key_is_warn_not_noop_setkey():
     )
 
 
+@pytest.mark.parametrize(
+    "include, target",
+    [
+        ("~/.gitconfig.local", "/home/u/.gitconfig.local"),
+        ("/etc/shared.cfg", "/etc/shared.cfg"),
+        ("../shared.cfg", "/r/a/shared.cfg"),
+    ],
+)
+def test_entry_from_include_target_outside_repo_is_never_edited(include, target):
+    """The include itself is reverted in the repo's config; the file it points at is the human's,
+    so a bad key read from there is WARN with no restore op."""
+    planted = entry("credential.helper", "osxkeychain", file=target)
+    verdict = run(surface([ORIGIN_URL, FETCH_HEADS, entry("include.path", include), planted]), clean_lkg(BASE))
+    by_key = {f.atom.key.dotted(): f for f in verdict.findings}
+    assert set(by_key) == {"include.path", "credential.helper"}
+    assert by_key["include.path"].action is Action.REVERT
+    assert by_key["include.path"].restore == (UnsetKey(CONFIG, ConfigKey.parse("include.path"), include),)
+    assert (by_key["credential.helper"].action, by_key["credential.helper"].restore) == (Action.WARN, ())
+
+
+def test_entry_from_include_target_inside_git_dir_is_reverted():
+    planted = entry("core.editor", "x", file="/r/a/.git/extra1.cfg")
+    f = only(run(surface([ORIGIN_URL, FETCH_HEADS, planted]), clean_lkg(BASE)))
+    assert f.restore == (UnsetKey(PurePosixPath("/r/a/.git/extra1.cfg"), ConfigKey.parse("core.editor"), "x"),)
+
+
 def test_restore_ops_without_lkg_is_empty():
     assert restore_ops(_EDITOR, surface([_EDITOR]), None) == ()
 
