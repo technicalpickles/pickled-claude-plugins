@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import PurePosixPath
 from typing import Callable, Mapping, Optional, Sequence
 
-from gitguard.model import ConfigEntry, ConfigKey, Kind, Lkg, Pass, RuleSet, Surface
+from gitguard.model import ConfigEntry, ConfigKey, Kind, Lkg, MemberRef, Pass, RuleSet, Surface
 from gitguard.templates import DEFAULT_TEMPLATES, config_template_match
 
 
@@ -307,22 +307,40 @@ def _expand(value: str, home: PurePosixPath) -> Optional[PurePosixPath]:
 
 
 def _hooks_targets(
-    value: str, surface: Surface
+    value: str, member: MemberRef, surface: Surface
 ) -> Optional[list[tuple[PurePosixPath, tuple[PurePosixPath, ...]]]]:
     """(resolved target, toplevels it must stay inside) per resolution, or None if unresolvable.
-    An absolute (or `~/`) path resolves once and may sit in any toplevel; a relative one resolves
-    once per toplevel and must stay inside that toplevel."""
+    An absolute (or `~/`) path resolves once and may sit in any toplevel. A relative one is read
+    by git from the root of the worktree that runs the hook: for a submodule member that is its
+    own `core.worktree` (none, or no single resolvable one, is unresolvable); for any other member
+    it resolves once per toplevel and must stay inside that toplevel."""
     path = _expand(value, surface.home)
     if path is None:
         return None
     if path.is_absolute():
         return [(_norm(path), surface.toplevels)]
+    if member.role == "module":
+        top = _module_worktree(member, surface)
+        return None if top is None else [(_norm(top / path), (top,))]
     return [(_norm(top / path), (top,)) for top in surface.toplevels]
 
 
 def _worktree_target(entry: ConfigEntry, surface: Surface) -> Optional[PurePosixPath]:
     path = _expand(entry.value, surface.home)
     return None if path is None else _norm(entry.member.git_dir / path)
+
+
+_WORKTREE = ConfigKey("core", None, "worktree")
+
+
+def _module_worktree(member: MemberRef, surface: Surface) -> Optional[PurePosixPath]:
+    """The one worktree a submodule's `core.worktree` entries name, or None (no entry, several
+    different targets, a `..` after a segment, or an unresolvable value)."""
+    values = [e for e in surface.entries if e.member.git_dir == member.git_dir and e.key == _WORKTREE]
+    if not values or any(dotdot_after_segment(e.value) for e in values):
+        return None
+    targets = {_worktree_target(e, surface) for e in values}
+    return targets.pop() if len(targets) == 1 else None
 
 
 def _include_target(entry: ConfigEntry, surface: Surface) -> Optional[PurePosixPath]:
@@ -338,9 +356,9 @@ def resolve_redirect(entry: ConfigEntry, ctx: ClassifyCtx) -> tuple[PurePosixPat
     Empty for any other key, or when the value cannot be resolved purely."""
     key = entry.key
     if key == _HOOKSPATH:
-        pairs = _hooks_targets(entry.value, ctx.surface)
+        pairs = _hooks_targets(entry.value, entry.member, ctx.surface)
         return () if pairs is None else tuple(target for target, _ in pairs)
-    if key == ConfigKey("core", None, "worktree"):
+    if key == _WORKTREE:
         one = _worktree_target(entry, ctx.surface)
     elif key.variable == "path" and (
         (key.section == "include" and key.subsection is None) or key.section == "includeif"
@@ -430,7 +448,7 @@ def _hooks_path(value: str, env: Optional[CheckEnv]) -> bool:
     if dotdot_after_segment(value):
         return False
     surface = e.ctx.surface
-    pairs = _hooks_targets(value, surface)
+    pairs = _hooks_targets(value, e.entry.member, surface)
     if not pairs:
         return False
     tracked = {_norm(d) for d in surface.tracked_dirs}
@@ -449,7 +467,7 @@ def _same_targets_as_lkg(
         return False
     for atom in ctx.lkg.atoms.values():
         if isinstance(atom, ConfigEntry) and atom.key == _HOOKSPATH and atom.file == entry.file:
-            old = _hooks_targets(atom.value, ctx.surface)
+            old = _hooks_targets(atom.value, atom.member, ctx.surface)
             if old and frozenset(t for t, _ in old) == targets:
                 return True
     return False

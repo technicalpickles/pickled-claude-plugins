@@ -350,6 +350,44 @@ def test_hookspath_respelled_same_as_lkg_passes():
     assert classify_entry(new, make_ctx(s, None, rules), rules) == (X, NONE)
 
 
+_MOD_CFG = {"member": MODULE, "file": "/r/a/.git/modules/sub/config", "scope": "module"}
+
+
+def _module_hookspath(value: str, worktrees: list[str], tracked: list[str]):
+    rules = default_rules()
+    hp = entry("core.hooksPath", value, **_MOD_CFG)
+    wts = [entry("core.worktree", w, **_MOD_CFG) for w in worktrees]
+    s = surface([entry("core.hooksPath", ".githooks"), *wts, hp], tracked_dirs=tracked)
+    ctx = make_ctx(s, None, rules)
+    return classify_entry(hp, ctx, rules), resolve_redirect(hp, ctx)
+
+
+def test_module_hookspath_resolves_against_its_own_worktree():
+    """git runs a submodule's hooks from the submodule's worktree, so `.githooks` there is
+    /r/a/sub/.githooks. The superproject tracking /r/a/.githooks says nothing about it."""
+    got, targets = _module_hookspath(".githooks", ["../../../sub"], ["/r/a/.githooks"])
+    assert got == (X, NONE)
+    assert targets == (PurePosixPath("/r/a/sub/.githooks"),)
+
+
+def test_module_hookspath_passes_when_its_own_dir_is_tracked():
+    got, _ = _module_hookspath(".githooks", ["../../../sub"], ["/r/a/.githooks", "/r/a/sub/.githooks"])
+    assert got == (X, OK)
+
+
+def test_module_hookspath_must_stay_inside_its_worktree():
+    got, _ = _module_hookspath("../.githooks", ["../../../sub"], ["/r/a/.githooks", "/r/a/sub/.githooks"])
+    assert got == (X, NONE)
+
+
+@pytest.mark.parametrize("worktrees", [[], ["../../../sub", "../../../other"], ["../../../x/../sub"]])
+def test_module_hookspath_without_one_clear_worktree_fails_closed(worktrees):
+    """No core.worktree, two different ones, or one git would read through a symlink: unresolvable."""
+    got, targets = _module_hookspath(".githooks", worktrees, ["/r/a/.githooks", "/r/a/sub/.githooks"])
+    assert got == (X, NONE)
+    assert targets == ()
+
+
 def test_core_worktree_under_superproject():
     rules = default_rules()
     ctx = make_ctx(surface(), None, rules)
