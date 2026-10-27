@@ -45,9 +45,9 @@ Fingerprint.EMPTY = Fingerprint(sigs={})
 
 @dataclass(frozen=True)
 class Anchor:
-    """The directory that CONTAINS the `.git` entry (toplevel). LKG link atoms are keyed by this, never by the
-    resolved common dir: a commondir/gitfile redirect changes the resolved dir, and keying by it would turn the
-    redirect into a trust-on-first-sight bootstrap of attacker content."""
+    """The realpath of the directory that CONTAINS the `.git` entry (toplevel). LKG link atoms are keyed by
+    this, never by the resolved common dir: a commondir/gitfile redirect changes the resolved dir, and keying
+    by it would turn the redirect into a trust-on-first-sight bootstrap of attacker content."""
 
     path: PurePosixPath
 
