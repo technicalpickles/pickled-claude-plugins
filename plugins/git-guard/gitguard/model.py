@@ -124,10 +124,13 @@ Atom = Union[ConfigEntry, FileAtom]
 
 
 def atom_key(atom: Atom) -> str:
-    """Stable identity of an atom: where it is and what it is called, not what it holds."""
+    """Stable identity of an atom: where it is and what it is called, not what it holds.
+
+    Fields are joined with NUL, which git allows in no path, key or value; any printable
+    separator can appear inside a subsection or a value and make two atoms share a key."""
     if isinstance(atom, ConfigEntry):
-        return f"cfg|{atom.member.git_dir}|{atom.file}|{atom.key.dotted()}|{atom.value}"
-    return f"file|{atom.path}"
+        return "\0".join(("cfg", str(atom.member.git_dir), str(atom.file), atom.key.dotted(), atom.value))
+    return f"file\0{atom.path}"
 
 
 def atom_hash(atom: Atom) -> str:

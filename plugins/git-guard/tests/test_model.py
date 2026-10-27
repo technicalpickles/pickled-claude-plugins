@@ -145,16 +145,26 @@ def test_corpus_surfaces_attach_tracked_dirs():
 
 def test_atom_key_config_entry_format():
     e = entry("Core.HooksPath", ".githooks")
-    assert atom_key(e) == "cfg|/r/a/.git|/r/a/.git/config|core.hookspath|.githooks"
+    assert atom_key(e) == "cfg\0/r/a/.git\0/r/a/.git/config\0core.hookspath\0.githooks"
 
 
 def test_atom_key_keeps_dotted_subsection():
     e = entry("url.https://Evil/.insteadOf", "x")
-    assert atom_key(e) == "cfg|/r/a/.git|/r/a/.git/config|url.https://Evil/.insteadof|x"
+    assert atom_key(e) == "cfg\0/r/a/.git\0/r/a/.git/config\0url.https://Evil/.insteadof\0x"
 
 
 def test_atom_key_file_format():
-    assert atom_key(hook("pre-commit", b"x")) == "file|/r/a/.git/hooks/pre-commit"
+    assert atom_key(hook("pre-commit", b"x")) == "file\0/r/a/.git/hooks/pre-commit"
+
+
+def test_atom_key_separator_cannot_be_spoofed_by_subsection_or_value():
+    """`diff.d = "x.textconv|sh -c evil"` and `[diff "d|x"] textconv = "sh -c evil"` once shared a key,
+    so an `accept` grant for the harmless one also passed the exec one."""
+    harmless = entry("diff.d", "x.textconv|sh -c evil")
+    exec_key = entry("diff.d|x.textconv", "sh -c evil")
+    assert harmless.key != exec_key.key
+    assert atom_key(harmless) != atom_key(exec_key)
+    assert atom_hash(harmless) != atom_hash(exec_key)
 
 
 def test_atom_hash_config_entry_is_sha256_of_key():
