@@ -61,7 +61,7 @@ def test_attack_baseline_is_clean():
     base = _baseline()
     verdict = judge(base, None, NO_TRUST, RULES, trigger(TriggerKind.SWEEP, may_revert=False))
     assert verdict.findings == ()
-    assert len(lkg_from(verdict, base).atoms) == 4
+    assert len(lkg_from(verdict, base, prev=None).atoms) == 4
 
 
 def test_attack_rows_cover_fixture():
@@ -71,7 +71,7 @@ def test_attack_rows_cover_fixture():
 @pytest.mark.parametrize("dotted, value, kind, action", ATTACKS)
 def test_attack_rows_all_found(dotted, value, kind, action):
     base = _baseline()
-    lkg = lkg_from(judge(base, None, NO_TRUST, RULES, trigger(TriggerKind.SWEEP)), base)
+    lkg = lkg_from(judge(base, None, NO_TRUST, RULES, trigger(TriggerKind.SWEEP)), base, prev=None)
     cur = _with(base, dotted, value)
     verdict = judge(cur, lkg, NO_TRUST, RULES, trigger(TriggerKind.POST_TOOL))
     key = ConfigKey.parse(dotted)

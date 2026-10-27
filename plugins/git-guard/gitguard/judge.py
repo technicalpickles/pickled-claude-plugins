@@ -202,7 +202,7 @@ def judge(cur: Surface, lkg: Optional[Lkg], trust: TrustSet, rules: RuleSet, tri
     return Verdict(cur.anchor, tuple(findings), allowed, tuple(notes))
 
 
-def lkg_from(verdict: Verdict, cur: Surface, prev: Optional[Lkg] = None) -> Lkg:
+def lkg_from(verdict: Verdict, cur: Surface, *, prev: Optional[Lkg]) -> Lkg:
     """The next LKG: the atoms of `cur` that `verdict` allowed, plus every `prev` atom whose
     identity (see `_identity`) still has an open finding. Without the carry, a finding that was
     only warned about (out of scope, or not revertible this tick) would drop its last good value,

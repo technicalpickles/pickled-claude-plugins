@@ -52,7 +52,7 @@ def lkg_of(*atoms) -> Lkg:
 def clean_lkg(s: Surface) -> Lkg:
     verdict = judge(s, None, NO_TRUST, RULES, trigger(TriggerKind.SWEEP, may_revert=False))
     assert verdict.findings == ()
-    return lkg_from(verdict, s)
+    return lkg_from(verdict, s, prev=None)
 
 
 def run(cur: Surface, lkg: Optional[Lkg], trust: TrustSet = NO_TRUST, **trig):
@@ -381,7 +381,7 @@ def test_finding_id_format():
 def test_lkg_from_holds_only_allowed_atoms():
     cur, lkg, _ = NEW_EXEC
     verdict = run(cur, lkg)
-    nxt = lkg_from(verdict, cur)
+    nxt = lkg_from(verdict, cur, prev=None)
     assert set(nxt.atoms) == {atom_key(ORIGIN_URL), atom_key(FETCH_HEADS)}
     assert nxt.dirty is True  # the core.editor finding is still open
     assert nxt.anchor == cur.anchor
@@ -390,17 +390,17 @@ def test_lkg_from_holds_only_allowed_atoms():
 def test_lkg_from_clean_verdict_is_not_dirty():
     verdict = run(BASE, None)
     assert verdict.findings == ()
-    assert lkg_from(verdict, BASE).dirty is False
+    assert lkg_from(verdict, BASE, prev=None).dirty is False
 
 
 def test_lkg_from_carries_prev_atoms_behind_open_findings_only():
     cur, prev, _ = CHANGED_URL
     verdict = run(cur, prev, may_revert=False)
-    nxt = lkg_from(verdict, cur, prev)
+    nxt = lkg_from(verdict, cur, prev=prev)
     assert set(nxt.atoms) == {atom_key(ORIGIN_URL), atom_key(FETCH_HEADS)}
     assert nxt.dirty is True
     # A prev atom with no open finding (here: a removed fetch refspec) is not carried.
-    gone = lkg_from(run(surface([ORIGIN_URL]), prev), surface([ORIGIN_URL]), prev)
+    gone = lkg_from(run(surface([ORIGIN_URL]), prev), surface([ORIGIN_URL]), prev=prev)
     assert set(gone.atoms) == {atom_key(ORIGIN_URL)}
     assert gone.dirty is False
 
@@ -411,7 +411,7 @@ def test_warned_url_change_stays_restorable_on_next_in_scope_tick():
     cur, lkg0, _ = CHANGED_URL
     tick1 = run(cur, lkg0, may_revert=False)
     assert only(tick1).action is Action.WARN
-    lkg1 = lkg_from(tick1, cur, lkg0)
+    lkg1 = lkg_from(tick1, cur, prev=lkg0)
     f = only(run(cur, lkg1))
     assert f.action is Action.REVERT
     assert f.restore == (
@@ -429,7 +429,7 @@ def test_warned_commondir_redirect_stays_revertible_on_next_in_scope_tick():
     cur, lkg0, _ = COMMONDIR
     tick1 = run(cur, lkg0, may_revert=False)
     assert only(tick1).action is Action.WARN
-    lkg1 = lkg_from(tick1, cur, lkg0)
+    lkg1 = lkg_from(tick1, cur, prev=lkg0)
     f = only(run(cur, lkg1))
     assert f.action is Action.REVERT
     assert f.restore == (WriteFile(PurePosixPath("/r/a/.git/commondir"), b"../..\n", 0o644),)
