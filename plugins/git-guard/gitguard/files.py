@@ -33,8 +33,8 @@ def lkg_equal(atom: FileAtom, lkg: Optional[Lkg]) -> bool:
     prior = lkg.atoms.get(atom_key(atom))
     if not isinstance(prior, FileAtom):
         return False
-    if atom.kind == "file" and atom.sha256 is None:
-        return False  # unknown content cannot be vouched for
+    if atom.kind != "absent" and atom.sha256 is None:
+        return False  # no hash, nothing to compare: it cannot be vouched for
     return (prior.sha256, prior.kind, prior.executable) == (atom.sha256, atom.kind, atom.executable)
 
 
@@ -49,7 +49,8 @@ def _text(atom: FileAtom) -> Optional[str]:
 
 def _classify_hook(atom: FileAtom, ctx: ClassifyCtx, rules: RuleSet) -> Result:
     name = atom.path.name
-    if name not in HOOK_NAMES or name.endswith(".sample"):
+    folded = name.casefold()  # case-insensitive filesystems run `Pre-Commit` as `pre-commit`
+    if folded not in HOOK_NAMES or folded.endswith(".sample") or atom.kind == "absent":
         return Kind.ROUTINE, Pass.LITERAL, None
     if lkg_equal(atom, ctx.lkg):
         return Kind.HOOKFILE, Pass.LKG, None
@@ -69,28 +70,40 @@ def _classify_hook(atom: FileAtom, ctx: ClassifyCtx, rules: RuleSet) -> Result:
 
 def _classify_commondir(atom: FileAtom, ctx: ClassifyCtx) -> Result:
     text = _text(atom)
-    if text is not None and text.rstrip() == "../..":
+    if text is not None and text.rstrip("\r\n") == "../..":  # git trims only line endings
         return Kind.LINK, Pass.LITERAL, None
     if lkg_equal(atom, ctx.lkg):
         return Kind.LINK, Pass.LKG, None
     return Kind.LINK, Pass.NONE, None
 
 
-def _inside(path: str, directory: PurePosixPath) -> bool:
-    return PurePosixPath(posixpath.normpath(path)).is_relative_to(posixpath.normpath(str(directory)))
+def _gitfile_target(text: str) -> Optional[str]:
+    """The path git's read_gitfile_gently would use: exact `gitdir: ` prefix, trailing CR/LF stripped,
+    nothing else trimmed. A CR, LF or NUL left inside the path makes git read something else."""
+    if not text.startswith("gitdir: "):
+        return None
+    target = text[len("gitdir: "):].rstrip("\r\n")
+    if not target or any(c in target for c in "\r\n\0"):
+        return None
+    return target
+
+
+def _is_gitdir_of_checkout(resolved: str, common_dir: PurePosixPath) -> bool:
+    """The common dir itself (a submodule checkout) or `<common>/worktrees/<one name>` (a linked worktree)."""
+    path = PurePosixPath(posixpath.normpath(resolved))
+    common = PurePosixPath(posixpath.normpath(str(common_dir)))
+    if path == common:
+        return True
+    return path.parent == common / "worktrees" and path.name not in ("", ".", "..")
 
 
 def _classify_gitfile(atom: FileAtom, ctx: ClassifyCtx) -> Result:
     text = _text(atom)
-    if text is not None:
-        lines = text.splitlines()
-        first = lines[0] if lines else ""
-        if first.startswith("gitdir:"):
-            target = first[len("gitdir:"):].strip()
-            if target:
-                resolved = posixpath.join(str(ctx.surface.anchor.path), target)
-                if _inside(resolved, ctx.surface.common_dir):
-                    return Kind.LINK, Pass.LITERAL, None
+    target = _gitfile_target(text) if text is not None else None
+    if target is not None:
+        resolved = posixpath.join(str(ctx.surface.anchor.path), target)
+        if _is_gitdir_of_checkout(resolved, ctx.surface.common_dir):
+            return Kind.LINK, Pass.LITERAL, None
     return Kind.LINK, Pass.NONE, None
 
 

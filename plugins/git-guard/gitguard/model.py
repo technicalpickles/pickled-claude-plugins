@@ -100,7 +100,7 @@ class ConfigEntry:
 class FileAtom:
     """A non-config control file: hook script, info/attributes, alternates, commondir, gitdir, the `.git` gitfile,
     or the guard's own state. Small ones keep content so a revert is exact. Large ones keep only a hash, so they
-    can be quarantined but never auto-restored."""
+    can be quarantined but never auto-restored. For a symlink, `sha256` is the hash of its readlink target."""
 
     member: Optional[MemberRef]
     path: PurePosixPath

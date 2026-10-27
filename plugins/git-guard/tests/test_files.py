@@ -37,8 +37,13 @@ def classify(atom, lkg=None, **surface_kwargs):
 
 
 def test_hook_names_is_githooks_list():
-    assert len(HOOK_NAMES) == 28
-    assert {"pre-commit", "post-checkout", "reference-transaction", "post-index-change"} <= HOOK_NAMES
+    assert HOOK_NAMES == frozenset(
+        """applypatch-msg pre-applypatch post-applypatch pre-commit pre-merge-commit prepare-commit-msg
+        commit-msg post-commit pre-rebase post-checkout post-merge pre-push pre-receive update
+        proc-receive post-receive post-update reference-transaction push-to-checkout pre-auto-gc
+        post-rewrite sendemail-validate fsmonitor-watchman p4-changelist p4-prepare-changelist
+        p4-post-changelist p4-pre-submit post-index-change""".split()
+    )
 
 
 # -- hooks --------------------------------------------------------------------------------------
@@ -105,6 +110,36 @@ def test_lkg_pass_wins_over_template_note():
     assert classify(atom, lkg_of(atom)) == (Kind.HOOKFILE, Pass.LKG, None)
 
 
+@pytest.mark.parametrize("name", ["Pre-Commit", "PRE-COMMIT", "pre-COMMIT", "Post-Checkout", "poſt-commit"])
+def test_hook_names_match_case_insensitively(name):
+    # case-insensitive filesystems run these as the real hook; U+017F casefolds to "s"
+    assert classify(hook(name, BAD)) == (Kind.HOOKFILE, Pass.NONE, None)
+
+
+@pytest.mark.parametrize("name", ["Pre-Commit.SAMPLE", "pre-commit.Sample"])
+def test_sample_suffix_matches_case_insensitively(name):
+    assert classify(hook(name, BAD)) == (Kind.ROUTINE, Pass.LITERAL, None)
+
+
+def test_absent_hook_is_routine():
+    atom = link("hook", None, path="/r/a/.git/hooks/pre-commit")
+    assert atom.kind == "absent"
+    assert classify(atom) == (Kind.ROUTINE, Pass.LITERAL, None)
+
+
+def test_dir_hook_is_hookfile_and_never_passes_by_lkg():
+    atom = link("hook", None, path="/r/a/.git/hooks/pre-commit", kind="dir")
+    assert classify(atom) == (Kind.HOOKFILE, Pass.NONE, None)
+    assert classify(atom, lkg_of(atom)) == (Kind.HOOKFILE, Pass.NONE, None)
+
+
+def test_hashless_symlink_hook_never_passes_by_lkg():
+    atom = link("hook", None, path="/r/a/.git/hooks/pre-commit", kind="symlink")
+    assert atom.sha256 is None
+    assert not lkg_equal(atom, lkg_of(atom))
+    assert classify(atom, lkg_of(atom)) == (Kind.HOOKFILE, Pass.NONE, None)
+
+
 def test_hooks_dir_is_routine():
     atom = link("hooks-dir", None, kind="dir")
     assert classify(atom) == (Kind.ROUTINE, Pass.LITERAL, None)
@@ -128,6 +163,17 @@ def test_lkg_equal_requires_same_path():
     assert not lkg_equal(hook("pre-commit", BAD), lkg_of(other))
 
 
+def test_lkg_equal_absent_atoms_match_without_hash():
+    atom = link("attributes", None)
+    assert lkg_equal(atom, lkg_of(atom))
+
+
+@pytest.mark.parametrize("kind", ["file", "dir", "symlink"])
+def test_lkg_equal_refuses_missing_hash_for_every_present_kind(kind):
+    atom = link("attributes", None, kind=kind)
+    assert not lkg_equal(atom, lkg_of(atom))
+
+
 def test_lkg_equal_same_atom_is_true():
     atom = hook("pre-commit", BAD)
     assert lkg_equal(atom, lkg_of(atom))
@@ -136,13 +182,23 @@ def test_lkg_equal_same_atom_is_true():
 # -- commondir ----------------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("content", [b"../..", b"../..\n", b"../..\r\n \n"])
+@pytest.mark.parametrize("content", [b"../..", b"../..\n", b"../..\r\n", b"../..\n\n"])
 def test_commondir_default_passes(content):
     assert classify(link("commondir", content)) == (Kind.LINK, Pass.LITERAL, None)
 
 
 @pytest.mark.parametrize("content", [b"/tmp/evil/.git", b"/tmp/evil/.git\n", b"../../..", b" ../.."])
 def test_commondir_redirect_fails(content):
+    assert classify(link("commondir", content)) == (Kind.LINK, Pass.NONE, None)
+
+
+@pytest.mark.parametrize(
+    "content",
+    [b"../.. ", b"../..\t", b"../..\x0b", b"../..\x0c", b"../..\x1c", " ../..".encode(),
+     "../..\u00a0".encode(), "../..\u2003".encode(), "../..\u3000".encode(), b"../..\n ", b"../..\r\n \n"],
+)
+def test_commondir_trailing_whitespace_other_than_newline_fails(content):
+    # git trims only \r and \n, so these name a different directory
     assert classify(link("commondir", content)) == (Kind.LINK, Pass.NONE, None)
 
 
@@ -191,9 +247,57 @@ def test_gitfile_sibling_prefix_fails():
     assert classify(atom, **WT_KW) == (Kind.LINK, Pass.NONE, None)
 
 
-@pytest.mark.parametrize("content", [b"", b"not a gitfile\n", b"gitdir:\n"])
+@pytest.mark.parametrize(
+    "content",
+    [
+        b"",
+        b"not a gitfile\n",
+        b"gitdir:\n",
+        b"gitdir: \n",
+        b"gitdir:/r/a/.git/worktrees/wt\n",  # no space
+        b"gitdir:  /r/a/.git/worktrees/wt\n",  # two spaces: git sees " /r/a/..." relative to the worktree
+        b"gitdir: \t/r/a/.git/worktrees/wt\n",
+        b"gitdir: /r/a/.git\n/../../../tmp/evil\n",  # git reads the whole buffer
+        b"gitdir: /r/a/.git\r/../../../tmp/evil",
+        b"gitdir: /r/a/.git\r\n/../../../tmp/evil",
+        b"gitdir: /r/a/.git/worktrees/wt\n\n/x",
+        b"gitdir: /r/a/.git/worktrees/wt\0/x",
+        b"\xffgitdir: /r/a/.git/worktrees/wt\n",
+        b" gitdir: /r/a/.git/worktrees/wt\n",
+    ],
+)
 def test_gitfile_malformed_fails(content):
     assert classify(gitfile(content), **WT_KW) == (Kind.LINK, Pass.NONE, None)
+
+
+@pytest.mark.parametrize("ending", [b"", b"\n", b"\r\n", b"\r\n\r\n"])
+def test_gitfile_strips_only_trailing_line_endings(ending):
+    atom = gitfile(b"gitdir: /r/a/.git/worktrees/wt" + ending)
+    assert classify(atom, **WT_KW) == (Kind.LINK, Pass.LITERAL, None)
+
+
+def test_gitfile_to_common_dir_itself_passes():
+    # a submodule checkout's .git file points at its own gitdir, which is the surface's common dir
+    atom = link("gitfile", b"gitdir: ../a/.git\n", path=f"{ANCHOR_WT}/.git")
+    assert classify(atom, **WT_KW) == (Kind.LINK, Pass.LITERAL, None)
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        "/r/a/.git/hooks",
+        "/r/a/.git/modules/x",
+        "/r/a/.git/worktrees",
+        "/r/a/.git/worktrees/a/b",
+        "/r/a/.git/worktrees/wt/hooks",
+        "/r/a/.git/objects",
+        "/r/a/.git/worktrees/wt/../../hooks",
+        "/r/a",
+    ],
+)
+def test_gitfile_only_common_dir_or_one_worktree_admin_passes(target):
+    atom = gitfile(f"gitdir: {target}\n".encode())
+    assert classify(atom, **WT_KW) == (Kind.LINK, Pass.NONE, None)
 
 
 # -- admin gitdir -------------------------------------------------------------------------------
