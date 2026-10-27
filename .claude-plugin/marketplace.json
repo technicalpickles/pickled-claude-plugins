@@ -143,6 +143,12 @@
       "source": "./plugins/hk",
       "version": "0.1.0",
       "description": "Auto-wire hk's coding-agent integration (Stop check, SessionStart instructions, MCP server) in projects that have an hk config"
+    },
+    {
+      "name": "git-guard",
+      "source": "./plugins/git-guard",
+      "version": "0.1.0",
+      "description": "Detects and reverts agent writes to git internals (exec config keys, hooks, redirects)"
     }
   ]
 }
