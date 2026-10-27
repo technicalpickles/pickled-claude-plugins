@@ -13,12 +13,10 @@ import posixpath
 import re
 from dataclasses import dataclass
 from pathlib import PurePosixPath
-from typing import TYPE_CHECKING, Callable, Mapping, Optional, Sequence
+from typing import Callable, Mapping, Optional, Sequence
 
 from gitguard.model import ConfigEntry, ConfigKey, Kind, Lkg, Pass, RuleSet, Surface
-
-if TYPE_CHECKING:
-    from gitguard.templates import Templates
+from gitguard.templates import DEFAULT_TEMPLATES, config_template_match
 
 
 @dataclass(frozen=True)
@@ -479,9 +477,8 @@ def _include_path(value: str, env: Optional[CheckEnv]) -> bool:
 
 
 def _template(value: str, env: Optional[CheckEnv]) -> bool:
-    _env(env)
-    # Task `templates` replaces this with templates.config_template_match(entry, ctx, rules.templates).
-    return False
+    e = _env(env)
+    return config_template_match(e.entry, e.ctx.surface, e.rules.templates) is not None
 
 
 _STATIC: Mapping[str, Predicate] = {
@@ -607,10 +604,8 @@ def classify_entry(entry: ConfigEntry, ctx: ClassifyCtx, rules: RuleSet) -> tupl
 
 
 def default_rules() -> RuleSet:
-    # Task `templates` supplies the real Templates; until then the `template` check ignores them.
-    no_templates: Optional[Templates] = None
     return RuleSet(
         rows=ROWS,
-        templates=no_templates,  # type: ignore[arg-type]
+        templates=DEFAULT_TEMPLATES,
         trusted_hosts=frozenset({"github.com"}),
     )
