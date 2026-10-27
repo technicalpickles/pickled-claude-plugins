@@ -1,4 +1,4 @@
 {
   "name": "git-guard",
-  "description": "Detects and reverts agent writes to git internals (exec config keys, hooks, redirects)"
+  "description": "Detects and reverts agent writes to git internals (exec config keys, hooks, redirects) (pure core; hooks not wired yet)"
 }
