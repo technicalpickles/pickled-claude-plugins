@@ -12,6 +12,7 @@ The pure core (`model`, `rules`, `templates`, `files`, `judge`) trusts the `Surf
 ## Paths
 
 - **Hand over a realpath'd `Anchor.path`.** Finding ids, LKG link atoms and gitfile targets are all keyed by it, so two spellings of one repo would be two anchors.
+- **Hand over a realpath'd `ConfigEntry.file`.** `judge` only edits config files inside a member git dir, and it decides that lexically: it folds `..` but cannot see through a symlinked include target.
 - **Compute `tracked_dirs` from realpath'd targets.** `hooks_path` compares normalized paths, so a symlinked tracked dir would otherwise fail to match, or an untracked symlink target would match.
 
 ## File atoms

@@ -206,6 +206,7 @@ def test_unchanged_peer_of_changed_key_is_warn_not_noop_setkey():
         ("~/.gitconfig.local", "/home/u/.gitconfig.local"),
         ("/etc/shared.cfg", "/etc/shared.cfg"),
         ("../shared.cfg", "/r/a/shared.cfg"),
+        ("../shared.cfg", "/r/a/.git/../shared.cfg"),
     ],
 )
 def test_entry_from_include_target_outside_repo_is_never_edited(include, target):
@@ -241,6 +242,14 @@ def test_same_bad_value_twice_in_one_file_is_one_finding():
     f = only(run(cur, clean_lkg(BASE)))
     assert f.action is Action.REVERT
     assert f.restore == (UnsetKey(CONFIG, ConfigKey.parse("core.editor"), "x"),)
+
+
+def test_colliding_finding_ids_do_not_hide_a_finding(monkeypatch):
+    """The id is 24 bits, so a decoy can be ground to share it. Dedupe must go by atom, not id."""
+    monkeypatch.setattr(judge_module, "finding_id", lambda anchor, atom: "f-000000")
+    cur = surface([ORIGIN_URL, FETCH_HEADS, _EDITOR, entry("core.pager", "x")])
+    verdict = run(cur, clean_lkg(BASE))
+    assert {f.atom.key.dotted() for f in verdict.findings} == {"core.editor", "core.pager"}
 
 
 def test_out_of_scope_caps_at_warn():

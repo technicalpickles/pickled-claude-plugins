@@ -6,6 +6,7 @@ the anchor is new this session; it never changes what is found, only what is don
 from __future__ import annotations
 
 import hashlib
+import posixpath
 from pathlib import PurePosixPath
 from typing import Optional
 
@@ -85,6 +86,8 @@ def _values(entries, target: ConfigEntry) -> list[str]:
 
 
 def _in_repo(file: PurePosixPath, cur: Surface) -> bool:
+    # Lexical only: `.git/../x` normalizes out here, but a symlinked dir does not. The probe hands over realpaths.
+    file = PurePosixPath(posixpath.normpath(file))
     return any(file == m.git_dir or m.git_dir in file.parents for m in cur.members)
 
 
@@ -181,10 +184,11 @@ def judge(cur: Surface, lkg: Optional[Lkg], trust: TrustSet, rules: RuleSet, tri
     for atom, kind, passed in classified:
         if passed is not Pass.NONE:
             continue
-        fid = finding_id(cur.anchor, atom)
-        if fid in seen:
+        h = atom_hash(atom)
+        if h in seen:
             continue  # the same value twice in one file: one finding, and --unset-all removes both
-        seen.add(fid)
+        seen.add(h)  # by full hash, not the 24-bit id, so a colliding decoy cannot hide a finding
+        fid = finding_id(cur.anchor, atom)
         restore = restore_ops(atom, cur, restore_from)
         action = _base_action(atom, kind)
         if not trig.may_revert or restore == ():
