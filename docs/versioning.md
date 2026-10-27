@@ -57,7 +57,7 @@ All commits must follow [Conventional Commits](https://www.conventionalcommits.o
 **Optional for:** `chore`, `docs`, `ci`, `style`, `test`, `refactor`, `build`
 
 **Valid scopes:**
-- Plugin names: `git`, `ci-cd-tools`, `tool-routing`, `dev-tools`, `mcpproxy`, `second-brain`, `stay-on-target`, `working-in-monorepos`
+- Plugin names: `git`, `ci-cd-tools`, `tool-routing`, `dev-tools`, `mcpproxy`, `second-brain`, `working-in-monorepos`
 - Repo-wide: `repo`
 
 ### Breaking Changes

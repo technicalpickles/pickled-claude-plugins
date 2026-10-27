@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # SessionStart nudge: devlog's description-based triggering measured ~0
 # real invocations after launch (checked via cq over session transcripts).
-# Planting a standing instruction at session start is the same mechanism
-# stay-on-target uses for its "Focused Development Mode" banner - it only
-# fires once, but the instruction it plants governs the whole session.
+# A standing instruction planted at session start only fires once, but it
+# governs the whole session.
 
 # devlog_mode (userConfig) = sidechain hands entry-writing to the devlog-sidechain
 # mod, so stay silent. Unset (older Claude Code, or never configured) means nudge.
