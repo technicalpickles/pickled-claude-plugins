@@ -63,12 +63,12 @@ Before adding tools, detect what config format the project uses:
 
 ```bash
 # Check for existing mise config
-ls -la mise.toml .mise.toml .mise.local.toml .tool-versions 2>/dev/null
+ls -la mise.toml .mise.toml mise.local.toml .mise.local.toml .tool-versions 2>/dev/null
 ```
 
 Config file precedence (mise uses the first it finds):
 - `mise.toml` or `.mise.toml` - standard mise config
-- `.mise.local.toml` - local overrides (usually gitignored)
+- `mise.local.toml` or `.mise.local.toml` - local overrides (usually gitignored)
 - `.tool-versions` - legacy asdf format
 
 **If a config file exists, use that format.** Don't create a new one.
@@ -106,6 +106,43 @@ node --version
 # Compare with mise's view
 mise which node
 ```
+
+## Conventions: Pins, Runtimes, and Local Overrides
+
+Defaults to follow unless the repo you're in says otherwise. Rationale and history: [dotfiles ADR 0067](https://github.com/technicalpickles/dotfiles/blob/main/doc/adr/0067-pin-global-mise-tools-and-leave-runtimes-to-projects.md).
+
+### Pin exact versions
+
+Prefer `mise use --pin tool@x.y.z`, which saves the resolved concrete version. `"latest"` and fuzzy versions can't be bumped by Renovate (nothing to compare against), and two machines can end up on different builds. If a pin is deliberate, say so in a comment beside it.
+
+### Renovate and mise
+
+- Renovate's mise manager reads `mise.toml`, `.mise.toml` and `.config/mise/` by default. Config kept elsewhere (a dotfiles `config/mise/`, say) needs `managerFilePatterns` on the `mise` manager.
+- It understands `github:` and `npm:` backends and core tools like `bun` and `go`. It skips `"latest"`, `lts` and `stable`.
+- mise strips the `v` from `github:` tags but Renovate writes the raw tag back. Add a `packageRules` entry with `"matchManagers": ["mise"]` and `"extractVersion": "^v?(?<version>.+)$"`.
+
+### Runtimes belong to the project
+
+`go`, `python`, `rust` and `ruby` go in the project's own `mise.toml`, not the global config. Global config is for tools you run everywhere (CLIs, `node` for `npm:` tools).
+
+### Local overrides for clones without mise config
+
+When you've cloned something with no mise config of its own, create `mise.local.toml` with the versions it needs (read them from `go.mod`, CI or `.ruby-version`), and keep it out of git:
+
+```bash
+# Per clone. In a bare-repo + worktrees layout the exclude lives in the common dir
+echo mise.local.toml >> "$(git rev-parse --git-common-dir)/info/exclude"
+```
+
+Or ignore `mise.local.toml` and `.mise.local.toml` in the global gitignore once, and skip the per-clone step.
+
+### Don't read go.mod as a version source
+
+`idiomatic_version_file_enable_tools = ["go"]` makes mise read the `go` directive in `go.mod`, but that is only a minimum version and mise removes the support in 2026.11.0. A `toolchain goX.Y.Z` line, `.go-version` or `mise.toml` still work.
+
+### npm: backend still needs node to run
+
+The `npm:` backend installs without node, but the installed bin shims run whichever `node` is first on `PATH`. Keep a node on `PATH` wherever an `npm:` tool is used.
 
 ## Troubleshooting "Command Not Found"
 
