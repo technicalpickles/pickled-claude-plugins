@@ -399,8 +399,8 @@ def test_make_ctx_collects_remotes_and_hosts():
         entry("lfs.url", "https://lfs.example/x"),
     ])
     ctx = make_ctx(s, None, rules)
-    # Only names with a remote.<r>.url count: `fork` has just a pushurl.
-    assert ctx.remotes == frozenset({"origin", "bad"})
+    # Only names with a remote.<r>.url count: `fork` has just a pushurl. Keyed by member git_dir.
+    assert ctx.remotes == {PurePosixPath("/r/a/.git"): frozenset({"origin", "bad"})}
     assert ctx.hosts == frozenset(
         {"github.com", "gitlab.example", "code.example", "subs.example"}
     )
@@ -487,7 +487,7 @@ def test_phantom_remote_name_is_checked_as_url(phantom, lkg, dotted):
     plant = entry(f"remote.{phantom}.prune", "true")
     pointer = entry(dotted, phantom)
     ctx = make_ctx(surface([_ORIGIN, plant, pointer]), lkg, rules)
-    assert phantom not in ctx.remotes
+    assert phantom not in ctx.remotes[COMMON.git_dir]
     assert classify_entry(pointer, ctx, rules) == (X, NONE)
     assert classify_entry(entry(dotted, "origin"), ctx, rules)[1] is not NONE
 
@@ -536,3 +536,46 @@ def test_core_worktree_inside_a_git_dir_fails(value):
                        file="/r/a/.git/modules/sub/config", scope="module")])
     e = entry("core.worktree", value)
     assert classify_entry(e, make_ctx(s, None, rules), rules) == (X, NONE)
+
+
+# -- Fix round 2: remote names are scoped to the config view that reads the pointer ---------------
+
+ADMIN = MemberRef(PurePosixPath("/r/a/.git/worktrees/w"), "admin")
+_WHERE = {
+    "common": {},
+    "main-wt": {"file": "/r/a/.git/config.worktree", "scope": "worktree"},
+    "module": {"member": MODULE, "file": "/r/a/.git/modules/sub/config", "scope": "module"},
+    "admin": {"member": ADMIN, "file": "/r/a/.git/worktrees/w/config.worktree",
+              "scope": "worktree"},
+}
+
+
+@pytest.mark.parametrize(
+    ("url_in", "pointer_in", "passes"),
+    [
+        ("module", "common", False),  # git never reads a submodule's config from the superproject
+        ("admin", "common", False),  # a url only one worktree sees never validates common config
+        ("main-wt", "common", False),  # main's config.worktree is not read by linked worktrees
+        ("common", "common", True),
+        ("common", "admin", True),  # a worktree reads common config plus its own config.worktree
+        ("admin", "admin", True),
+        ("module", "module", True),
+        ("common", "module", False),
+        ("admin", "module", False),
+    ],
+)
+@pytest.mark.parametrize("lkg", [None, _LKG], ids=["no-lkg", "lkg"])
+@pytest.mark.parametrize("dotted", ["branch.main.remote", "branch.main.pushremote",
+                                    "remote.pushDefault"])
+def test_remote_names_scoped_to_reading_member(url_in, pointer_in, passes, lkg, dotted):
+    rules = default_rules()
+    url = entry("remote.../evil.url", "https://github.com/o/r.git", **_WHERE[url_in])
+    pointer = entry(dotted, "../evil", **_WHERE[pointer_in])
+    s = surface([_ORIGIN, url, pointer], toplevels=["/r/a", "/r/w"])
+    got = classify_entry(pointer, make_ctx(s, lkg, rules), rules)
+    if not passes:
+        assert got == (X, NONE)
+    elif dotted == "remote.pushDefault":
+        assert got == (X, OK)
+    else:
+        assert got == (R, LIT)

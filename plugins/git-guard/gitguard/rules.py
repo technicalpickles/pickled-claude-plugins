@@ -50,7 +50,8 @@ class Row:
 class ClassifyCtx:
     surface: Surface
     lkg: Optional[Lkg]
-    remotes: frozenset[str]  # every <r> in remote.<r>.* of the current surface
+    # Per member git_dir: the remote names that have a url in the config view that member reads.
+    remotes: Mapping[PurePosixPath, frozenset[str]]
     hosts: frozenset[str]  # lowercase hosts a URL may point at
 
 
@@ -414,7 +415,9 @@ def _url(value: str, env: Optional[CheckEnv]) -> bool:
 
 
 def _remote_name_or_url(value: str, env: Optional[CheckEnv]) -> bool:
-    return value == "." or value in _env(env).ctx.remotes or _url(value, env)
+    e = _env(env)
+    names = e.ctx.remotes.get(e.entry.member.git_dir, frozenset())
+    return value == "." or value in names or _url(value, env)
 
 
 def _fetch_refspec(value: str, env: Optional[CheckEnv]) -> bool:
@@ -549,14 +552,41 @@ _validate(ROWS)
 # -- Classification -----------------------------------------------------------------------------
 
 
+def _remote_views(cur: Surface) -> dict[PurePosixPath, frozenset[str]]:
+    """Remote names with a `remote.<r>.url`, per member git_dir, as that member's config view
+    sees them. git uses a URL-less remote's name as its URL, so a name only counts when its url
+    is in a config file that is read together with the pointer:
+
+    - common: the common `config` only. Main's `config.worktree` (also the common member) is
+      not read by linked worktrees, so its urls are left out, which is stricter than needed
+      for a pointer that is itself in main's `config.worktree`.
+    - module: that module's own config. git never reads it from the superproject, nor the
+      superproject's from it.
+    - admin (a linked worktree): the common config plus its own `config.worktree`.
+    """
+    common = cur.common_dir
+    own: dict[PurePosixPath, set[str]] = {m.git_dir: set() for m in cur.members}
+    own.setdefault(common, set())
+    for e in cur.entries:
+        k = e.key
+        if k.section != "remote" or k.subsection is None or k.variable != "url":
+            continue
+        if e.member.role == "common" and e.scope != "local":
+            continue
+        own.setdefault(e.member.git_dir, set()).add(k.subsection)
+    roles = {m.git_dir: m.role for m in cur.members}
+    roles.update({e.member.git_dir: e.member.role for e in cur.entries})
+    return {
+        git_dir: frozenset(names | own[common] if roles.get(git_dir) == "admin" else names)
+        for git_dir, names in own.items()
+    }
+
+
 def make_ctx(cur: Surface, lkg: Optional[Lkg], rules: RuleSet) -> ClassifyCtx:
-    # Only remotes with a url count as names: git uses a URL-less remote's name as its URL, so
-    # `remote.../evil.prune=true` must not make `branch.main.remote=../evil` a remote name.
-    remotes = frozenset(
-        e.key.subsection
-        for e in cur.entries
-        if e.key.section == "remote" and e.key.subsection is not None and e.key.variable == "url"
-    )
+    """remotes: per member git_dir, the names a `branch.*.remote`-style pointer read by that
+    member may use (see `_remote_views`). hosts: the hosts of remote and submodule URLs in the
+    LKG if there is one, otherwise in `cur`, plus `rules.trusted_hosts`."""
+    remotes = _remote_views(cur)
     source = (
         [a for a in lkg.atoms.values() if isinstance(a, ConfigEntry)]
         if lkg is not None
