@@ -96,7 +96,7 @@ Follow the full `../skills/obsidian/references/connecting.md` algorithm:
 
 1. Extract query terms from the note's title and body
 2. Run `qmd query "{terms}" -c {collection} -n 15 --json`
-3. Filter noise (self, already-linked, low-relevance, daily notes)
+3. Filter noise (self, already-linked, daily notes, and weak matches judged from the snippet; qmd scores are ranks, not a relevance scale)
 4. Enrich candidates (check for See Also, Related, TK sections)
 5. Rank by connection value
 6. Present candidates for multi-select
