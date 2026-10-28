@@ -40,7 +40,7 @@ Distilled from accumulated corrections (via `distill-rules` skill). These are st
 
 ## Consultation Order
 
-When the `route` skill (or `commands/route.md`) makes a routing decision:
+When the `route` skill makes a routing decision:
 
 1. **Check corrections first.** Recent corrections override everything. A correction from today beats a CLAUDE.md rule.
 2. **Check learned patterns.** These are distilled corrections, more stable than individual entries.
@@ -55,8 +55,6 @@ When the `route` skill suggests a destination and the user picks a different one
 1. Append a new entry to `## Corrections` with date, original suggestion, user's choice, and reason
 2. Ask the user: "Why did you pick {destination} over {suggested}?" (one sentence is fine)
 3. Record the reason
-
-This happens in both the pipeline `route` skill and the standalone `commands/route.md` command.
 
 ## Auto-Route Threshold
 
