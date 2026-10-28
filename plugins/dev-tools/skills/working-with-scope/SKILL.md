@@ -400,80 +400,7 @@ Commands execute at report generation time. Scope automatically redacts secrets.
 
 ## Common Patterns
 
-### Version Check Pattern
-
-```yaml
-actions:
-  - name: minimum-version
-    description: Ensure minimum version installed
-    check:
-      commands:
-        - ./bin/check-version.sh check tool 1.2.3
-    fix:
-      helpText: |
-        You don't have the minimum version installed.
-        Check Managed Software Center for updates.
-```
-
-### File-Based Check Pattern
-
-```yaml
-actions:
-  - name: config-file
-    description: Verify config file exists and is valid
-    check:
-      paths:
-        - .config-file
-      commands:
-        - test -s .config-file
-    fix:
-      commands:
-        - ./bin/setup-config.sh
-```
-
-### Service Health Pattern
-
-```yaml
-actions:
-  - name: service-running
-    description: Ensure service is running
-    check:
-      commands:
-        - ./bin/check-service.sh
-    fix:
-      commands:
-        - ./bin/start-service.sh
-      helpText: |
-        Service failed to start.
-        Check logs: tail "$(brew --prefix)/var/log/service.log"
-```
-
-### Dependency Install Pattern
-
-```yaml
-actions:
-  - name: install-packages
-    description: Install project dependencies
-    check:
-      paths:
-        - package.json
-        - yarn.lock
-    fix:
-      commands:
-        - yarn install
-```
-
-### Orchestration Pattern
-
-```yaml
-# Main group that just coordinates dependencies
-spec:
-  needs:
-    - environment-setup
-    - database-setup
-    - language-runtime
-  actions: [] # No actions, just orchestration
-```
+Version checks, file-exists checks, service health, dependency installs, and path-triggered auto-run each have a ready YAML snippet in [references/quick-reference.md](references/quick-reference.md) ("Common Patterns"). An orchestration group is a `ScopeDoctorGroup` whose `needs:` lists other groups and whose `actions:` is empty.
 
 ## Workflow: Creating Known Error
 
@@ -564,33 +491,7 @@ spec:
 
 ## Debugging
 
-### Known Error Not Matching
-
-- Test regex: `rg "pattern" test-file.txt`
-- Check special character escaping
-- Verify pattern exists in test file
-- Use `scope analyze logs --extra-config` with test file
-
-### Doctor Check Always Running
-
-- Verify `paths` globs match files
-- Check commands exit 0 on success
-- Try `--no-cache` to rule out caching
-- Verify script permissions (executable)
-
-### Dependency Issues
-
-- Run `scope doctor list` to see execution order
-- Verify all `needs` items exist
-- Check for circular dependencies
-- Use `--only` to test individual groups
-
-### Script Path Issues
-
-- Use `./` prefix for relative paths (relative to YAML)
-- Ensure scripts have execute permissions
-- Use absolute paths or PATH for system commands
-- Verify working directory
+See "Debugging Checklist" in [references/quick-reference.md](references/quick-reference.md). The usual causes: a regex that needs escaping (test with `rg "pattern" file`), `paths` globs that match nothing, check commands that don't exit 0 on success, stale cache (`--no-cache`), non-executable scripts, script paths not relative to the YAML (`./` prefix), and `needs` naming a missing group (`scope doctor list` shows order).
 
 ## Security Features
 
@@ -622,17 +523,6 @@ config-repository/
 │   │   └── ...
 │   └── reports/              # Report locations
 ```
-
-### At Scale
-
-Real-world implementations include:
-
-- 70+ known error definitions
-- 30+ doctor groups
-- Categories: Docker, Ruby, Git, GitHub, MySQL, Postgres, DNS, AWS
-- Reduces time-to-resolution for common issues
-- Self-service troubleshooting
-- Consistent environments across teams
 
 ## Additional Resources
 

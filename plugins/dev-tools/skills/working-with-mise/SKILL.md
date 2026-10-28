@@ -208,21 +208,6 @@ eval "$(mise activate zsh)"
 - Tools not being on PATH in your terminal (fix activation instead)
 - "It works with mise exec" as a permanent solution
 
-## Validation Commands
-
-After configuration changes, verify everything works:
-
-```bash
-# Full health check
-mise doctor
-
-# Verify specific tool
-mise which node && node --version
-
-# Verify PATH includes mise tools
-echo $PATH | tr ':' '\n' | grep mise
-```
-
 ## Available References
 
 - [references/cli/use-html.md](references/cli/use-html.md) - Full `mise use` documentation
@@ -231,11 +216,3 @@ echo $PATH | tr ':' '\n' | grep mise
 - [references/cli/which-html.md](references/cli/which-html.md) - Path resolution
 - [references/dev-tools/shims-html.md](references/dev-tools/shims-html.md) - Shims vs PATH activation
 - [references/guides/getting-started.md](references/guides/getting-started.md) - Setup guide
-
-## Red Flags - You're About to Violate
-
-- "Let me just add this to mise.toml manually" → Use `mise use` instead
-- "I'll use mise exec as a workaround" → Diagnose why activation isn't working
-- "Let me create a .mise.toml" → Check if config already exists first
-- Adding jq/gh/ripgrep to mise → Consider if version actually matters
-- Assuming mise is activated → Run `mise doctor` to verify
