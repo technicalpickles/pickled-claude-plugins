@@ -9,9 +9,9 @@ Preferences and best practices for interacting with a git repository.
 
 ## git add
 
-ALWAYS use `git add` with specific files that have been updated. NEVER use `git add .` or `git add -A`.
+Stage the files you changed by path. `git add .` and `git add -A` sweep in whatever else is in the working tree, including files another session left there.
 
-IF adding files that look like they are agent configuration, or adding planning documentation, ALWAYS prompt the user to confirm if they should be included or not.
+Ask before staging files that look like agent configuration or planning docs.
 
 ## git commit
 
@@ -35,7 +35,7 @@ Commit signing is set up. Never bypass it (`--no-gpg-sign`, `-c commit.gpgsign=f
 
 ### pre-commit failures
 
-When git precommit checks fail, analyze what the failures are, and try to autofix when possible, otherwise think through how to fix it. Ask the user how to proceed when it's unclear if how to fix.
+When pre-commit checks fail, read what failed and fix it. Ask the user when the right fix is unclear.
 
 DO NOT follow sorbet's autocorrection advice.
 DO NOT skip verification without confirmation from the user.
