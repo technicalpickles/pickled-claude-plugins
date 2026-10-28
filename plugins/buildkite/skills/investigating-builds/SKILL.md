@@ -23,9 +23,17 @@ Check status, investigate failures, and reproduce them locally for Buildkite bui
 
 2. **Other bktide commands** for quick queries: `pipelines <org>`, `builds <org>/<pipeline>`, `build <org>/<pipeline>#<build>`, `annotations <org>/<pipeline>#<build>`, and the one write capability, `build create` / `build rebuild` (see below).
 
-3. **MCP tools** (fallback, and the only way to wait on or unblock a build): `buildkite:get_build`, `list_builds`, `list_annotations`, `get_pipeline`, `list_pipelines`, `wait_for_build`, `get_logs`, `get_logs_info`, `list_artifacts`, `unblock_job`. Start with `detail_level: "summary"` and filter with `job_state: "failed"`.
+3. **MCP tools** (fallback, and the only way to unblock a build): `buildkite:get_build`, `list_builds`, `list_annotations`, `get_pipeline`, `list_pipelines`, `wait_for_build`, `get_logs`, `get_logs_info`, `list_artifacts`, `unblock_job`. Start with `detail_level: "summary"` and filter with `job_state: "failed"`.
 
 Full capability matrix: [references/tool-capabilities.md](references/tool-capabilities.md). The tool preference order can be overridden in `~/.config/pickled-claude-plugins/buildkite.yml`; a PreToolUse hook enforces it by intercepting `bk` CLI commands that overlap with bktide.
+
+## No URL: find the branch's build
+
+```bash
+npx bktide@latest builds <org>/<pipeline> --branch <branch> --count 1 --format json
+```
+
+The newest build is `.builds[0]` (`number`, `state`, `url`). Without `--branch` it lists every branch. Snapshot its `url`.
 
 ## Investigating a failed build
 
@@ -88,7 +96,19 @@ mcp__MCPProxy__call_tool('buildkite:get_logs', {
 
 ## After a push
 
-Find the build with [scripts/find-commit-builds.js](scripts/find-commit-builds.js) `<org> <commit-sha>`, then wait with MCP `buildkite:wait_for_build` (`timeout: 1800, poll_interval: 30`), or in the background with [scripts/wait-for-build.js](scripts/wait-for-build.js) `<org> <pipeline> <build> --timeout 1800 --interval 30` (exit 0 passed, 1 failed, 2 canceled, 3 timeout). Don't poll in the foreground.
+Right after `git push` the branch's newest build can still be the previous one, and `builds` JSON has no commit, so confirm the build is for HEAD with `build --format json` (`.commit`) before watching. `--no-cache` keeps each poll fresh. Run the whole block in the background:
+
+```bash
+sha=$(git rev-parse HEAD); build=
+for _ in $(seq 20); do  # about 5 minutes for the build to appear
+  n=$(npx bktide@latest builds <org>/<pipeline> --branch <branch> --count 1 --format json --no-cache | jq -r '.builds[0].number // empty')
+  if [ -n "$n" ] && [ "$(npx bktide@latest build "<org>/<pipeline>#$n" --format json --no-cache | jq -r .commit)" = "$sha" ]; then build=$n; break; fi
+  sleep 15
+done
+if [ -n "$build" ]; then npx bktide@latest build "<org>/<pipeline>#$build" --watch; else echo "no build for $sha" >&2; (exit 2); fi
+```
+
+Exit 0 means passed, 1 means anything else (failed, canceled, or `--timeout <minutes>` reached, default 30; the timeout prints `Timeout reached`), 2 means no build for HEAD appeared. MCP `buildkite:wait_for_build` (`timeout: 1800, poll_interval: 30`) also works where a Buildkite MCP server is connected. Don't poll in the foreground.
 
 ## Blocked builds
 
