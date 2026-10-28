@@ -7,11 +7,7 @@ description: Use when creating, modifying, or debugging Buildkite pipeline YAML 
 
 ## Overview
 
-**Reference official Buildkite documentation before making pipeline changes.** Your training data may contain outdated syntax, deprecated patterns, or missing features.
-
-## The Iron Rule
-
-**NEVER propose Buildkite YAML without consulting the reference docs.**
+Read the matching file under `references/` before writing or changing pipeline YAML or `pipeline.rb`. Training data lags Buildkite's current syntax, plugin options, and deprecations.
 
 ## Detecting buildkite-builder
 
