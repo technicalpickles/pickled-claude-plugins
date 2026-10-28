@@ -134,9 +134,9 @@ After local verification passes:
    git push
    ```
 
-3. **Monitor the new build.** The scripts live in the buildkite plugin, at `plugins/buildkite/skills/investigating-builds/scripts/`.
-   - Find it: `find-commit-builds.js <org> <commit-sha>`.
-   - Wait with MCP `buildkite:wait_for_build` (`timeout: 1800, poll_interval: 30`), the preferred way. If MCP is unavailable, run `wait-for-build.js <org> <pipeline> <build> --timeout 1800 --interval 30` in the background (exit 0 passed, 1 failed, 2 canceled, 3 timeout). Don't poll in the foreground.
+3. **Monitor the new build.**
+   - Find it: `npx bktide@latest builds <org>/<pipeline> --branch <branch> --count 1 --format json`, newest build at `.builds[0]`.
+   - Wait in the background with `npx bktide@latest build <org>/<pipeline>#<build> --watch` (exit 0 passed, 1 failed; `--timeout <minutes>`, default 30), or MCP `buildkite:wait_for_build` (`timeout: 1800, poll_interval: 30`) where a Buildkite MCP server is connected. Don't poll in the foreground.
 
 4. On completion: pass → summarize and exit. Fail → go to Step 7.
 
