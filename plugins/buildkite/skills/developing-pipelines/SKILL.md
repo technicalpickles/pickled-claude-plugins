@@ -59,27 +59,9 @@ buildkite-builder generates the pipeline from Ruby. It is in use when both hold:
 
 When it is, edit the `pipeline.rb` files and read [references/buildkite-builder/](references/buildkite-builder/index.md) alongside the YAML references.
 
-### 2. Read Official Docs FIRST
+### 2. Read the reference first
 
-**For YAML pipelines:**
-
-Before writing or modifying pipeline YAML:
-
-```markdown
-**I need to reference the Buildkite documentation for [specific feature].**
-
-Let me read [references/[relevant-doc].md](references/).
-```
-
-**For buildkite-builder pipelines:**
-
-Before writing or modifying pipeline.rb:
-
-```markdown
-**I need to reference buildkite-builder documentation for [specific feature].**
-
-Let me read [references/buildkite-builder/[relevant-doc].md](references/buildkite-builder/).
-```
+Before writing the change, read the matching file in [references/](references/index.md) for YAML, or in [references/buildkite-builder/](references/buildkite-builder/index.md) for `pipeline.rb`.
 
 **Available references:**
 - `step-types.md` - Command, trigger, block, wait, input steps
