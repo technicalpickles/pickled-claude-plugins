@@ -11,8 +11,6 @@ Helps Claude work effectively in monorepo environments by ensuring commands alwa
 
 **Core principle:** Bash shell state is not guaranteed between commands. Always use absolute paths.
 
-**Announce at start:** "I'm using the working-in-monorepos skill."
-
 ## When to Use
 
 Use this skill when:
