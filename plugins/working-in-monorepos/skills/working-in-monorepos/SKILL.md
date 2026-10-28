@@ -24,9 +24,9 @@ Don't use for:
 - Single-project repositories
 - Repositories where all commands run from root
 
-## The Iron Rule: Always Use Absolute Paths
+## Use Absolute Paths
 
-When executing ANY command in a monorepo subproject:
+Run each command in a monorepo subproject with an absolute `cd` prefix:
 
 ✅ **CORRECT:**
 
@@ -165,7 +165,7 @@ If `.monorepo.json` defines command rules:
 | With config             | `cd {root}/{subproject.path} && command`                                                                |
 | Check for config        | `test -f .monorepo.json`                                                                                |
 | Generate config         | `<skill-dir>/scripts/monorepo-init --dry-run` (works from any directory)      |
-| Always rule             | Use absolute path + cd prefix for EVERY command. Get repo root first, then use absolute paths directly. |
+| Always rule             | Absolute path and `cd` prefix on each command. Get the repo root once, then use it directly.          |
 
 ## Configuration Schema
 
