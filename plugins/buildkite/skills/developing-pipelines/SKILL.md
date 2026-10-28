@@ -134,16 +134,7 @@ Note: List any custom ENV variables found in pipeline.rb and suggest setting rea
 
 ### 4. Load Plugin Documentation
 
-Before modifying any step with plugins:
-
-1. **Identify all plugins** in the step's `plugins:` block
-2. **For each plugin:**
-   - Check [references/plugins/{name}.md](references/plugins/) for cached docs
-   - If not cached, fetch from Buildkite directory or GitHub
-   - If version specified, fetch version-specific docs
-3. **Then proceed** with changes using accurate configuration reference
-
-See [references/plugins/index.md](references/plugins/index.md) for lookup workflow and common plugins.
+For any step with a `plugins:` block, follow [Working with Plugins](#working-with-plugins) before changing it.
 
 ## buildkite-builder Troubleshooting Mode
 
