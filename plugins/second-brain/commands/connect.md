@@ -17,6 +17,7 @@ allowed-tools:
   - Bash(date:*)
   - Bash(find:*)
   - Bash(stat:*)
+  - Bash(npx @techpickles/sb:*)
 ---
 
 # Connect Notes
@@ -36,11 +37,11 @@ Use the symlink path `~/.claude/vaults/{name}` to access the vault (e.g., `~/.cl
 
 Load skill references:
 - `second-brain:obsidian` for tool mechanics
-- `references/connecting.md` for connection discovery algorithm
+- `../skills/obsidian/references/connecting.md` for connection discovery algorithm
 
 ## Step 2: Check Prerequisites
 
-Follow `references/connecting.md` prerequisites:
+Follow `../skills/obsidian/references/connecting.md` prerequisites:
 
 ```bash
 which qmd
@@ -91,7 +92,7 @@ Check the path and try again.
 
 ### Step 5: Run Connection Discovery
 
-Follow the full `references/connecting.md` algorithm:
+Follow the full `../skills/obsidian/references/connecting.md` algorithm:
 
 1. Extract query terms from the note's title and body
 2. Run `qmd query "{terms}" -c {collection} -n 15 --json`
@@ -120,9 +121,9 @@ Scan the vault for notes that might benefit from connections:
 
 **Priority 1: Recent inbox notes without connections**
 ```bash
-# Notes in inbox without ## Related section
-find "{vault}"/📫\ Inbox/ -name "*.md" -type f -mtime -30 2>/dev/null
+npx @techpickles/sb inbox list --detail
 ```
+Keep the ones captured in the last 30 days.
 
 For each, check if it has a `## Related` section. Notes without one are candidates.
 
