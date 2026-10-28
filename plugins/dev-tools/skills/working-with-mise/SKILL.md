@@ -119,7 +119,7 @@ Prefer `mise use --pin tool@x.y.z`, which saves the resolved concrete version. `
 
 - Renovate's mise manager reads `mise.toml`, `.mise.toml` and `.config/mise/` by default. Config kept elsewhere (a dotfiles `config/mise/`, say) needs `managerFilePatterns` on the `mise` manager.
 - It understands `github:` and `npm:` backends and core tools like `bun` and `go`. It skips `"latest"`, `lts` and `stable`.
-- mise strips the `v` from `github:` tags but Renovate writes the raw tag back. Add a `packageRules` entry with `"matchManagers": ["mise"]` and `"extractVersion": "^v?(?<version>.+)$"`.
+- mise strips the `v` from `github:` tags but Renovate writes the raw tag back. The `github>technicalpickles/renovate-config:mise` preset handles this. A hand-written rule needs `"extractVersion": "^v?(?<version>.+)$"` scoped with `"matchDepNames": ["github:**"]`; unscoped, it drops updates for core tools like `go` (see `dev-tools:adopting-renovate`).
 
 ### Runtimes belong to the project
 
