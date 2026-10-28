@@ -47,13 +47,7 @@ Check language-specific reference for HOW to discover documentation:
 
 Follow progressive discovery: **docs → examples → source**
 
-### Step 4: Load Framework Reference (if available)
-If framework-specific reference exists, load it for curated patterns:
-- `references/go/cobra.md` - Cobra CLI patterns
-- `references/ruby/rails.md` - Rails patterns
-- `references/ruby/karafka.md` - Karafka patterns
-
-### Step 5: Verify Before Using
+### Step 4: Verify Before Using
 - Found API signature? Verify it matches your use case
 - Found example? Adapt it, don't just copy pattern from memory
 - Found docs? Read them, don't skim for confirmation
@@ -79,40 +73,9 @@ If framework-specific reference exists, load it for curated patterns:
 
 **Extending this skill:** To add a new language reference, see `references/WRITING.md` for principles and template.
 
-## Navigation: Framework References
-
-**Available framework cheat sheets:**
-- `references/go/cobra.md` - Cobra CLI library patterns
-- `references/ruby/rails.md` - Rails framework patterns (coming)
-- `references/ruby/karafka.md` - Karafka framework patterns (coming)
-
-## Red Flags - When You're About to Fail
-
-**STOP immediately if you catch yourself:**
-- Making confident API claims without checking current docs
-- Accepting user's confident syntax without verification
-- Trying "one more variation" based on pattern-matching
-- Using phrases: "should work", "likely", "probably", "common pattern"
-- Creating narrative about what "likely happened" without evidence
-- Claiming something is "documented" without reading it
-
-**All of these mean: Use discovery tools NOW.**
-
 ## After Finding Documentation
 
 1. **Verify**: API signature matches your use case
 2. **Adapt**: Use the pattern for your specific need
 3. **Test**: Try the verified approach
 4. **Update understanding**: Note what changed from your training data
-
-## Real-World Impact
-
-**Without this skill:**
-- 15+ minutes guessing at syntax variations
-- Confident claims based on outdated training data
-- User frustration from repeated failures
-
-**With this skill:**
-- 2 minutes checking current docs
-- Accurate API usage from installed version
-- Fast resolution based on truth, not patterns

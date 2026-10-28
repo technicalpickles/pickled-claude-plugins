@@ -29,13 +29,7 @@ Path-limited commits take the working-tree version of those files, so skip `-- <
 
 ### signing
 
-We have git commit signing setup. If it fails due to a message like:
-
-    error: 1Password: failed to fill whole buffer
-
-    fatal: failed to write commit object
-
-... it is because the user was being prompted to authorize signing, and didn't see it or missed it. Do not try to fix or bypass it. Stop and prompt the user about either fixing it, or confirm bypassing it.
+Commit signing is set up. Never bypass it (`--no-gpg-sign`, `-c commit.gpgsign=false`, switching keys). If signing fails, read the actual error and report it to the user; on a Mac with Automic Vault, the `automic-vault:automic-vault-credentials` skill covers agent signing failures.
 
 ## hooks
 
@@ -48,12 +42,4 @@ DO NOT skip verification without confirmation from the user.
 
 ### prepare-commit-msg and post-commit
 
-If we see errors like:
-
-```
-git: 'duet-prepare-commit-msg' is not a git command. See 'git --help'.
-```
-
-it is because we previously were using git-duet. It uses a git template, with hooks that call `git duet-prepare-commit-msg`. We've sinced moved, but the files will still be present
-
-In this case, check .git/hooks/ for references to these. Remove files that call it.
+`git: 'duet-prepare-commit-msg' is not a git command` comes from leftover git-duet hooks in `.git/hooks/` (we no longer use git-duet). Remove the hook files that call it.
