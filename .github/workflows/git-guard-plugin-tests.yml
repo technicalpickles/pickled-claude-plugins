@@ -1,0 +1,35 @@
+name: git-guard plugin tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'plugins/git-guard/**'
+      - '.claude-plugin/marketplace.json'
+      - '.github/workflows/git-guard-plugin-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    name: pytest (python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.10 is the floor in pyproject.toml's requires-python.
+        python: ['3.10', '3.12']
+    defaults:
+      run:
+        working-directory: plugins/git-guard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v8.1.0
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python }}
+      - name: Install dependencies
+        run: uv sync --no-install-project
+      - name: Run pytest
+        run: uv run pytest tests/ -v

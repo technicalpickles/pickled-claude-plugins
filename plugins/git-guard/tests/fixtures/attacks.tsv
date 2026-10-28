@@ -1,0 +1,38 @@
+core.fsmonitor	/tmp/x	exec	revert
+core.pager	sh -c x	exec	revert
+core.editor	x	exec	revert
+core.sshCommand	x	exec	revert
+alias.st	!sh -c x	exec	revert
+filter.x.clean	sh -c x	exec	revert
+filter.lfs.smudge	sh -c x	exec	revert
+diff.external	/tmp/x	exec	revert
+diff.x.textconv	/tmp/x	exec	revert
+merge.x.driver	/tmp/x	exec	revert
+credential.helper	!f() { :; }; f	exec	revert
+hook.evil.command	sh -c x	exec	revert
+hook.hk-pre-commit.command	sh -c x	exec	revert
+hook.hk-pre-commit.event	post-checkout	exec	revert
+submodule.s.update	!sh -c x	exec	revert
+core.hooksPath	/tmp/evil	redirect	revert
+core.hooksPath	../../evil	redirect	revert
+remote.origin.url	ext::sh -c x	redirect	revert
+remote.origin.url	/tmp/evil.git	redirect	revert
+remote.origin.url	https://evil.example/x.git	redirect	revert
+remote.origin.uploadpack	/tmp/x	exec	revert
+remote.origin.vcs	evil	exec	revert
+branch.main.remote	https://evil.example/x.git	redirect	revert
+include.path	/tmp/evil.cfg	redirect	revert
+url.https://Evil/.insteadOf	https://github.com/	redirect	revert
+init.templateDir	/tmp/tpl	redirect	revert
+core.attributesFile	/tmp/a	redirect	revert
+gpg.program	/tmp/x	exec	revert
+uploadpack.packObjectsHook	/tmp/x	exec	revert
+pager.log	sh -c x	exec	revert
+difftool.x.cmd	x	exec	revert
+lfs.url	https://evil.example/lfs	redirect	revert
+tar.x.command	x	exec	revert
+interactive.diffFilter	x	exec	revert
+commit.gpgSign	false	weaken	warn
+http.sslVerify	false	weaken	warn
+protocol.ext.allow	always	weaken	warn
+core.hooksPath	/dev/null	weaken	warn
