@@ -11,9 +11,9 @@ allowed-tools:
 
 Turn an ingested insight note into a proper zettelkasten note with a clean title, well-written prose, and complete frontmatter.
 
-See `references/pipeline.md` for stage definitions and status flow.
-See `references/note-patterns.md` for the Insight Note template.
-See `references/zettelkasten.md` for naming conventions.
+See `../obsidian/references/pipeline.md` for stage definitions and status flow.
+See `../obsidian/references/note-patterns.md` for the Insight Note template.
+See `../obsidian/references/zettelkasten.md` for naming conventions.
 
 ## Input
 
@@ -22,7 +22,7 @@ An insight note in the inbox with `status: ingested` and `type: insight`.
 ## Process
 
 1. Read the ingested note
-2. Rewrite the body as clean prose (1-3 paragraphs) using the Insight Note pattern from `references/note-patterns.md`
+2. Rewrite the body as clean prose (1-3 paragraphs) using the Insight Note pattern from `../obsidian/references/note-patterns.md`
 3. Improve the title if needed (should be descriptive and specific)
 4. Add a `## Context` section with brief description of what session produced this
 5. Update status to `enriched` in frontmatter

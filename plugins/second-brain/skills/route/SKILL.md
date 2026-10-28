@@ -14,10 +14,10 @@ allowed-tools:
 
 Analyze an enriched note against routing memory, vault rules, and generic signals. Move to destination or mark for review.
 
-See `references/pipeline.md` for stage definitions and status flow.
-See `references/routing.md` for the scoring algorithm.
-See `references/para.md` and `references/johnny-decimal.md` for the two folder systems a vault may use (often both, mid-migration).
-See `references/routing-memory.md` for the correction and learning loop.
+See `../obsidian/references/pipeline.md` for stage definitions and status flow.
+See `../obsidian/references/routing.md` for the scoring algorithm.
+See `../obsidian/references/para.md` and `../obsidian/references/johnny-decimal.md` for the two folder systems a vault may use (often both, mid-migration).
+See `../obsidian/references/routing-memory.md` for the correction and learning loop.
 
 ## Input
 
@@ -35,9 +35,9 @@ An enriched note in the inbox with `status: enriched`.
    a. Check `.routing-memory.md` corrections for matching topics/keywords
    b. Check `.routing-memory.md` learned patterns
    c. Apply vault CLAUDE.md disambiguation rules
-   d. Apply generic signal scoring (per `references/routing.md`)
+   d. Apply generic signal scoring (per `../obsidian/references/routing.md`)
 
-   Each destination from `sb vault structure` carries a `type`. For Johnny Decimal destinations (`type: 'jd'`) also use `area` and `code` when scoring: match the note's topic to the `area`, and prefer an ID `code` (e.g. `67.01`) for a specific note or its parent category `code` (e.g. `67`) for a loose note. See `references/johnny-decimal.md`.
+   Each destination from `sb vault structure` carries a `type`. For Johnny Decimal destinations (`type: 'jd'`) also use `area` and `code` when scoring: match the note's topic to the `area`, and prefer an ID `code` (e.g. `67.01`) for a specific note or its parent category `code` (e.g. `67`) for a loose note. See `../obsidian/references/johnny-decimal.md`.
 
 3. Apply threshold:
    - Score >= `auto-route-threshold`: auto-route, move file, set `status: routed`

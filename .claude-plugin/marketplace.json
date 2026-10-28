@@ -14,12 +14,12 @@
     {
       "name": "working-in-monorepos",
       "source": "./plugins/working-in-monorepos",
-      "version": "1.0.2"
+      "version": "1.0.1"
     },
     {
       "name": "git",
       "source": "./plugins/git",
-      "version": "3.4.1"
+      "version": "3.4.0"
     },
     {
       "name": "ci-cd-tools",
@@ -29,17 +29,17 @@
     {
       "name": "dev-tools",
       "source": "./plugins/dev-tools",
-      "version": "1.2.1"
+      "version": "1.4.0"
     },
     {
       "name": "mcpproxy",
       "source": "./plugins/mcpproxy",
-      "version": "1.0.1"
+      "version": "1.0.0"
     },
     {
       "name": "second-brain",
       "source": "./plugins/second-brain",
-      "version": "1.20.0"
+      "version": "1.20.1"
     },
     {
       "name": "tool-routing",
@@ -59,7 +59,7 @@
     {
       "name": "buildkite",
       "source": "./plugins/buildkite",
-      "version": "1.1.2"
+      "version": "1.1.1"
     },
     {
       "name": "cq",
