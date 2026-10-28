@@ -15,7 +15,7 @@ allowed-tools:
 
 Review accumulated routing corrections in `.routing-memory.md` and propose updates to the vault's CLAUDE.md routing rules.
 
-See `references/routing-memory.md` for correction format and learning loop.
+See `../obsidian/references/routing-memory.md` for correction format and learning loop.
 
 ## Process
 

@@ -14,7 +14,7 @@ Turn a raw session notes file (type: `session-notes`) into an ingested
 insight, ready for the `enrich` stage. Defaults to keeping it as one
 note — see "Exception" below for when to split.
 
-See `references/pipeline.md` for stage definitions and status flow.
+See `../obsidian/references/pipeline.md` for stage definitions and status flow.
 
 ## Input
 
