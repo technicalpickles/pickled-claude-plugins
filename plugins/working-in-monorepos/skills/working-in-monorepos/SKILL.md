@@ -75,7 +75,7 @@ Example:
 
 Use git to find repo root, then construct absolute path:
 
-1. First get the repo root: `git rev-parse --show-toplevel`
+1. Get the repo root once per session: `git rev-parse --show-toplevel`
 2. Use that absolute path: `cd /absolute/path/to/repo/ruby && bundle exec rspec`
 
 **Example workflow:**
@@ -92,18 +92,6 @@ cd /Users/josh/workspace/schemaflow/ruby && bundle exec rspec
 **Why not use command substitution:** `cd $(git rev-parse --show-toplevel)/ruby` requires user approval. Instead, run `git rev-parse` once, then use the absolute path directly in all subsequent commands.
 
 **⚠️ Git subtree caveat:** In repositories containing git subtrees (nested git repos), `git rev-parse --show-toplevel` returns the innermost repo root, not the monorepo root. This makes it unreliable for subtree scenarios. Creating a `.monorepo.json` config is the robust solution that works in all cases.
-
-## Workflow When Working Without Config
-
-When working in a repo without `.monorepo.json`:
-
-1. **Get repo root ONCE at start of session:** Run `git rev-parse --show-toplevel`
-2. **Store the result mentally:** e.g., `/Users/josh/workspace/schemaflow`
-3. **Use absolute paths for ALL commands:** `cd /Users/josh/workspace/schemaflow/subproject && command`
-
-**Do NOT use command substitution like `cd $(git rev-parse --show-toplevel)/subproject`** - this requires user approval every time. Get the path once, then use it directly.
-
-**Important limitation:** `git rev-parse --show-toplevel` may not work correctly in repositories with git subtrees (nested git repos), as it returns the innermost repository root. For subtree scenarios, a `.monorepo.json` config is strongly recommended to explicitly define the true monorepo root.
 
 ## Setup Workflow (No Config Present)
 
