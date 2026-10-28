@@ -25,7 +25,7 @@ Run scenarios from `skills/working-in-monorepos/tests/baseline-scenarios.md`:
    - /tmp/test-monorepo/ruby/ (with Gemfile)
    - /tmp/test-monorepo/cli/ (with package.json)
 
-2. For each scenario, dispatch a Task subagent with the scenario prompt
+2. For each scenario, dispatch a subagent with the Agent tool, using the scenario prompt
 
 3. Evaluate: Did the agent use absolute paths?
 
