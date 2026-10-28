@@ -31,13 +31,13 @@ Wrapped (reference only):
 (E) Other location
 ```
 
-Detect group by filename suffix (`-wrapped.md`) and the file's first heading (`Parked:` vs `Wrapped:`). Filename and heading should agree; if they disagree, trust the heading and note the mismatch.
+Detect group by filename suffix (`-wrapped.md`, `-checkpoint.md`) and the file's first heading (`Parked:`, `Checkpoint:`, or `Wrapped:`). List checkpoints with the active handoffs. Filename and heading should agree; if they disagree, trust the heading and note the mismatch.
 
 ### 2. Branch on Mode
 
 After the user picks a file, read it and check the first heading.
 
-- `# Parked:` -> continue with **Continuation Flow** below
+- `# Parked:` or `# Checkpoint:` -> continue with **Continuation Flow** below
 - `# Wrapped:` -> switch to **Reference Flow** below
 
 ### Continuation Flow
