@@ -35,7 +35,7 @@ The skill needs to know what to fix. Any one of these inputs is sufficient:
 
 If the caller provides one of the above, use it directly. Otherwise:
 
-1. **From cwd**: read the current git branch (`git branch --show-current`), look for an open PR (`gh pr view --json number,headRefName`), find its latest failing build via the `buildkite:investigating-builds` skill's "Checking Current Branch/PR Status" workflow.
+1. **From cwd**: read the current git branch (`git branch --show-current`), look for an open PR (`gh pr view --json number,headRefName`), then find the branch's latest failing build with MCP `buildkite:list_builds` (`branch: <branch>`, `detail_level: "summary"`) or `npx bktide@latest builds <org>/<pipeline>`.
 2. **If cwd doesn't resolve cleanly** (no branch, no open PR, no failing build): the caller (slash-command wrapper or workflow agent) is responsible for either asking the user or failing with a clear message. This skill assumes resolution is done before its loop starts.
 
 ## Step 1: Capture Initial State
@@ -131,7 +131,7 @@ After local verification passes:
    git push
    ```
 
-3. **Monitor the new build** using the `buildkite:investigating-builds` skill's "Post-Push Monitoring" workflow.
+3. **Monitor the new build** as the `buildkite:investigating-builds` skill's "After a push" section describes: find it with `scripts/find-commit-builds.js`, then wait in the background.
 
 4. On completion: pass → summarize and exit. Fail → go to Step 7.
 
