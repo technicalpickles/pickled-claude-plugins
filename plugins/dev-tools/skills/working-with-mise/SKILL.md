@@ -12,11 +12,11 @@ mise is a polyglot tool version manager. Use this skill when:
 - Troubleshooting "command not found" when mise should have tools available
 - Deciding whether mise is the right choice for a dependency
 
-## The Iron Rules
+## Rules
 
-1. **Use `mise use` to add tools** - never manually edit config files
-2. **Detect existing config files first** - don't create new ones when one exists
-3. **Fix the shell, don't workaround** - if tools aren't on PATH, diagnose the activation issue rather than using `mise exec` as a permanent workaround
+1. **Add tools with `mise use`**, not by editing config by hand: it checks the tool exists, installs it, and writes valid syntax.
+2. **Use the config file the project already has**; don't create a second one.
+3. **Fix the shell when tools aren't on PATH**: diagnose activation instead of making `mise exec` the permanent workaround.
 
 ## When to Use mise vs Alternatives
 
