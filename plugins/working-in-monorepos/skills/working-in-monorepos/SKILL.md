@@ -112,8 +112,8 @@ When working in a repo without `.monorepo.json`:
 When skill activates in a repo without `.monorepo.json`:
 
 1. **Detect:** "I notice this appears to be a monorepo without a .monorepo.json config."
-2. **Offer:** "I can run ~/.claude/skills/working-in-monorepos/scripts/monorepo-init to auto-detect subprojects and generate config. Would you like me to?"
-3. **User accepts:** Run `~/.claude/skills/working-in-monorepos/scripts/monorepo-init --dry-run`, show output, ask for approval, then `~/.claude/skills/working-in-monorepos/scripts/monorepo-init --write`
+2. **Offer:** "I can run <skill-dir>/scripts/monorepo-init to auto-detect subprojects and generate config. Would you like me to?"
+3. **User accepts:** Run `<skill-dir>/scripts/monorepo-init --dry-run`, show output, ask for approval, then `<skill-dir>/scripts/monorepo-init --write`
 4. **User declines:** "No problem. I'll get the repo root once with git rev-parse and use absolute paths for all commands."
 5. **User wants custom:** "You can also create .monorepo.json manually. See example below."
 
@@ -126,16 +126,7 @@ The `monorepo-init` script is designed as a **black-box tool**:
 - The script exists to be called directly, not analyzed
 - All necessary usage information is in the help output
 
-**Script Location:**
-
-The script is located at `~/.claude/skills/working-in-monorepos/scripts/monorepo-init` (absolute path). Since skills are symlinked from the dotfiles repo via `home/.claude/skills/` → `~/.claude/skills/`, this path works universally regardless of which project directory you're currently in.
-
-```bash
-# Run from any directory - use the absolute path
-~/.claude/skills/working-in-monorepos/scripts/monorepo-init --help
-~/.claude/skills/working-in-monorepos/scripts/monorepo-init --dry-run
-~/.claude/skills/working-in-monorepos/scripts/monorepo-init --write
-```
+**Script location:** `scripts/monorepo-init` in this skill's base directory. Use its absolute path so it works from any directory.
 
 ## Command Execution Rules (With Config)
 
@@ -167,20 +158,6 @@ If `.monorepo.json` defines command rules:
 - rspec in ruby/: Use `bundle exec rspec`
 - rspec in root project: Use `bin/rspec`
 
-## Common Mistakes to Prevent
-
-❌ **"I just used cd, so I'm in the right directory"**
-Reality: You cannot track shell state reliably. Always use absolute paths.
-
-❌ **"The shell remembers where I am"**
-Reality: Shell state is not guaranteed between commands. Always use absolute paths.
-
-❌ **"It's wasteful to cd every time"**
-Reality: Explicitness prevents bugs. Always use absolute paths.
-
-❌ **"Relative paths are simpler"**
-Reality: They break when assumptions are wrong. Always use absolute paths.
-
 ## Quick Reference
 
 | Task                    | Command Pattern                                                                                         |
@@ -189,7 +166,7 @@ Reality: They break when assumptions are wrong. Always use absolute paths.
 | Run tests in subproject | `cd /absolute/path/to/repo/subproject && test-command`                                                  |
 | With config             | `cd {root}/{subproject.path} && command`                                                                |
 | Check for config        | `test -f .monorepo.json`                                                                                |
-| Generate config         | `~/.claude/skills/working-in-monorepos/scripts/monorepo-init --dry-run` (works from any directory)      |
+| Generate config         | `<skill-dir>/scripts/monorepo-init --dry-run` (works from any directory)      |
 | Always rule             | Use absolute path + cd prefix for EVERY command. Get repo root first, then use absolute paths directly. |
 
 ## Configuration Schema
