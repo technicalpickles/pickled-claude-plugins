@@ -14,22 +14,22 @@
     {
       "name": "working-in-monorepos",
       "source": "./plugins/working-in-monorepos",
-      "version": "1.0.2"
+      "version": "1.0.3"
     },
     {
       "name": "git",
       "source": "./plugins/git",
-      "version": "3.4.1"
+      "version": "3.4.2"
     },
     {
       "name": "ci-cd-tools",
       "source": "./plugins/ci-cd-tools",
-      "version": "1.2.0"
+      "version": "1.2.1"
     },
     {
       "name": "dev-tools",
       "source": "./plugins/dev-tools",
-      "version": "1.4.1"
+      "version": "1.4.2"
     },
     {
       "name": "mcpproxy",
@@ -39,22 +39,22 @@
     {
       "name": "second-brain",
       "source": "./plugins/second-brain",
-      "version": "1.20.1"
+      "version": "1.20.2"
     },
     {
       "name": "tool-routing",
       "source": "./plugins/tool-routing",
-      "version": "1.2.3"
+      "version": "1.2.4"
     },
     {
       "name": "stay-on-target",
       "source": "./plugins/stay-on-target",
-      "version": "1.0.0"
+      "version": "1.0.1"
     },
     {
       "name": "agent-meta",
       "source": "./plugins/agent-meta",
-      "version": "2.8.1"
+      "version": "2.8.2"
     },
     {
       "name": "buildkite",
@@ -112,7 +112,7 @@
     {
       "name": "stay-principled",
       "source": "./plugins/stay-principled",
-      "version": "0.1.0"
+      "version": "0.1.1"
     },
     {
       "name": "come-on",
