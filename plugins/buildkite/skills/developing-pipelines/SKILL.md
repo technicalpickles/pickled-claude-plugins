@@ -124,7 +124,7 @@ docker run --rm \
   -e BUILDKITE_BRANCH=main \
   -e BUILDKITE_COMMIT=abc123def \
   -e BUILDKITE_BUILD_NUMBER=1 \
-  gusto/buildkite-builder:4.13.0
+  gusto/buildkite-builder:<tag from .buildkite/pipeline.yml>
 
 # Validate generated YAML
 docker run ... | buildkite-agent pipeline upload --dry-run
