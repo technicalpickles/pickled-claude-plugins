@@ -27,6 +27,14 @@ Check status, investigate failures, and reproduce them locally for Buildkite bui
 
 Full capability matrix: [references/tool-capabilities.md](references/tool-capabilities.md). The tool preference order can be overridden in `~/.config/pickled-claude-plugins/buildkite.yml`; a PreToolUse hook enforces it by intercepting `bk` CLI commands that overlap with bktide.
 
+## No URL: find the branch's build
+
+```bash
+npx bktide@latest builds <org>/<pipeline> --branch <branch> --count 1 --format json
+```
+
+The newest build is `.builds[0]` (`number`, `state`, `url`). Without `--branch` it lists every branch. Snapshot its `url`.
+
 ## Investigating a failed build
 
 Snapshot the URL, then:
