@@ -9,20 +9,6 @@ description: Use when creating, modifying, or debugging Buildkite pipeline YAML 
 
 Read the matching file under `references/` before writing or changing pipeline YAML or `pipeline.rb`. Training data lags Buildkite's current syntax, plugin options, and deprecations.
 
-## Detecting buildkite-builder
-
-**Check for buildkite-builder usage before proceeding:**
-
-buildkite-builder is detected when BOTH conditions are true:
-1. `.buildkite/pipeline.yml` references Docker image containing "buildkite-builder"
-2. Pipeline Ruby files exist: `.buildkite/pipeline.rb` OR `.buildkite/pipelines/*/pipeline.rb`
-
-When detected, announce:
-
-> "I see you're using buildkite-builder for dynamic pipeline generation. I'll work with your pipeline.rb files and reference the Ruby DSL."
-
-Then load buildkite-builder reference documentation as needed.
-
 ## Working with Plugins
 
 ### Before Modifying Plugin Configuration
