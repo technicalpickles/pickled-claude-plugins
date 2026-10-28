@@ -113,7 +113,7 @@ Use when the work is done and the user is walking away. There may be open thread
 
 ## Open Threads
 [Optional. Things noticed but not done. One line each.
-Surface candidates for beans, but DO NOT auto-create them.]
+List follow-up candidates; don't file them in a tracker.]
 ```
 
 Filename: `[topic-slug]-wrapped.md`

@@ -7,33 +7,20 @@ description: Use when APIs fail repeatedly with version-related errors (method n
 
 ## Overview
 
-When your training data conflicts with current API versions, STOP guessing and START discovering. This skill guides you to find current, accurate documentation using language-specific tools.
-
-**Core principle:** Training data ages. Installed versions are truth. Use discovery tools to find what's actually there.
+When an API call fails in a way that points at a version mismatch, look up the installed version's docs instead of retrying from memory. Training data ages; the installed version is the truth.
 
 ## When to Use
 
-### Reactive Triggers (MUST use after these):
-- ✅ 2+ failed attempts with same library/API
-- ✅ Error patterns: "method not found", "wrong number of arguments", "unknown flag", "undefined method"
-- ✅ Version mismatch symptoms in stack traces
+- Two or more failed attempts against the same library or API.
+- Errors like "method not found", "wrong number of arguments", "unknown flag", "undefined method", or a version mismatch in a stack trace.
+- You're about to rely on an API detail you haven't checked against the installed version, including one the user is sure of that keeps failing.
 
-### Proactive Red Flags (STOP and check docs when you notice):
-- ⚠️ You're confident about API usage but haven't verified current version
-- ⚠️ User is confident but their syntax keeps failing
-- ⚠️ You're making "one more tweak" to syntax
-- ⚠️ You're using phrases like "should work", "likely correct", "probably just"
-- ⚠️ You're pattern-matching from training data without verification
-- ⚠️ You're about to claim something is "documented" without checking
-
-**When NOT to use:**
-- First attempt with clear error message pointing to fix
-- Errors unrelated to API usage (logic bugs, type errors in your code)
+Skip it for a first failure whose error names the fix, and for errors that aren't about API usage (logic bugs, type errors in your own code).
 
 ## The Discovery Workflow
 
-### Step 1: STOP Guessing
-Recognize the trigger. Don't make another attempt based on patterns or user confidence.
+### Step 1: Stop retrying
+Treat the trigger as the signal to look it up, not to try another variation.
 
 ### Step 2: Identify Context
 - What library/framework is failing? (check imports, stack traces, go.mod/Gemfile)
@@ -69,7 +56,7 @@ Follow progressive discovery: **docs → examples → source**
 - `references/go.md` - Go: `go doc`, `go list`, example/test scanning
 - `references/ruby.md` - Ruby: `bundle info`, `ri`, gem exploration
 
-**Path issues:** Some languages need tool managers (mise, asdf). If `go` or `bundle` not found, try `mise exec -- <command>`.
+**Path issues:** If `go` or `bundle` isn't found, `mise exec -- <command>` is fine for a one-off doc lookup. If it keeps happening, it's a shell activation problem; see `dev-tools:working-with-mise`.
 
 **Extending this skill:** To add a new language reference, see `references/WRITING.md` for principles and template.
 

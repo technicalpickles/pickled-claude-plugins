@@ -42,10 +42,10 @@ A routed note with `status: routed`.
    - Remove self
    - Remove already-linked notes
    - Remove daily notes
-   - Remove low-relevance results (below 30%)
+   - Remove weak matches, judged from the snippet (qmd scores are ranks, not a relevance scale)
 
 5. If candidates found, present to human (when called by orchestrator):
-   - Show candidates with scores and snippets
+   - Show each candidate with its snippet and a few words on why it looks like a strong or weak match
    - Let user multi-select which to connect
 
 6. For selected connections:

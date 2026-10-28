@@ -402,92 +402,13 @@ Commands execute at report generation time. Scope automatically redacts secrets.
 
 Version checks, file-exists checks, service health, dependency installs, and path-triggered auto-run each have a ready YAML snippet in [references/quick-reference.md](references/quick-reference.md) ("Common Patterns"). An orchestration group is a `ScopeDoctorGroup` whose `needs:` lists other groups and whose `actions:` is empty.
 
-## Workflow: Creating Known Error
+## Workflow: Creating a Known Error
 
-1. **Identify error pattern**
+A known error is a YAML definition plus a `.txt` file of real error output, side by side under `{config-root}/known-errors/{category}/`. It's done when `scope analyze logs --extra-config {config-root} <the .txt>` matches the sample and `jsonschema validate schema.json <the .yaml>` passes.
 
-   - Capture actual error output
-   - Find unique identifying text
-   - Create regex pattern
+## Workflow: Creating a Doctor Group
 
-2. **Create files**
-
-   ```bash
-   mkdir -p {config-root}/known-errors/category
-   touch {config-root}/known-errors/category/error-name.yaml
-   touch {config-root}/known-errors/category/error-name.txt
-   ```
-
-3. **Write YAML definition**
-
-   - Use template structure
-   - Write clear help text with numbered steps
-   - Add fix commands if automation is possible
-
-4. **Create test file**
-
-   - Put actual error output in `.txt` file
-   - Include enough context for pattern matching
-
-5. **Test pattern**
-
-   ```bash
-   scope analyze logs \
-     --extra-config {config-root} \
-     {config-root}/known-errors/category/error-name.txt
-   ```
-
-6. **Validate schema**
-   ```bash
-   jsonschema validate schema.json error-name.yaml
-   ```
-
-## Workflow: Creating Doctor Group
-
-1. **Define problem domain**
-
-   - What needs checking/fixing?
-   - What are the dependencies?
-   - Application or environment level?
-
-2. **Create group file**
-
-   ```bash
-   # Application-level
-   touch {config-root}/application/tool.yaml
-   
-   # Environment-level
-   touch {config-root}/environment/tool.yaml
-   
-   # Project-specific
-   touch .scope/tool.yaml
-   ```
-
-3. **Create helper scripts**
-
-   ```bash
-   mkdir -p .scope/bin
-   touch .scope/bin/tool.sh
-   chmod +x .scope/bin/tool.sh
-   ```
-
-4. **Write group definition**
-
-   - Define metadata (name, description)
-   - List dependencies in `needs`
-   - Create actions for each discrete check
-   - Reference scripts with relative paths
-
-5. **Test the group**
-
-   ```bash
-   scope doctor list                       # Verify detected
-   scope doctor run --only tool            # Test execution
-   scope doctor run --only tool --no-cache # Test without cache
-   ```
-
-6. **Add to parent group**
-   Update parent group's `needs` list if this is a new dependency
+A doctor group is a YAML file in `{config-root}/application/`, `{config-root}/environment/`, or `.scope/` (project-specific), plus any helper scripts under `.scope/bin/`, referenced by relative path and executable. Add it to its parent group's `needs` if it's a new dependency. It's done when `scope doctor list` shows it and `scope doctor run --only <name>` passes with and without `--no-cache`.
 
 ## Debugging
 

@@ -48,12 +48,12 @@ plugins/{name}/
 └── README.md
 ```
 
-**User-invocable actions go in `skills/{name}/SKILL.md`.** Claude Code surfaces skills for `/plugin:skill` invocation; plugin `commands/{name}.md` files are not surfaced and should not be used. If you find `commands/` directories in existing plugins, they are dead code: convert to skills. The `description:` field in SKILL.md frontmatter is what triggers the skill, so write it as a "use when X" sentence.
+**User-invocable actions go in `skills/{name}/SKILL.md`.** Plugin `commands/{name}.md` files still show up as slash commands, but new work goes in skills, and an existing command gets converted when you next change it. The `description:` field in SKILL.md frontmatter is what triggers the skill, so write it as a "use when X" sentence.
 
 ### Naming Gotchas
 
 - **Skill names are globally unique across all installed plugins** (Claude Code surfaces skills by their bare `name:` slug, not `plugin:name`). Two plugins shipping a skill called `doctor` collide. Prefix the directory and `name:` field with the plugin name: `plugins/actually-lsp/skills/actually-lsp-doctor/SKILL.md` with `name: actually-lsp-doctor`, not `skills/doctor/SKILL.md` with `name: doctor`. Some existing plugins (agent-meta) ship generic-named skills and got away with it only because the names happened to be unique; don't rely on that for new plugins.
-- **Don't ship a `commands/{name}.md` with the same name as a `skills/{name}/SKILL.md`.** Beyond commands simply not being surfaced (see above), a same-name collision specifically suppresses the SKILL.md content injection that normally follows a Skill tool invocation, forcing the model to grep/read the file manually or hallucinate its contents. If a skill already exists at `skills/{name}/`, either give any slash-command wrapper a different name or drop it entirely: direct Skill invocation via keyword match or `/plugin:skill-name` is sufficient. Slash-command wrappers pointing at skills are a legacy pattern from before skills were directly slash-callable.
+- **Don't ship a `commands/{name}.md` with the same name as a `skills/{name}/SKILL.md`.** A same-name collision suppresses the SKILL.md content injection that normally follows a Skill tool invocation, forcing the model to grep/read the file manually or hallucinate its contents. If a skill already exists at `skills/{name}/`, either give any slash-command wrapper a different name or drop it entirely: direct Skill invocation via keyword match or `/plugin:skill-name` is sufficient. Slash-command wrappers pointing at skills are a legacy pattern from before skills were directly slash-callable.
 
 ## claude.ai Skills
 

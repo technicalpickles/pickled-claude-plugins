@@ -35,7 +35,10 @@ The skill needs to know what to fix. Any one of these inputs is sufficient:
 
 If the caller provides one of the above, use it directly. Otherwise:
 
-1. **From cwd**: read the current git branch (`git branch --show-current`), look for an open PR (`gh pr view --json number,headRefName`), find its latest failing build via the `buildkite:investigating-builds` skill's "Checking Current Branch/PR Status" workflow.
+1. **From cwd**: read the current git branch (`git branch --show-current`) and look for an open PR (`gh pr view --json number,headRefName`). Then find the branch's latest failing build:
+   - Work out the pipeline slug. It usually matches the repo name; a monorepo may name it after the main repo.
+   - List the branch's builds with MCP `buildkite:list_builds` (`branch: <branch>`, `detail_level: "summary"`), or `npx bktide@latest builds --format json --branch <branch> <org>/<pipeline>`. Without `--branch`, `bktide builds` lists every branch, so filter on `branch` yourself.
+   - On the newest build, check in order: overall state, job summary (passed/failed/broken), annotations, then logs for the failed jobs.
 2. **If cwd doesn't resolve cleanly** (no branch, no open PR, no failing build): the caller (slash-command wrapper or workflow agent) is responsible for either asking the user or failing with a clear message. This skill assumes resolution is done before its loop starts.
 
 ## Step 1: Capture Initial State
@@ -131,7 +134,9 @@ After local verification passes:
    git push
    ```
 
-3. **Monitor the new build** using the `buildkite:investigating-builds` skill's "Post-Push Monitoring" workflow.
+3. **Monitor the new build.** The scripts live in the buildkite plugin, at `plugins/buildkite/skills/investigating-builds/scripts/`.
+   - Find it: `find-commit-builds.js <org> <commit-sha>`.
+   - Wait with MCP `buildkite:wait_for_build` (`timeout: 1800, poll_interval: 30`), the preferred way. If MCP is unavailable, run `wait-for-build.js <org> <pipeline> <build> --timeout 1800 --interval 30` in the background (exit 0 passed, 1 failed, 2 canceled, 3 timeout). Don't poll in the foreground.
 
 4. On completion: pass → summarize and exit. Fail → go to Step 7.
 

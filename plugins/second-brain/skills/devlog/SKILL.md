@@ -81,8 +81,7 @@ second devlog note for a session that already has one.
    - Current work item, if any (see [Work items](#work-items) below)
    - Short session id (first 8 characters of the session UUID)
    - Source string format: `claude-code session {short-id} ({repo}, branch {branch}, {tracker} {id})`
-     (omit fields that don't apply, matching the format the retired
-     `distill-conversation` command used)
+     (omit fields that don't apply)
 
 ### Work items
 

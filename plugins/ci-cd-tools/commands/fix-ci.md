@@ -16,7 +16,10 @@ Iteratively fix a failing Buildkite CI run. This command resolves what to fix, t
 Determine the build to fix using this priority order:
 
 1. **URL argument** provided → use it directly. The `bktide snapshot` tool parses any Buildkite URL.
-2. **No URL, current git branch has an open PR** → resolve via `gh pr view --json number,headRefName`, then find the latest failing build for that branch using the `buildkite:investigating-builds` skill's "Checking Current Branch/PR Status" workflow.
+2. **No URL, current git branch has an open PR** → resolve via `gh pr view --json number,headRefName`, then find the branch's latest failing build:
+   - Work out the pipeline slug. It usually matches the repo name; a monorepo may name it after the main repo.
+   - List the branch's builds with MCP `buildkite:list_builds` (`branch: <branch>`, `detail_level: "summary"`), or `npx bktide@latest builds --format json --branch <branch> <org>/<pipeline>`. Without `--branch`, `bktide builds` lists every branch, so filter on `branch` yourself.
+   - On the newest build, check in order: overall state, job summary (passed/failed/broken), annotations, then logs for the failed jobs.
 3. **No URL, current branch but no PR** → ask the user for either the build URL or the PR number.
 4. **Detached HEAD or no clear branch** → ask the user.
 
