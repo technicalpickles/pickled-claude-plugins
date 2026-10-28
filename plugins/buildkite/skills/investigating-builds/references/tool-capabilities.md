@@ -22,7 +22,7 @@ Three tool categories exist with different strengths and limitations:
 | **Retrieve job logs** | **✅** (steps/*/log.txt) | **❌**         | **✅ `buildkite:get_logs`**     | snapshot captures automatically |
 | Save to files         | ✅                  | ❌                  | ❌                              | For later analysis             |
 | List artifacts        | ❌                  | ❌                  | ✅ `buildkite:list_artifacts`   |                                |
-| Wait for build        | ❌                  | ❌                  | ✅ `buildkite:wait_for_build`   |                                |
+| Wait for build        | ❌                  | ✅ `build --watch`  | ✅ `buildkite:wait_for_build`   | `--watch` exits 0 passed, 1 failed |
 | Unblock jobs          | ❌                  | ❌                  | ✅ `buildkite:unblock_job`      |                                |
 | **Create a build**    | ❌                  | **✅** `build create` | ❌                            | Auto-detects pipeline/commit/branch from git |
 | **Rebuild a build**   | ❌                  | **✅** `build rebuild` | ❌                           | Re-runs with original params   |

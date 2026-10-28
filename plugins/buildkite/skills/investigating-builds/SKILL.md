@@ -23,7 +23,7 @@ Check status, investigate failures, and reproduce them locally for Buildkite bui
 
 2. **Other bktide commands** for quick queries: `pipelines <org>`, `builds <org>/<pipeline>`, `build <org>/<pipeline>#<build>`, `annotations <org>/<pipeline>#<build>`, and the one write capability, `build create` / `build rebuild` (see below).
 
-3. **MCP tools** (fallback, and the only way to wait on or unblock a build): `buildkite:get_build`, `list_builds`, `list_annotations`, `get_pipeline`, `list_pipelines`, `wait_for_build`, `get_logs`, `get_logs_info`, `list_artifacts`, `unblock_job`. Start with `detail_level: "summary"` and filter with `job_state: "failed"`.
+3. **MCP tools** (fallback, and the only way to unblock a build): `buildkite:get_build`, `list_builds`, `list_annotations`, `get_pipeline`, `list_pipelines`, `wait_for_build`, `get_logs`, `get_logs_info`, `list_artifacts`, `unblock_job`. Start with `detail_level: "summary"` and filter with `job_state: "failed"`.
 
 Full capability matrix: [references/tool-capabilities.md](references/tool-capabilities.md). The tool preference order can be overridden in `~/.config/pickled-claude-plugins/buildkite.yml`; a PreToolUse hook enforces it by intercepting `bk` CLI commands that overlap with bktide.
 
@@ -96,7 +96,7 @@ mcp__MCPProxy__call_tool('buildkite:get_logs', {
 
 ## After a push
 
-Find the build with [scripts/find-commit-builds.js](scripts/find-commit-builds.js) `<org> <commit-sha>`, then wait with MCP `buildkite:wait_for_build` (`timeout: 1800, poll_interval: 30`), or in the background with [scripts/wait-for-build.js](scripts/wait-for-build.js) `<org> <pipeline> <build> --timeout 1800 --interval 30` (exit 0 passed, 1 failed, 2 canceled, 3 timeout). Don't poll in the foreground.
+Find the build with the branch lookup above, then wait with `npx bktide@latest build <org>/<pipeline>#<build> --watch` run in the background. It exits 0 when the build passes and 1 when it fails; `--timeout <minutes>` defaults to 30. MCP `buildkite:wait_for_build` (`timeout: 1800, poll_interval: 30`) also works where a Buildkite MCP server is connected. Don't poll in the foreground.
 
 ## Blocked builds
 
