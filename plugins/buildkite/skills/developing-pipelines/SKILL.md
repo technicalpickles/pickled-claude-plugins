@@ -9,21 +9,6 @@ description: Use when creating, modifying, or debugging Buildkite pipeline YAML 
 
 **Reference official Buildkite documentation before making pipeline changes.** Your training data may contain outdated syntax, deprecated patterns, or missing features.
 
-## When to Use
-
-Use this skill when:
-- Writing or modifying pipeline.yml files
-- Creating dynamic pipelines
-- Debugging pipeline configuration errors
-- Adding new step types (command, trigger, block, wait)
-- Configuring dependencies, artifacts, or parallelism
-- Setting up Buildkite plugins
-- Configuring or debugging Buildkite plugins
-
-Do NOT use for:
-- Checking build status (use buildkite-status skill)
-- General CI/CD concepts (language-agnostic advice)
-
 ## The Iron Rule
 
 **NEVER propose Buildkite YAML without consulting the reference docs.**
@@ -206,16 +191,6 @@ When user mentions errors, "not generating", "YAML looks wrong", or validation f
 
 This mode switches from Ruby-first to YAML-aware debugging.
 
-## Common Mistakes
-
-| Mistake | Fix |
-|---------|-----|
-| Writing YAML from memory | Read step-types.md first |
-| "This should work..." | Validate with --dry-run |
-| Custom script without checking plugins | Search buildkite.com/plugins |
-| Speculating about errors | Check references/troubleshooting.md |
-| Assuming syntax from training data | Verify against current docs |
-
 ## Dynamic Pipelines Pattern
 
 When generating steps programmatically:
@@ -234,30 +209,6 @@ When generating steps programmatically:
 
 When pipeline fails with validation errors:
 
-1. **Check error message** against references/troubleshooting.md
-2. **Verify step structure** in references/step-types.md
-3. **Validate dependencies** in references/dependencies.md
-4. **Don't speculate** - look up the actual validation rules
-
-## Red Flags - You're About to Violate
-
-- "Based on my knowledge of Buildkite..."
-- "This syntax should work..."
-- "The validator likely fails because..."
-- "Let me create a dynamic pipeline..." (without reading docs)
-- Writing YAML before reading references
-- Confident statements about Buildkite behavior without verification
-
-**All of these mean: STOP. Read the docs first.**
-
-## Real-World Impact
-
-**Without this skill:**
-- Agent wrote 2,600-line dynamic pipeline from memory (Scenario 2 baseline)
-- Agent speculated about validator behavior without verification (Scenario 3 baseline)
-- Agent assumed syntax patterns without checking current docs
-
-**With this skill:**
-- Reference official patterns and current syntax
-- Validate before proposing
-- Avoid outdated or deprecated approaches
+1. **Verify step structure** in references/step-types.md
+2. **Validate dependencies** in references/dependencies.md
+3. **Don't speculate** - look up the actual validation rules
