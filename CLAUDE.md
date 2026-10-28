@@ -11,94 +11,24 @@ plugins/
 
 ## Development vs Installation
 
-### Local Development
-
-When working in this repo, plugins are at `plugins/{name}/`. Environment:
-- Flat layout: `plugins_dir/plugin-name/hooks/`
-- Use `CLAUDE_PLUGIN_ROOT="$PWD/plugins/{name}"` for testing
-
-### Installed (via Marketplace)
-
-When installed, plugins are copied to cache. Environment:
-- Versioned layout: `~/.claude/plugins/cache/{marketplace}/{plugin}/{version}/`
-- `CLAUDE_PLUGIN_ROOT` is set automatically by Claude Code
-
-### Key Difference
-
-**Changes to local source require reinstall to take effect:**
+Installed plugins are copied to `~/.claude/plugins/cache/{marketplace}/{plugin}/{version}/`, so **changes to local source take effect only after a reinstall and a Claude Code restart**:
 ```bash
 /plugin uninstall {plugin}@pickled-claude-plugins
 /plugin install {plugin}@pickled-claude-plugins
-# Restart Claude Code
 ```
+To run a hook against local source, set `CLAUDE_PLUGIN_ROOT="$PWD/plugins/{name}"` (Claude Code sets it automatically for installed plugins).
 
-## Plugin Testing
+If `installed_plugins.json` points at a path that doesn't exist (seen with directory-source marketplaces), `rm -rf ~/.claude/plugins/cache/pickled-claude-plugins/{plugin}/` and reinstall.
 
-### Test tool-routing routes
+Changing a `routes.json` or `tool-routes.yaml`? Test it with the tool-routing CLI: [`plugins/tool-routing/docs/route-discovery.md`](plugins/tool-routing/docs/route-discovery.md) covers `tool-routing test`/`list`, `CLAUDE_PROJECT_ROOT`, and why local-scoped plugins need an exact `projectPath` match.
 
-```bash
-# From repo root - CLAUDE_PROJECT_ROOT must match where plugin is scoped
-CLAUDE_PROJECT_ROOT="$PWD" uv run --directory plugins/tool-routing tool-routing test
-```
-
-### Verify cross-plugin route discovery
-
-```bash
-# From repo root
-CLAUDE_PROJECT_ROOT="$PWD" uv run --directory plugins/tool-routing tool-routing list
-# Shows routes from enabled plugins with routes.json manifests
-```
-
-**Important:** The tool-routing plugin uses manifest-driven discovery via `claude plugin list --json`. Local-scoped plugins are only discovered when `CLAUDE_PROJECT_ROOT` (or cwd) **exactly matches** the plugin's `projectPath`.
-
-## Common Issues
-
-### Plugin hooks not running after code changes
-
-The marketplace uses `"source": "directory"` but still **copies** to cache at install time.
-
-**Fix:** Reinstall and restart Claude Code.
-
-### Routes only discovered from one source
-
-Discovery uses `claude plugin list --json` and filters by enabled status and project path.
-
-**Check:**
-```bash
-# See which plugins are enabled and their project paths
-claude plugin list --json | jq '.[] | select(.enabled) | {id, scope, projectPath}'
-
-# Verify routes.json exists in cache
-ls ~/.claude/plugins/cache/pickled-claude-plugins/*/latest/.claude-plugin/routes.json
-```
-
-**Common cause:** Running from a subdirectory (e.g., `plugins/tool-routing/`) when plugins are scoped to the repo root. Local-scoped plugins require exact `projectPath` match.
-
-### `installed_plugins.json` points to non-existent path
-
-This can happen with directory-source marketplaces.
-
-**Fix:**
-```bash
-rm -rf ~/.claude/plugins/cache/pickled-claude-plugins/{plugin}/
-/plugin uninstall {plugin}@pickled-claude-plugins
-/plugin install {plugin}@pickled-claude-plugins
-```
-
-### Shell scripts must run on bash 3.2
+## Shell scripts must run on bash 3.2
 
 macOS ships `/bin/bash` 3.2, and `#!/usr/bin/env bash` can resolve to it even with a newer Homebrew bash installed. So no `declare -A`, `mapfile`, `${var,,}`, `|&`, etc. — use parallel indexed arrays or a delimited string instead of associative arrays. `./scripts/check-bash-compat.sh` flags these (CI and the hk pre-commit hook run it); test locally with `/bin/bash path/to/script`. It can't catch `"${arr[@]}"` on an empty array under `set -u`, which also errors on bash < 4.4.
 
 ## Environment Variables
 
-| Variable | Set By | Purpose |
-|----------|--------|---------|
-| `CLAUDE_PLUGIN_ROOT` | Claude Code (plugin hooks only) | Plugin's cache directory |
-| `CLAUDE_PROJECT_ROOT` | tool-routing CLI | Project root for filtering local-scoped plugins |
-| `TOOL_ROUTING_ROUTES` | Manual (testing) | Explicit route file paths, bypasses discovery |
-| `TOOL_ROUTING_DEBUG` | Manual | Enable debug output for route matching |
-
-**Note:** `CLAUDE_PLUGIN_ROOT` is NOT set for global hooks in `~/.claude/settings.json`.
+`CLAUDE_PLUGIN_ROOT` (the plugin's cache directory) is set for plugin hooks only, NOT for global hooks in `~/.claude/settings.json`.
 
 **Hooks/plugins reading user-level config must honor `CLAUDE_CONFIG_DIR`.** It's undocumented (not in Claude Code's env-vars/settings docs as of 2026-07) but honored in practice, and it *replaces* `~/.claude` rather than adding to it; it accepts a single dir or a `:`/`,`-separated list to search in order. Resolve as `$CLAUDE_CONFIG_DIR` (split on `[:,]`) or `[$HOME/.claude]`; don't hardcode `$HOME/.claude`, or config lookup silently breaks the day a user relocates their config dir. See `plugins/writing-tools/src/writing_tools/config.py`'s `_user_config_dirs()` for a working implementation (PR #102).
 
@@ -122,25 +52,14 @@ plugins/{name}/
 
 ### Naming Gotchas
 
-- **Skill names are globally unique across all installed plugins** (Claude Code surfaces skills by their bare `name:` slug, not `plugin:name`). Two plugins shipping a skill called `doctor` collide. Prefix the directory and `name:` field with the plugin name: `plugins/actually-lsp/skills/actually-lsp-doctor/SKILL.md` with `name: actually-lsp-doctor`, not `skills/doctor/SKILL.md` with `name: doctor`. Some existing plugins (agent-meta, sandbox-first) ship generic-named skills and got away with it only because the names happened to be unique; don't rely on that for new plugins.
+- **Skill names are globally unique across all installed plugins** (Claude Code surfaces skills by their bare `name:` slug, not `plugin:name`). Two plugins shipping a skill called `doctor` collide. Prefix the directory and `name:` field with the plugin name: `plugins/actually-lsp/skills/actually-lsp-doctor/SKILL.md` with `name: actually-lsp-doctor`, not `skills/doctor/SKILL.md` with `name: doctor`. Some existing plugins (agent-meta) ship generic-named skills and got away with it only because the names happened to be unique; don't rely on that for new plugins.
 - **Don't ship a `commands/{name}.md` with the same name as a `skills/{name}/SKILL.md`.** Beyond commands simply not being surfaced (see above), a same-name collision specifically suppresses the SKILL.md content injection that normally follows a Skill tool invocation, forcing the model to grep/read the file manually or hallucinate its contents. If a skill already exists at `skills/{name}/`, either give any slash-command wrapper a different name or drop it entirely: direct Skill invocation via keyword match or `/plugin:skill-name` is sufficient. Slash-command wrappers pointing at skills are a legacy pattern from before skills were directly slash-callable.
 
 ## claude.ai Skills
 
-Some Claude Code skills are also worth porting to **claude.ai Skills** (the chat
-product's own skill format — Settings → Capabilities → Skills, no filesystem/CLI/MCP
-access, uploaded as a zip by hand). These ports live at
-`plugins/{name}/claude-ai-skills/{skill}/`, colocated with the Claude Code plugin they
-mirror, but they are **not** plugin skills — no `plugin.json` entry, no marketplace
-entry, not part of the generated README table, and none of the versioning/commit-scope
-mechanics below apply to their *content*. A commit touching one still uses that
-plugin's name as its conventional-commit scope, same as any other change to the plugin.
-This does mean a commit that touches only a claude-ai-skills port still bumps that
-plugin's published version in `marketplace.json` — expected, not a bug, and
-`./scripts/bump-version.sh --auto` handles it the same as any other plugin change.
+Ports of Claude Code skills to claude.ai Skills (the chat product's format, uploaded as a zip by hand) live at `plugins/{name}/claude-ai-skills/{skill}/`. They are **not** plugin skills: no `plugin.json` or marketplace entry, not in the README table. Commits touching one still use the plugin's name as scope, so they still bump that plugin's version; that's expected.
 
-→ Full details, the shared build script, and the straight-vs-adapted-port checklist:
-[`docs/claude-ai-skill-porting.md`](docs/claude-ai-skill-porting.md)
+Details, the build script, and the porting checklist: [`docs/claude-ai-skill-porting.md`](docs/claude-ai-skill-porting.md)
 
 ## Versioning
 
@@ -189,9 +108,7 @@ The `plugin-list-check.yml` workflow blocks merge until the committed table matc
 
 - [`docs/versioning.md`](docs/versioning.md) - How plugin versions are managed
 - [`docs/claude-ai-skill-porting.md`](docs/claude-ai-skill-porting.md) - How claude.ai Skills (a separate product from Claude Code plugins) are structured and built
-- `plugins/tool-routing/docs/route-discovery.md` - How routes are found and merged
-- `plugins/tool-routing/docs/tests/` - Test scenarios and baseline results
-- `plugins/tool-routing/docs/retrospectives/` - Investigation notes
+- [`plugins/tool-routing/docs/route-discovery.md`](plugins/tool-routing/docs/route-discovery.md) - How routes are found and merged
 
 ## Skill Authoring
 
@@ -221,13 +138,3 @@ If recall stays low across description revisions with no precision regression, t
 4. **Stop tuning the description** past this point; diminishing or zero returns.
 
 See `plugins/buildkite/skills/investigating-builds/evals/README.md` for the eval-loop mechanics this is layered on top of.
-
-## Contributing
-
-1. Create a branch from `main`
-2. Make changes to plugin source in `plugins/{name}/`
-3. Test locally with appropriate env vars
-4. Commit using conventional format: `feat({plugin}): description` — `{plugin}` is the actual plugin name, e.g. `feat(actually-lsp): description`
-5. Run `./scripts/bump-version.sh --auto` (also regenerates the README plugin table) and commit as `chore({plugin}): bump version to X.Y.Z`
-6. Create PR - CI validates commits and that pending bumps are applied
-7. Merge once green and approved
