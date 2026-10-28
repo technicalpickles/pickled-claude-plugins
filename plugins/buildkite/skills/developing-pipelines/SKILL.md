@@ -96,10 +96,13 @@ See [references/buildkite-builder/index.md](references/buildkite-builder/index.m
 
 ### 3. Validate Syntax
 
-After proposing changes, ALWAYS mention validation:
+Validate before proposing the change. When no validator is installed, give the user the command instead.
 
 ```bash
-# Validate locally before pushing
+# Schema check with the bk CLI, local, no API token
+bk pipeline validate --file .buildkite/pipeline.yml
+
+# Or with buildkite-agent, where it is installed
 buildkite-agent pipeline upload --dry-run < pipeline.yml
 
 # Or validate a generated pipeline
