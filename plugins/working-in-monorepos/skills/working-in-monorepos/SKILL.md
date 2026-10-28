@@ -97,16 +97,7 @@ cd /Users/josh/workspace/schemaflow/ruby && bundle exec rspec
 
 When the repo looks like a monorepo but has no `.monorepo.json`, offer to generate one with `scripts/monorepo-init`. If the user agrees, run it with `--dry-run`, show the output, and run it with `--write` once they approve. If not, get the repo root once with `git rev-parse` and use absolute paths. They can also write `.monorepo.json` by hand from the schema below.
 
-**Helper Script Philosophy:**
-
-The `monorepo-init` script is designed as a **black-box tool**:
-
-- **Always run with `--help` first** to see usage
-- **DO NOT read the script source** unless absolutely necessary - it pollutes your context window
-- The script exists to be called directly, not analyzed
-- All necessary usage information is in the help output
-
-**Script location:** `scripts/monorepo-init` in this skill's base directory. Use its absolute path so it works from any directory.
+**Script location:** `scripts/monorepo-init` in this skill's base directory. Call it by absolute path so it works from any directory. `--help` documents every flag, so there's no need to read the source.
 
 ## Command Execution Rules (With Config)
 
