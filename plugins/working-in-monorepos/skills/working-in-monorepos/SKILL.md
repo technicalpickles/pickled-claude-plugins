@@ -95,13 +95,7 @@ cd /Users/josh/workspace/schemaflow/ruby && bundle exec rspec
 
 ## Setup Workflow (No Config Present)
 
-When skill activates in a repo without `.monorepo.json`:
-
-1. **Detect:** "I notice this appears to be a monorepo without a .monorepo.json config."
-2. **Offer:** "I can run <skill-dir>/scripts/monorepo-init to auto-detect subprojects and generate config. Would you like me to?"
-3. **User accepts:** Run `<skill-dir>/scripts/monorepo-init --dry-run`, show output, ask for approval, then `<skill-dir>/scripts/monorepo-init --write`
-4. **User declines:** "No problem. I'll get the repo root once with git rev-parse and use absolute paths for all commands."
-5. **User wants custom:** "You can also create .monorepo.json manually. See example below."
+When the repo looks like a monorepo but has no `.monorepo.json`, offer to generate one with `scripts/monorepo-init`. If the user agrees, run it with `--dry-run`, show the output, and run it with `--write` once they approve. If not, get the repo root once with `git rev-parse` and use absolute paths. They can also write `.monorepo.json` by hand from the schema below.
 
 **Helper Script Philosophy:**
 
