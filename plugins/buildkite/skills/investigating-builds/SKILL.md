@@ -96,19 +96,7 @@ mcp__MCPProxy__call_tool('buildkite:get_logs', {
 
 ## After a push
 
-Right after `git push` the branch's newest build can still be the previous one, and `builds` JSON has no commit, so confirm the build is for HEAD with `build --format json` (`.commit`) before watching. `--no-cache` keeps each poll fresh. Run the whole block in the background:
-
-```bash
-sha=$(git rev-parse HEAD); build=
-for _ in $(seq 20); do  # about 5 minutes for the build to appear
-  n=$(npx bktide@latest builds <org>/<pipeline> --branch <branch> --count 1 --format json --no-cache | jq -r '.builds[0].number // empty')
-  if [ -n "$n" ] && [ "$(npx bktide@latest build "<org>/<pipeline>#$n" --format json --no-cache | jq -r .commit)" = "$sha" ]; then build=$n; break; fi
-  sleep 15
-done
-if [ -n "$build" ]; then npx bktide@latest build "<org>/<pipeline>#$build" --watch; else echo "no build for $sha" >&2; (exit 2); fi
-```
-
-Exit 0 means passed, 1 means anything else (failed, canceled, or `--timeout <minutes>` reached, default 30; the timeout prints `Timeout reached`), 2 means no build for HEAD appeared. MCP `buildkite:wait_for_build` (`timeout: 1800, poll_interval: 30`) also works where a Buildkite MCP server is connected. Don't poll in the foreground.
+Find the build with the branch lookup above, then wait with `npx bktide@latest build <org>/<pipeline>#<build> --watch` run in the background. It exits 0 when the build passes and 1 when it fails; `--timeout <minutes>` defaults to 30. MCP `buildkite:wait_for_build` (`timeout: 1800, poll_interval: 30`) also works where a Buildkite MCP server is connected. Don't poll in the foreground.
 
 ## Blocked builds
 

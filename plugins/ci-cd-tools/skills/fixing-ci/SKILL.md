@@ -134,18 +134,9 @@ After local verification passes:
    git push
    ```
 
-3. **Monitor the new build.** The branch's newest build can still be the previous one right after the push, and watching an old failed build exits 1 at once, which reads as a failed fix. Confirm the build is for HEAD before watching; run the whole block in the background:
-   ```bash
-   sha=$(git rev-parse HEAD); build=
-   for _ in $(seq 20); do  # about 5 minutes for the build to appear
-     n=$(npx bktide@latest builds <org>/<pipeline> --branch <branch> --count 1 --format json --no-cache | jq -r '.builds[0].number // empty')
-     if [ -n "$n" ] && [ "$(npx bktide@latest build "<org>/<pipeline>#$n" --format json --no-cache | jq -r .commit)" = "$sha" ]; then build=$n; break; fi
-     sleep 15
-   done
-   if [ -n "$build" ]; then npx bktide@latest build "<org>/<pipeline>#$build" --watch; else echo "no build for $sha" >&2; (exit 2); fi
-   ```
-
-   Exit 0 means passed, 1 means anything else (failed, canceled, or `--timeout <minutes>` reached, default 30; the timeout prints `Timeout reached`), 2 means no build for HEAD appeared. MCP `buildkite:wait_for_build` (`timeout: 1800, poll_interval: 30`) also works where a Buildkite MCP server is connected. Don't poll in the foreground.
+3. **Monitor the new build.**
+   - Find it: `npx bktide@latest builds <org>/<pipeline> --branch <branch> --count 1 --format json`, newest build at `.builds[0]`.
+   - Wait in the background with `npx bktide@latest build <org>/<pipeline>#<build> --watch` (exit 0 passed, 1 failed; `--timeout <minutes>`, default 30), or MCP `buildkite:wait_for_build` (`timeout: 1800, poll_interval: 30`) where a Buildkite MCP server is connected. Don't poll in the foreground.
 
 4. On completion: pass → summarize and exit. Fail → go to Step 7.
 

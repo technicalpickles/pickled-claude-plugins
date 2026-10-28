@@ -149,8 +149,6 @@ Both `build create` and `build rebuild` accept `--watch` to poll the new build u
 
 #### `find-commit-builds.js`
 
-Broken as of 2026-10-28 (see technicalpickles/pickled-claude-plugins#171); use `npx bktide@latest build <org>/<pipeline>#<n> --format json` (`.commit`) instead.
-
 Find builds matching a specific commit SHA.
 
 Usage:
@@ -162,8 +160,6 @@ Usage:
 Returns: JSON array of matching builds
 
 #### `wait-for-build.js`
-
-Broken as of 2026-10-28 (see technicalpickles/pickled-claude-plugins#171); use `npx bktide@latest build <org>/<pipeline>#<n> --watch` instead.
 
 Monitor build until completion (background-friendly).
 
