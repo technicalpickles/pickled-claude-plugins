@@ -80,7 +80,7 @@ Respond to the user's request following the additional instructions above. This 
 
 ## Dispatching Subagents
 
-Use the Task tool with:
+Use the Agent tool with:
 - `subagent_type: "general-purpose"`
 - `model: "sonnet"` (fast iteration)
 - Capture the full response
