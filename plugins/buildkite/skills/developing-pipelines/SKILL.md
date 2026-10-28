@@ -7,25 +7,7 @@ description: Use when creating, modifying, or debugging Buildkite pipeline YAML 
 
 ## Overview
 
-**Reference official Buildkite documentation before making pipeline changes.** Your training data may contain outdated syntax, deprecated patterns, or missing features.
-
-## The Iron Rule
-
-**NEVER propose Buildkite YAML without consulting the reference docs.**
-
-## Detecting buildkite-builder
-
-**Check for buildkite-builder usage before proceeding:**
-
-buildkite-builder is detected when BOTH conditions are true:
-1. `.buildkite/pipeline.yml` references Docker image containing "buildkite-builder"
-2. Pipeline Ruby files exist: `.buildkite/pipeline.rb` OR `.buildkite/pipelines/*/pipeline.rb`
-
-When detected, announce:
-
-> "I see you're using buildkite-builder for dynamic pipeline generation. I'll work with your pipeline.rb files and reference the Ruby DSL."
-
-Then load buildkite-builder reference documentation as needed.
+Read the matching file under `references/` before writing or changing pipeline YAML or `pipeline.rb`. Training data lags Buildkite's current syntax, plugin options, and deprecations.
 
 ## Working with Plugins
 
@@ -71,33 +53,15 @@ Search org's GitHub for repos matching `*-buildkite-plugin`
 
 ### 1. Detect buildkite-builder (if present)
 
-Check for buildkite-builder usage:
-- Docker image in `.buildkite/pipeline.yml` contains "buildkite-builder"
-- `.buildkite/pipeline.rb` OR `.buildkite/pipelines/*/pipeline.rb` exists
+buildkite-builder generates the pipeline from Ruby. It is in use when both hold:
+- `.buildkite/pipeline.yml` references a Docker image containing "buildkite-builder"
+- `.buildkite/pipeline.rb` or `.buildkite/pipelines/*/pipeline.rb` exists
 
-If detected, announce and load buildkite-builder context.
+When it is, edit the `pipeline.rb` files and read [references/buildkite-builder/](references/buildkite-builder/index.md) alongside the YAML references.
 
-### 2. Read Official Docs FIRST
+### 2. Read the reference first
 
-**For YAML pipelines:**
-
-Before writing or modifying pipeline YAML:
-
-```markdown
-**I need to reference the Buildkite documentation for [specific feature].**
-
-Let me read [references/[relevant-doc].md](references/).
-```
-
-**For buildkite-builder pipelines:**
-
-Before writing or modifying pipeline.rb:
-
-```markdown
-**I need to reference buildkite-builder documentation for [specific feature].**
-
-Let me read [references/buildkite-builder/[relevant-doc].md](references/buildkite-builder/).
-```
+Before writing the change, read the matching file in [references/](references/index.md) for YAML, or in [references/buildkite-builder/](references/buildkite-builder/index.md) for `pipeline.rb`.
 
 **Available references:**
 - `step-types.md` - Command, trigger, block, wait, input steps
@@ -132,10 +96,13 @@ See [references/buildkite-builder/index.md](references/buildkite-builder/index.m
 
 ### 3. Validate Syntax
 
-After proposing changes, ALWAYS mention validation:
+Validate before proposing the change. When no validator is installed, give the user the command instead.
 
 ```bash
-# Validate locally before pushing
+# Schema check with the bk CLI, local, no API token
+bk pipeline validate --file .buildkite/pipeline.yml
+
+# Or with buildkite-agent, where it is installed
 buildkite-agent pipeline upload --dry-run < pipeline.yml
 
 # Or validate a generated pipeline
@@ -157,7 +124,7 @@ docker run --rm \
   -e BUILDKITE_BRANCH=main \
   -e BUILDKITE_COMMIT=abc123def \
   -e BUILDKITE_BUILD_NUMBER=1 \
-  gusto/buildkite-builder:4.13.0
+  gusto/buildkite-builder:<tag from .buildkite/pipeline.yml>
 
 # Validate generated YAML
 docker run ... | buildkite-agent pipeline upload --dry-run
@@ -167,16 +134,7 @@ Note: List any custom ENV variables found in pipeline.rb and suggest setting rea
 
 ### 4. Load Plugin Documentation
 
-Before modifying any step with plugins:
-
-1. **Identify all plugins** in the step's `plugins:` block
-2. **For each plugin:**
-   - Check [references/plugins/{name}.md](references/plugins/) for cached docs
-   - If not cached, fetch from Buildkite directory or GitHub
-   - If version specified, fetch version-specific docs
-3. **Then proceed** with changes using accurate configuration reference
-
-See [references/plugins/index.md](references/plugins/index.md) for lookup workflow and common plugins.
+For any step with a `plugins:` block, follow [Working with Plugins](#working-with-plugins) before changing it.
 
 ## buildkite-builder Troubleshooting Mode
 
