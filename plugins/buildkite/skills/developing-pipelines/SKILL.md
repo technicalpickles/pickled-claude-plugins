@@ -53,11 +53,11 @@ Search org's GitHub for repos matching `*-buildkite-plugin`
 
 ### 1. Detect buildkite-builder (if present)
 
-Check for buildkite-builder usage:
-- Docker image in `.buildkite/pipeline.yml` contains "buildkite-builder"
-- `.buildkite/pipeline.rb` OR `.buildkite/pipelines/*/pipeline.rb` exists
+buildkite-builder generates the pipeline from Ruby. It is in use when both hold:
+- `.buildkite/pipeline.yml` references a Docker image containing "buildkite-builder"
+- `.buildkite/pipeline.rb` or `.buildkite/pipelines/*/pipeline.rb` exists
 
-If detected, announce and load buildkite-builder context.
+When it is, edit the `pipeline.rb` files and read [references/buildkite-builder/](references/buildkite-builder/index.md) alongside the YAML references.
 
 ### 2. Read Official Docs FIRST
 
