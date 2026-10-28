@@ -20,10 +20,10 @@ Report results and any failures. If tests fail, stop here.
 
 Run scenarios from `skills/working-in-monorepos/tests/baseline-scenarios.md`:
 
-1. Set up test monorepo in /tmp with structure:
-   - /tmp/test-monorepo/
-   - /tmp/test-monorepo/ruby/ (with Gemfile)
-   - /tmp/test-monorepo/cli/ (with package.json)
+1. Set up a test monorepo under `$TMPDIR` with structure:
+   - `$TMPDIR/test-monorepo/`
+   - `$TMPDIR/test-monorepo/ruby/` (with Gemfile)
+   - `$TMPDIR/test-monorepo/cli/` (with package.json)
 
 2. For each scenario, dispatch a subagent with the Agent tool, using the scenario prompt
 
