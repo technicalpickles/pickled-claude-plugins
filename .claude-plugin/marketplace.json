@@ -143,6 +143,12 @@
       "source": "./plugins/hk",
       "version": "0.1.0",
       "description": "Auto-wire hk's coding-agent integration (Stop check, SessionStart instructions, MCP server) in projects that have an hk config"
+    },
+    {
+      "name": "pickle-mode",
+      "source": "./plugins/pickle-mode",
+      "version": "0.1.0",
+      "description": "Josh's agent style layered on pstack's poteto-mode: personal gates plus playbook overlays"
     }
   ]
 }

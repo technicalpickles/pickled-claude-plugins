@@ -1,0 +1,39 @@
+name: pickle-mode plugin tests
+
+# The playbook overlays anchor on quoted step text from pstack-claude's
+# playbooks. pstack-claude auto-updates and rewrites steps often, so the
+# check runs on a schedule against its main branch, not only on PRs here.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'plugins/pickle-mode/**'
+      - '.github/workflows/pickle-mode-plugin-tests.yml'
+  schedule:
+    - cron: '17 13 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  overlay-drift:
+    name: overlay drift vs pstack-claude main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: michael-denyer/pstack-claude
+          path: pstack-claude
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Record pstack-claude version
+        run: echo "pstack-claude $(cat pstack-claude/VERSION) at $(git -C pstack-claude rev-parse --short HEAD)"
+
+      - name: Check overlays
+        run: plugins/pickle-mode/scripts/check-overlays.sh "$GITHUB_WORKSPACE/pstack-claude/plugins/pstack"
