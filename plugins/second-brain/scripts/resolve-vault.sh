@@ -1,17 +1,8 @@
 #!/usr/bin/env bash
-# Print the name of the vault a note for the current session should go to, or
-# nothing when sb's default vault is the right one.
-#
-# Order:
-#   1. SB_NOTE_VAULT, when set (a per-project override, e.g. in .claude/settings.json "env").
-#   2. The registered vault whose path contains the working directory.
-#   3. Nothing: the caller omits --vault and sb uses its default.
-#
-# Rule 2 matters because a session working inside a vault is about that vault, so its
-# notes belong there regardless of which vault is the default.
-#
-# Usage: resolve-vault.sh [dir]       (vault list from `sb config vaults`)
-#        SB_VAULTS_JSON='[{"name":..,"path":..}]' resolve-vault.sh [dir]   (tests)
+# Print the vault a session's note belongs in, or nothing when sb's default applies.
+# SB_NOTE_VAULT wins; else the registered vault containing the directory. A session working
+# inside a vault writes there, because a vault can have rules about what may be stored in it.
+# SB_VAULTS_JSON replaces `sb config vaults` (tests).
 
 set -euo pipefail
 

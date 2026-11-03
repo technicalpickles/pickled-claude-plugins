@@ -1,5 +1,4 @@
 #!/usr/bin/env bats
-# Tests for resolve-vault.sh: which vault a session's notes go to.
 
 SCRIPT="$BATS_TEST_DIRNAME/../resolve-vault.sh"
 
