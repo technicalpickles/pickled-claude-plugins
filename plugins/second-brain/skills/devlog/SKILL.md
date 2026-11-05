@@ -8,6 +8,7 @@ allowed-tools:
   - Edit(~/.claude/vaults/**/*.md)
   - Bash(npx @techpickles/sb:*)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/diagnose-sb.sh)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-vault.sh:*)
 hooks:
   PreToolUse:
     - matcher: "Bash"
@@ -66,6 +67,20 @@ npx @techpickles/sb config default && npx @techpickles/sb config vaults
 If this fails, run `${CLAUDE_PLUGIN_ROOT}/scripts/diagnose-sb.sh` and follow
 its guidance rather than re-deriving the checks by hand.
 
+Then pick the vault for this session's note:
+
+```bash
+${CLAUDE_PLUGIN_ROOT}/scripts/resolve-vault.sh
+```
+
+It prints a vault name, or nothing. Use that name as `--vault <name>` on every
+`sb` call below that takes it (`note create`, `vault obsidian`, `inbox list`).
+When it prints nothing, omit `--vault` and let sb use its default. The name comes
+from `SB_NOTE_VAULT` if set (a per-project override), else from whichever
+registered vault contains the working directory. Never write a session's note
+to a different vault than the one the session is working in or for: a vault can
+have rules about what may be written to it.
+
 If no default vault is configured:
 ```
 Second brain not configured. Run /second-brain:setup first.
@@ -119,7 +134,7 @@ Don't guess one from the branch name.
 4. **Fallback, only if you've genuinely lost track of the note's path**
    (e.g. a context compaction wiped your memory of this session) —
    resolve a real path instead of guessing:
-   - `npx @techpickles/sb vault obsidian` — parse the JSON for the
+   - `npx @techpickles/sb vault obsidian` (add `--vault <name>` when step 1 picked one) — parse the JSON for the
      top-level `inbox` field (the inbox subfolder name, e.g. `📫 Inbox`).
      This is the precomputed field `sb note create` itself resolves the
      inbox folder from — don't parse `app.newFileFolderPath` directly,
@@ -147,11 +162,13 @@ below) using the Edit tool. Don't touch its frontmatter.
 Staged and written in one Bash call:
 
 ```bash
+VAULT={vault name from resolve-vault.sh, or empty}
 STAGE=$(mktemp)
 cat > "$STAGE" <<'EOF'
 - {HH:MM} {entry}
 EOF
 npx @techpickles/sb note create \
+  ${VAULT:+--vault "$VAULT"} \
   --title "Session: {topic}" \
   --source "claude-code session {short-id} ({repo}, branch {branch}, {tracker} {id})" \
   --content "$(cat "$STAGE")"
