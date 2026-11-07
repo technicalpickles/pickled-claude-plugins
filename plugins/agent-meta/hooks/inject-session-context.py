@@ -17,6 +17,9 @@ writing a local file. This is configured via env vars, resolved here
 rather than hardcoded into the skill, so the plugin stays agnostic about
 where a "destination" actually is:
 
+- Plugin settings `destination_helper` and `destination` (exported as
+  CLAUDE_PLUGIN_OPTION_DESTINATION_HELPER / CLAUDE_PLUGIN_OPTION_DESTINATION)
+  are the preferred way. The env vars below still work as a fallback.
 - AGENT_PARK_DESTINATION_HELPER: a no-arg command, run once by this hook;
   its trimmed stdout is used as the destination command template. Lets
   the destination be computed at park-time (e.g. by inspecting the
@@ -48,32 +51,45 @@ TARGET_SKILLS = {
 MAX_TEMPLATE_LENGTH = 2000
 
 
+def _run_helper(helper):
+    try:
+        result = subprocess.run(
+            helper,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+    except Exception:
+        return None
+    if result.returncode != 0:
+        return None
+    candidate = result.stdout.strip()
+    return candidate if _is_valid_template(candidate) else None
+
+
 def resolve_destination_template():
-    """Return a validated destination command template, or None."""
-    helper = os.environ.get("AGENT_PARK_DESTINATION_HELPER", "").strip()
-    if helper:
-        try:
-            result = subprocess.run(
-                helper,
-                shell=True,
-                capture_output=True,
-                text=True,
-                timeout=15,
-            )
-        except Exception:
-            result = None
+    """Return a validated destination command template, or None.
 
-        if result is not None and result.returncode == 0:
-            candidate = result.stdout.strip()
-            if _is_valid_template(candidate):
+    Plugin settings (`destination_helper`, `destination`) come first, as
+    Claude Code exports them to hooks. The legacy AGENT_PARK_DESTINATION_HELPER
+    and AGENT_PARK_DESTINATION env vars are the fallback. Within each pair the
+    helper wins, and a helper that fails or yields nothing usable falls through
+    to the literal rather than erroring out.
+    """
+    sources = (
+        ("CLAUDE_PLUGIN_OPTION_DESTINATION_HELPER", "CLAUDE_PLUGIN_OPTION_DESTINATION"),
+        ("AGENT_PARK_DESTINATION_HELPER", "AGENT_PARK_DESTINATION"),
+    )
+    for helper_var, literal_var in sources:
+        helper = os.environ.get(helper_var, "").strip()
+        if helper:
+            candidate = _run_helper(helper)
+            if candidate:
                 return candidate
-        # Helper failed, timed out, or produced something unusable - fall
-        # through to the literal env var rather than erroring out.
-
-    literal = os.environ.get("AGENT_PARK_DESTINATION", "").strip()
-    if _is_valid_template(literal):
-        return literal
-
+        literal = os.environ.get(literal_var, "").strip()
+        if _is_valid_template(literal):
+            return literal
     return None
 
 

@@ -47,7 +47,7 @@ Pick once and commit. Do not switch modes mid-write.
    4. Default: `.parkinglot/` in project root (verify it is gitignored)
 
    When the file lands outside the current working directory (the vault case), use its absolute path everywhere this skill writes `[path]`, including the Resume Prompt's `unpark` line. A vault-relative path only resolves from inside the vault.
-4. Check the injected context for a `Park destination:` line. This is separate from the CLAUDE.md location above and always optional — it names a command to also send the file to once it's written, e.g. filing it into a second brain vault. Not present unless the user configured `AGENT_PARK_DESTINATION` or `AGENT_PARK_DESTINATION_HELPER`. Note the template if present; it's used in "After Parking" below.
+4. Check the injected context for a `Park destination:` line. This is separate from the CLAUDE.md location above and always optional — it names a command to also send the file to once it's written, e.g. filing it into a second brain vault. Not present unless the user set the `destination` or `destination_helper` plugin setting (or the legacy `AGENT_PARK_DESTINATION` / `AGENT_PARK_DESTINATION_HELPER` env vars). Note the template if present; it's used in "After Parking" below.
 
 ## Continuation Template
 

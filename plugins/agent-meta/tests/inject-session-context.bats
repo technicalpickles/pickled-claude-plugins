@@ -56,3 +56,28 @@ context() {
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }
+
+@test "plugin option destination is injected" {
+  PAYLOAD=$PARK run_hook CLAUDE_PLUGIN_OPTION_DESTINATION='opt {file}'
+  [ "$(context)" = "Park destination: opt {file}" ]
+}
+
+@test "plugin option beats the legacy env var" {
+  PAYLOAD=$PARK run_hook CLAUDE_PLUGIN_OPTION_DESTINATION='opt {file}' AGENT_PARK_DESTINATION='legacy {file}'
+  [ "$(context)" = "Park destination: opt {file}" ]
+}
+
+@test "plugin option helper wins over the plugin option literal" {
+  PAYLOAD=$PARK run_hook CLAUDE_PLUGIN_OPTION_DESTINATION='lit {file}' CLAUDE_PLUGIN_OPTION_DESTINATION_HELPER='echo helper {file}'
+  [ "$(context)" = "Park destination: helper {file}" ]
+}
+
+@test "falls back to the legacy env var when the option is empty" {
+  PAYLOAD=$PARK run_hook CLAUDE_PLUGIN_OPTION_DESTINATION='' AGENT_PARK_DESTINATION='legacy {file}'
+  [ "$(context)" = "Park destination: legacy {file}" ]
+}
+
+@test "falls back to the legacy helper when the option helper fails" {
+  PAYLOAD=$PARK run_hook CLAUDE_PLUGIN_OPTION_DESTINATION_HELPER='exit 1' AGENT_PARK_DESTINATION_HELPER='echo legacy-helper {file}'
+  [ "$(context)" = "Park destination: legacy-helper {file}" ]
+}
