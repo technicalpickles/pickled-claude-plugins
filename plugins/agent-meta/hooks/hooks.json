@@ -1,5 +1,5 @@
 {
-  "description": "Inject the park destination command into context when agent-meta:park is invoked",
+  "description": "Inject the park vault and destination command into context when agent-meta:park or agent-meta:unpark is invoked",
   "hooks": {
     "PostToolUse": [
       {

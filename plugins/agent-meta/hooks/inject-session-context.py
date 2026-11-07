@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-PostToolUse:Skill hook that injects park's configured destination command
-into context when `agent-meta:park` is invoked through the Skill tool.
+PostToolUse:Skill hook that injects park's configured vault and destination
+command into context when `agent-meta:park` or `agent-meta:unpark` is invoked
+through the Skill tool.
 
 The session ID is not injected here. A /agent-meta:park slash invocation
 makes no Skill tool call, so this hook never fires for it. Park gets the ID
@@ -10,6 +11,14 @@ Claude Code fills in on both paths.
 
 This hook only injects context for skills that actually need it. Other
 Skill calls are silently ignored (no context pollution).
+
+Vault: AGENT_PARK_VAULT names a vault directory (e.g. an Obsidian vault)
+where parked handoffs live. It is injected as a `Park vault:` line for both
+park and unpark, so the choice is per machine (personal vault on one box,
+work vault on another) rather than baked into the skill. The skills read the
+vault's own CLAUDE.md `## Parking` section for the folder and filename
+convention. Unset, or not a directory, injects nothing and park falls back to
+`.parkinglot/`.
 
 Destination command: park can optionally hand its output to an external
 command (e.g. filing it into a second-brain vault) instead of only
@@ -37,8 +46,14 @@ import os
 import subprocess
 import sys
 
-# Skills that take a destination command. Keep this narrow.
+# Skills that get the vault line. Keep this narrow.
 TARGET_SKILLS = {
+    "agent-meta:park",
+    "agent-meta:unpark",
+}
+
+# Only park sends its output somewhere; unpark just reads.
+DESTINATION_SKILLS = {
     "agent-meta:park",
 }
 
@@ -77,6 +92,17 @@ def resolve_destination_template():
     return None
 
 
+def resolve_vault():
+    """Return the configured vault directory as an absolute path, or None."""
+    raw = os.environ.get("AGENT_PARK_VAULT", "").strip()
+    if not raw or "\n" in raw or "\r" in raw:
+        return None
+    path = os.path.expanduser(raw)
+    if not os.path.isdir(path):
+        return None
+    return path
+
+
 def _is_valid_template(candidate):
     if not candidate:
         return False
@@ -99,14 +125,24 @@ skill_name = tool_input.get("skill", "")
 if skill_name not in TARGET_SKILLS:
     sys.exit(0)
 
-destination_template = resolve_destination_template()
-if not destination_template:
+lines = []
+
+vault = resolve_vault()
+if vault:
+    lines.append(f"Park vault: {vault}")
+
+if skill_name in DESTINATION_SKILLS:
+    destination_template = resolve_destination_template()
+    if destination_template:
+        lines.append(f"Park destination: {destination_template}")
+
+if not lines:
     sys.exit(0)
 
 output = {
     "hookSpecificOutput": {
         "hookEventName": "PostToolUse",
-        "additionalContext": f"Park destination: {destination_template}",
+        "additionalContext": "\n".join(lines),
     }
 }
 print(json.dumps(output))
