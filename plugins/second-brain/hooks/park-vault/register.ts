@@ -13,11 +13,11 @@ export function defaultVault(config: string): string | undefined {
 export const register: Register = (on, options) => {
   on('skill.prompt', async ($, e, next) => {
     if (options.park_in_vault === false || !PARK_SKILL.test(e.skill)) return next(e)
-    if (((await $.env.get('AGENT_PARK_VAULT')) ?? '').trim() !== '') return next(e)
 
     const home = (await $.env.get('HOME')) ?? ''
-    const config = await $.fs.read(`${home}/.claude/second-brain.md`).catch(() => '')
-    const vault = defaultVault(config)
+    const override = (options.park_vault ?? '').trim().replace(/^~(?=\/|$)/, home)
+    const config = override ? '' : await $.fs.read(`${home}/.claude/second-brain.md`).catch(() => '')
+    const vault = override || defaultVault(config)
     if (!vault || !(await $.fs.exists(vault))) return next(e)
 
     return next({ ...e, text: `${e.text}\n\nPark vault: ${vault}` })

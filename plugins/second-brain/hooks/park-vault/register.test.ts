@@ -43,9 +43,9 @@ test('other skills are untouched', async ($, on) => {
   expect(await ask($, 'git:commit')).toBe('BODY')
 })
 
-test('AGENT_PARK_VAULT wins, so no second line', async ($, on) => {
-  world(on, { AGENT_PARK_VAULT: '/elsewhere' })
-  expect(await ask($, 'agent-meta:park')).toBe('BODY')
+test('park_vault overrides the default and expands ~', { options: { park_vault: '~/elsewhere' } }, async ($, on) => {
+  world(on)
+  expect(await ask($, 'agent-meta:park')).toBe('BODY\n\nPark vault: /home/t/elsewhere')
 })
 
 test('no config file, or a missing vault dir, adds nothing', async ($, on) => {

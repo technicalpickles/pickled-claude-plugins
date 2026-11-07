@@ -68,13 +68,7 @@ Location: ~/Vaults/my-vault/handoffs/
 
 Default location: `.parkinglot/` in project root (gitignored).
 
-With the `second-brain` plugin installed, parks go to its default vault with no setup (see its README). To override that, or to use a vault without `second-brain`, point `AGENT_PARK_VAULT` at it. Set it per machine, so a work box can point at the work vault and a personal box at the personal one:
-
-```bash
-export AGENT_PARK_VAULT=~/Vaults/pickled-knowledge
-```
-
-`park` and `unpark` then read the vault's `CLAUDE.md` `## Parking` section for the `Location:` (relative to the vault) and filename convention. A missing directory or missing section falls back to the locations above.
+With the `second-brain` plugin installed, parks go to its default vault with no setup (see its README). Without it, `park` and `unpark` use the locations above.
 
 Optionally, also send the parked file to an external destination (e.g. filing it into a second-brain vault) via env vars:
 
