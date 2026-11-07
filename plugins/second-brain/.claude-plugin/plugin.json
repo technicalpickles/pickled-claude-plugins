@@ -18,6 +18,12 @@
         "sidechain",
         "both"
       ]
+    },
+    "park_in_vault": {
+      "type": "boolean",
+      "title": "Park in vault",
+      "description": "Make agent-meta's park and unpark keep handoffs in your default second-brain vault (its CLAUDE.md '## Parking' section sets the folder). Turn off to keep them in .parkinglot/. AGENT_PARK_VAULT overrides the vault.",
+      "default": true
     }
   }
 }
