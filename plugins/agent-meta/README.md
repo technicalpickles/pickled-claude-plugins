@@ -68,6 +68,8 @@ Location: ~/Vaults/my-vault/handoffs/
 
 Default location: `.parkinglot/` in project root (gitignored).
 
+With the `second-brain` plugin installed, parks go to its default vault with no setup (see its README). Without it, `park` and `unpark` use the locations above.
+
 Optionally, also send the parked file to an external destination (e.g. filing it into a second-brain vault) via env vars:
 
 ```bash

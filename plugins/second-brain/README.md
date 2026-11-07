@@ -30,6 +30,10 @@ Requires the [pickled-claude-plugins marketplace](../../README.md#installation).
    feature, a bug fix, a gotcha worth remembering. Nothing to remember,
    nothing to invoke.
 
+## Parking in the vault
+
+With the `agent-meta` plugin installed, `park` and `unpark` keep handoffs in your default vault (from `~/.claude/second-brain.md`) instead of `.parkinglot/`. The vault's `CLAUDE.md` `## Parking` section sets the folder and filename convention. This works for `/agent-meta:park` and plain "park" alike. Turn it off with the `park_in_vault` plugin setting, or point somewhere else with `park_vault`. Per-machine vault config means a work machine parks to its work vault.
+
 ## Commands
 
 | Command | Description | Works From |

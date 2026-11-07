@@ -41,9 +41,12 @@ Pick once and commit. Do not switch modes mid-write.
    - **Fallback:** If the value above is not a UUID (another harness left it unfilled), run [scripts/get-session-id.sh](scripts/get-session-id.sh) via Bash. If that prints nothing, use `unknown`.
 2. Gather git branch, worktree path, files touched.
 3. Resolve output location, in order:
-   1. Project `CLAUDE.md` → `## Handoffs` or `## Parking` → `Location:`
-   2. User `~/.claude/CLAUDE.md` → same lookup
-   3. Default: `.parkinglot/` in project root (verify it is gitignored)
+   1. Injected context has a `Park vault:` line → the vault is the home for parks. Read `<vault>/CLAUDE.md` and find its `## Parking` section. Its `Location:` is relative to the vault. Follow whatever else it says about filenames (e.g. a `YYYYMMDDHHMM ` prefix) and format; where it conflicts with this skill's filename, the vault wins. If the file or section is missing, fall through to the next step.
+   2. Project `CLAUDE.md` → `## Handoffs` or `## Parking` → `Location:`
+   3. User `~/.claude/CLAUDE.md` → same lookup
+   4. Default: `.parkinglot/` in project root (verify it is gitignored)
+
+   When the file lands outside the current working directory (the vault case), use its absolute path everywhere this skill writes `[path]`, including the Resume Prompt's `unpark` line. A vault-relative path only resolves from inside the vault.
 4. Check the injected context for a `Park destination:` line. This is separate from the CLAUDE.md location above and always optional — it names a command to also send the file to once it's written, e.g. filing it into a second brain vault. Not present unless the user configured `AGENT_PARK_DESTINATION` or `AGENT_PARK_DESTINATION_HELPER`. Note the template if present; it's used in "After Parking" below.
 
 ## Continuation Template
