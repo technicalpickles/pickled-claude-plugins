@@ -26,11 +26,7 @@ It runs five headless `claude -p` sessions (about two minutes, real tokens) with
 
 ## Lessons baked into the script
 
-- **Assert on the injected value, not the label.** The skill text itself contains the words `Park vault:` and `Park destination:`. A bare grep passes with no hook at all, or fails a "line is absent" check. Match `Park vault: <path>` and `Park destination: <template>`.
-- **Read the on-disk transcript.** `--output-format stream-json` does not include the expanded skill text. `~/.claude/projects/*/<session_id>.jsonl` does.
-- **Allow `Skill` in `--allowedTools`.** Without it, plain-word parks fail with an opaque "Skill load threw an error" that looks like a product bug.
-- **Give the vault with `--add-dir`, and keep scratch files under the working directory.** Headless runs block `cat` and redirects to paths outside the allowed directories. A real vault outside the cwd needs the same allowance (an additional directory or sandbox write rule), or parks stop at a permission prompt.
-- **Settings for inline plugins** go under `pluginConfigs` keyed `<name>@inline`, with an `options` object.
+The general rules (assert on the value not the label, read the on-disk transcript, `Skill` in `--allowedTools`, `--add-dir` for the vault, `<name>@inline` settings) are in [docs/testing-plugins.md](../../../docs/testing-plugins.md). Park adds one: a real vault outside the cwd needs the same allowance, or parks stop at a permission prompt.
 
 ## Known gaps
 
