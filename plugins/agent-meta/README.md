@@ -79,6 +79,8 @@ Both accept `{file}`, `{title}`, and `{mode}` (`continuation`, `close-out`, or `
 
 The older `AGENT_PARK_DESTINATION` and `AGENT_PARK_DESTINATION_HELPER` env vars still work. They are read only when the matching plugin settings are empty, so existing setups keep working and you can move over at your own pace.
 
+See [docs/verifying-park.md](docs/verifying-park.md) for how park is tested, including the headless end-to-end script.
+
 ## Installation
 
 Requires the [pickled-claude-plugins marketplace](../../README.md#installation). Then:
