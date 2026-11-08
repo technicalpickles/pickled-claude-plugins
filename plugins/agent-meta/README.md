@@ -29,8 +29,8 @@ Invoke by asking naturally ("park this session", "wrap this up", "unpark docs/ha
 
 `park` produces two distinct artifacts:
 
-- **Continuation** (`Parked:` heading, `[topic].md` filename): for handoffs to a new session. The Resume Prompt is the centerpiece: tight, specific, copy-paste ready.
-- **Close-out** (`Wrapped:` heading, `[topic]-wrapped.md` filename): for records of completed work. No Resume Prompt; an "Outcome" section in past tense and an optional "Open Threads" list.
+- **Continuation** (`Parked:` heading, `YYYYMMDDHHMM topic.md` filename): for handoffs to a new session. The Resume Prompt is the centerpiece: tight, specific, copy-paste ready.
+- **Close-out** (`Wrapped:` heading, `YYYYMMDDHHMM topic-wrapped.md` filename): for records of completed work. No Resume Prompt; an "Outcome" section in past tense and an optional "Open Threads" list.
 
 Mode is picked at park time from your phrasing ("park to continue" vs "wrap this up"), inferred from the work's state, or asked if ambiguous.
 
@@ -59,16 +59,12 @@ Analysis tools for post-hoc session review:
 
 ## Configuration
 
-Configure handoff location in your CLAUDE.md (project or user level):
+Parks live in one place:
 
-```markdown
-## Parking
-Location: ~/Vaults/my-vault/handoffs/
-```
+1. The second-brain vault, when the `second-brain` plugin is configured and the vault's `CLAUDE.md` has a `## Parking` section with a `Location:` (relative to the vault).
+2. Otherwise `.parkinglot/` in the project root (gitignored).
 
-Default location: `.parkinglot/` in project root (gitignored).
-
-With the `second-brain` plugin installed, parks go to its default vault with no setup (see its README). Without it, `park` and `unpark` use the locations above.
+Filenames are the same in both: `YYYYMMDDHHMM topic.md`, with `-wrapped` or `-checkpoint` before the extension. `unpark` lists both locations together. Older files without a timestamp prefix still work. There are no park settings, and the `## Handoffs`/`## Parking` lookups in project and user `CLAUDE.md` files are gone. See the `second-brain` README for how the vault is chosen.
 
 The park `destination` and `destination_helper` settings, and the `AGENT_PARK_DESTINATION` and `AGENT_PARK_DESTINATION_HELPER` env vars, were removed. To file parks into a second brain, configure the `second-brain` plugin: parks go to its vault directly.
 
