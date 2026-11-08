@@ -4,7 +4,7 @@ Park's behavior has three layers, and each needs a different kind of check. A un
 
 | Layer | What it is | How it is checked |
 |---|---|---|
-| Hook | Code that puts `Park vault:` and `Park destination:` lines in front of the model | `bats tests` (Python hook), `claude plugin test plugins/second-brain` (the `skill.prompt` mod). Mocked engine, fast, free. |
+| Hook | Mods that put `Park vault:` and `Park destination:` lines in front of the model | `claude plugin test` in `plugins/agent-meta` (destination) and `plugins/second-brain` (vault). Mocked engine, fast, free. |
 | Delivery | Whether the real engine fires the hook, with the skill name and settings you assumed | `tests/e2e/park-vault.sh`, deterministic: grep the session transcript for the injected line. |
 | Behavior | Whether the model then writes the file where the vault's `CLAUDE.md` says | Same script, model-dependent: look at the filesystem. Rerun a failure once before calling it a regression. |
 
@@ -22,7 +22,7 @@ It runs five headless `claude -p` sessions (about two minutes, real tokens) with
 | `plain` | The Skill-tool path gets the same |
 | `unpark` | `unpark` gets the line and finds the file |
 | `off` | `park_in_vault: false` injects nothing and parks to `.parkinglot/` |
-| `dest` | The `destination` plugin setting reaches the hook as `CLAUDE_PLUGIN_OPTION_DESTINATION` and the command runs |
+| `dest` | The `destination` plugin setting reaches a slash park and the command runs |
 
 ## Lessons baked into the script
 
@@ -34,7 +34,6 @@ It runs five headless `claude -p` sessions (about two minutes, real tokens) with
 
 ## Known gaps
 
-- **Slash parks get no `Park destination:` line.** It comes from the `PostToolUse:Skill` Python hook, which does not fire for `/agent-meta:park`. The vault line works for slash because it comes from the `skill.prompt` mod. Moving the destination into that mod would close the gap.
 - **Default-vault resolution is unit-tested only.** The script sets `park_vault` explicitly. Reading `~/.claude/second-brain.md` is covered by `claude plugin test`, not end to end, because it reads the real `HOME`.
 - **Interactive terminal and desktop app are not exercised.** Only `claude -p`.
 - **Model behavior varies.** A single failed `behavior` check can be flake.

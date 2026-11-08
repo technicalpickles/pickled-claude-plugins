@@ -83,7 +83,7 @@ check "behavior: vault stays empty" vault_empty
 check "behavior: park lands in .parkinglot" local_park off
 
 DEST="$ROOT/dest/work/destination.txt"
-run_case dest "Park this session as a continuation, topic e2e-dest. $TAIL" "$SETTINGS_VAULT" "{\"destination\":\"printf %s {file} > $DEST\"}"
+run_case dest "/agent-meta:park continuation, topic e2e-dest. $TAIL" "$SETTINGS_VAULT" "{\"destination\":\"printf %s {file} > $DEST\"}"
 check "hook: destination setting reached the model as a Park destination line" grep -q "Park destination: printf" "$TRANSCRIPT"
 check "behavior: the destination command ran with the park file path" grep -q "e2e-dest" "$DEST"
 
