@@ -39,7 +39,7 @@
     {
       "name": "second-brain",
       "source": "./plugins/second-brain",
-      "version": "1.21.0"
+      "version": "2.0.0"
     },
     {
       "name": "tool-routing",
@@ -54,7 +54,7 @@
     {
       "name": "agent-meta",
       "source": "./plugins/agent-meta",
-      "version": "2.9.0"
+      "version": "3.0.0"
     },
     {
       "name": "buildkite",
