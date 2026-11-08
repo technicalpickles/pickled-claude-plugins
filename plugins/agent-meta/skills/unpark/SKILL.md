@@ -13,9 +13,10 @@ Resume work from a parked handoff document, or read a wrapped close-out record a
 
 Check parking locations in order:
 
-1. Project `CLAUDE.md` -> `## Handoffs` or `## Parking` -> `Location:`
-2. User `~/.claude/CLAUDE.md` -> same lookup
-3. Default: `.parkinglot/` in project root
+1. Injected context has a `Park vault:` line -> read `<vault>/CLAUDE.md`, find its `## Parking` section, and use its `Location:` (relative to the vault). Filenames there may carry a timestamp prefix. If the file or section is missing, fall through.
+2. Project `CLAUDE.md` -> `## Handoffs` or `## Parking` -> `Location:`
+3. User `~/.claude/CLAUDE.md` -> same lookup
+4. Default: `.parkinglot/` in project root
 
 If multiple files exist, group them by mode and list:
 
