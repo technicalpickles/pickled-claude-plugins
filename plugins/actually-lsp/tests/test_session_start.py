@@ -16,6 +16,7 @@ def run_hook(project_dir, plugin_list_output='[]'):
     env["CLAUDE_PLUGIN_ROOT"] = str(PLUGIN_ROOT)
     env["CLAUDE_SESSION_ID"] = "test-session-id"
     env["ACTUALLY_LSP_SKIP_BINARY_CHECK"] = "1"
+    env["ACTUALLY_LSP_SKIP_PROBE"] = "1"
 
     # Stub `claude plugin list --json` via a fake bin dir on PATH
     fake_bin = project_dir / "_fake_bin"
@@ -92,10 +93,10 @@ def test_hook_nudges_for_typescript_in_large_tree(tmp_path):
 
 
 def test_hook_emits_activation_context_when_ready(tmp_path):
-    """TypeScript project with LSP plugin + node_modules: emit activation context."""
+    """TypeScript project with LSP plugin + tsconfig.json: emit activation context."""
     (tmp_path / "package.json").write_text("{}")
     (tmp_path / "src.ts").write_text("export const x = 1;")
-    (tmp_path / "node_modules").mkdir()
+    (tmp_path / "tsconfig.json").write_text("{}")
     plugin_list = json.dumps([
         {"id": "typescript-lsp@claude-plugins-official", "enabled": True}
     ])

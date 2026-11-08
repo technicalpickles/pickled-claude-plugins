@@ -8,7 +8,7 @@ Plugins here are shell hooks, Python hooks, skills (prompts), and mods (TypeScri
 | A mod (`register.ts`) | `claude plugin test <plugin dir>` (a `*.test.ts` with a mocked engine), plus `claude plugin validate <plugin dir>` | free, fast |
 | Anything that depends on what the real engine hands your code, or on what the model does with it | A headless end-to-end run with `claude -p` | real tokens, about a minute per session |
 
-CI runs the first two. The end-to-end layer is a manual pre-release check, because it needs auth and its model-behavior assertions can flake.
+CI runs the first two for every plugin that has tests: per-plugin `*-plugin-tests.yml` workflows, and `plugin-tests.yml` for plugins that don't have one. When you add tests to a plugin that no workflow covers, add it there. The end-to-end layer is a manual pre-release check, because it needs auth and its model-behavior assertions can flake.
 
 ## Run local source without reinstalling
 
