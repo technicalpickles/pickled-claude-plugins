@@ -47,7 +47,6 @@ Pick once and commit. Do not switch modes mid-write.
    4. Default: `.parkinglot/` in project root (verify it is gitignored)
 
    When the file lands outside the current working directory (the vault case), use its absolute path everywhere this skill writes `[path]`, including the Resume Prompt's `unpark` line. A vault-relative path only resolves from inside the vault.
-4. Check the injected context for a `Park destination:` line. This is separate from the CLAUDE.md location above and always optional — it names a command to also send the file to once it's written, e.g. filing it into a second brain vault. Not present unless the user set the `destination` or `destination_helper` plugin setting (or the legacy `AGENT_PARK_DESTINATION` / `AGENT_PARK_DESTINATION_HELPER` env vars). Note the template if present; it's used in "After Parking" below.
 
 ## Continuation Template
 
@@ -166,16 +165,6 @@ Same Resume Prompt requirement as continuation: mandatory, specific, no filler.
 
 Filename: `[topic-slug]-checkpoint.md`
 
-## Sending to a Destination
-
-If step 4 above found a `Park destination:` template, run it now, after the file is written:
-
-1. Substitute placeholders in the template: `{file}` → the full path just written, `{title}` → the topic slug/heading, `{mode}` → `continuation`, `close-out`, or `idle-checkpoint`.
-2. Run the substituted command via Bash. This happens as a normal, visible tool call — never assume it succeeded without checking the result.
-3. Report the outcome to the user alongside the local path (see "After Parking" below). If the command fails, say so plainly and still report the local file as parked — the local write is the source of truth; the destination is a best-effort extra.
-
-If no `Park destination:` line was present, skip this section entirely — park behaves exactly as it does without one.
-
 ## After Parking
 
 For continuation:
@@ -203,5 +192,3 @@ Checkpointed to `[path]` (automated — this session went idle).
 If you're still working in this session, ignore this. To resume elsewhere:
 > unpark [path]
 ```
-
-If a destination command ran, append one line noting the result either way, e.g. `Also sent to [destination]` or `Destination command failed: [short reason]`.

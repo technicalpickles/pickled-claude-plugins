@@ -70,14 +70,7 @@ Default location: `.parkinglot/` in project root (gitignored).
 
 With the `second-brain` plugin installed, parks go to its default vault with no setup (see its README). Without it, `park` and `unpark` use the locations above.
 
-Optionally, also send the parked file to an external destination (e.g. filing it into a second-brain vault) with two plugin settings:
-
-- `destination`: a literal command template, e.g. `npx @techpickles/sb note create --source auto --title "{title}" --content-file {file}`.
-- `destination_helper`: a no-arg command whose stdout produces the template dynamically, e.g. `~/.claude/bin/pick-park-destination.sh`. Wins over `destination` if both are set.
-
-Both accept `{file}`, `{title}`, and `{mode}` (`continuation`, `close-out`, or `idle-checkpoint`) placeholders. Neither set means park behaves exactly as it does without one. This is purely additive, never a replacement for the local file.
-
-The older `AGENT_PARK_DESTINATION` and `AGENT_PARK_DESTINATION_HELPER` env vars still work. They are read only when the matching plugin settings are empty, so existing setups keep working and you can move over at your own pace.
+The park `destination` and `destination_helper` settings, and the `AGENT_PARK_DESTINATION` and `AGENT_PARK_DESTINATION_HELPER` env vars, were removed. To file parks into a second brain, configure the `second-brain` plugin: parks go to its vault directly.
 
 See [docs/verifying-park.md](docs/verifying-park.md) for how park is tested, including the headless end-to-end script.
 
