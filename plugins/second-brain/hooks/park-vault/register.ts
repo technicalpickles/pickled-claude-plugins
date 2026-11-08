@@ -10,16 +10,25 @@ export function defaultVault(config: string): string | undefined {
   return (vaults.find(v => v.name === wanted) ?? vaults[0])?.path
 }
 
-export const register: Register = (on, options) => {
+export const register: Register = on => {
   on('skill.prompt', async ($, e, next) => {
-    if (options.park_in_vault === false || !PARK_SKILL.test(e.skill)) return next(e)
+    if (!PARK_SKILL.test(e.skill)) return next(e)
 
-    const home = (await $.env.get('HOME')) ?? ''
-    const override = (options.park_vault ?? '').trim().replace(/^~(?=\/|$)/, home)
-    const config = override ? '' : await $.fs.read(`${home}/.claude/second-brain.md`).catch(() => '')
-    const vault = override || defaultVault(config)
-    if (!vault || !(await $.fs.exists(vault))) return next(e)
+    const trimmed = (v: string | undefined) => (v ?? '').trim()
+    const dirs = trimmed(await $.env.get('CLAUDE_CONFIG_DIR'))
+      .split(/[:,]/)
+      .map(d => d.trim())
+      .filter(Boolean)
+    if (dirs.length === 0) dirs.push(`${trimmed(await $.env.get('HOME'))}/.claude`)
 
-    return next({ ...e, text: `${e.text}\n\nPark vault: ${vault}` })
+    const sources: Array<() => Promise<string | undefined>> = [
+      async () => trimmed(await $.env.get('SB_NOTE_VAULT')),
+      ...dirs.map(dir => async () => defaultVault(await $.fs.read(`${dir}/second-brain.md`).catch(() => ''))),
+    ]
+    for (const source of sources) {
+      const vault = await source()
+      if (vault && (await $.fs.exists(vault))) return next({ ...e, text: `${e.text}\n\nPark vault: ${vault}` })
+    }
+    return next(e)
   })
 }

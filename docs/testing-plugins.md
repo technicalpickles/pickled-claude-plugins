@@ -15,7 +15,7 @@ CI runs the first two for every plugin that has tests: per-plugin `*-plugin-test
 `claude -p --plugin-dir plugins/<name>` loads the checkout directly. No uninstall, reinstall or restart. Pass it once per plugin. Plugin settings for an inline plugin go in a settings file passed with `--settings`, under `pluginConfigs`, keyed `<name>@inline`:
 
 ```json
-{ "pluginConfigs": { "second-brain@inline": { "options": { "park_vault": "/tmp/vault" } } } }
+{ "pluginConfigs": { "second-brain@inline": { "options": { "devlog_mode": "sidechain" } } } }
 ```
 
 ## Probe the engine once, then encode what you learn

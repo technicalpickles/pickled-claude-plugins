@@ -11,28 +11,26 @@ Resume work from a parked handoff document, or read a wrapped close-out record a
 
 ### 1. Find Handoff
 
-Check parking locations in order:
+List parks from every location that applies, together:
 
-1. Injected context has a `Park vault:` line -> read `<vault>/CLAUDE.md`, find its `## Parking` section, and use its `Location:` (relative to the vault). Filenames there may carry a timestamp prefix. If the file or section is missing, fall through.
-2. Project `CLAUDE.md` -> `## Handoffs` or `## Parking` -> `Location:`
-3. User `~/.claude/CLAUDE.md` -> same lookup
-4. Default: `.parkinglot/` in project root
+1. The vault: when the injected context has a `Park vault:` line and `<vault>/CLAUDE.md` has a `## Parking` section with a `Location:`, list that folder (relative to the vault).
+2. The project: `.parkinglot/` in project root.
 
-If multiple files exist, group them by mode and list:
+Group the entries by mode, and show which location each is from:
 
 ```
 Active handoffs:
-(A) jwt-authentication.md     - Parked 2026-05-06
-(B) fix-login-bug.md          - Parked 2026-05-04
+(A) 202605061412 jwt-authentication.md  - Parked 2026-05-06 [vault]
+(B) fix-login-bug.md                    - Parked 2026-05-04 [.parkinglot]
 
 Wrapped (reference only):
-(C) sanitation-skill-fix-wrapped.md       - Wrapped 2026-03-30
-(D) confirm-dotfiles-work-role-wrapped.md - Wrapped 2026-04-12
+(C) 202603301005 sanitation-skill-fix-wrapped.md - Wrapped 2026-03-30 [vault]
+(D) confirm-dotfiles-work-role-wrapped.md        - Wrapped 2026-04-12 [.parkinglot]
 
 (E) Other location
 ```
 
-Detect group by filename suffix (`-wrapped.md`, `-checkpoint.md`) and the file's first heading (`Parked:`, `Checkpoint:`, or `Wrapped:`). List checkpoints with the active handoffs. Filename and heading should agree; if they disagree, trust the heading and note the mismatch.
+Older files may have no timestamp prefix. Detect group by filename suffix (`-wrapped.md`, `-checkpoint.md`) and the file's first heading (`Parked:`, `Checkpoint:`, or `Wrapped:`). List checkpoints with the active handoffs. Filename and heading should agree; if they disagree, trust the heading and note the mismatch.
 
 ### 2. Branch on Mode
 

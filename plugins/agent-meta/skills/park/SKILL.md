@@ -12,9 +12,9 @@ Save the current work session. Park has three modes. Pick one, write that shape,
 
 | Mode | Use when | Heading | Filename |
 |------|----------|---------|----------|
-| **Continuation** | Bouncing to a new session, work continues | `Parked:` | `[topic-slug].md` |
-| **Close-out** | Work is done, capturing a record before walking away | `Wrapped:` | `[topic-slug]-wrapped.md` |
-| **Idle checkpoint** | Automated park triggered by inactivity/cache-expiry, not a user request | `Checkpoint:` | `[topic-slug]-checkpoint.md` |
+| **Continuation** | Bouncing to a new session, work continues | `Parked:` | `YYYYMMDDHHMM [topic-slug].md` |
+| **Close-out** | Work is done, capturing a record before walking away | `Wrapped:` | `YYYYMMDDHHMM [topic-slug]-wrapped.md` |
+| **Idle checkpoint** | Automated park triggered by inactivity/cache-expiry, not a user request | `Checkpoint:` | `YYYYMMDDHHMM [topic-slug]-checkpoint.md` |
 
 ## Mode Detection
 
@@ -41,13 +41,11 @@ Pick once and commit. Do not switch modes mid-write.
    - **Fallback:** If the value above is not a UUID (another harness left it unfilled), run [scripts/get-session-id.sh](scripts/get-session-id.sh) via Bash. If that prints nothing, use `unknown`.
 2. Gather git branch, worktree path, files touched.
 3. Resolve output location, in order:
-   1. Injected context has a `Park vault:` line → the vault is the home for parks. Read `<vault>/CLAUDE.md` and find its `## Parking` section. Its `Location:` is relative to the vault. Follow whatever else it says about filenames (e.g. a `YYYYMMDDHHMM ` prefix) and format; where it conflicts with this skill's filename, the vault wins. If the file or section is missing, fall through to the next step.
-   2. Project `CLAUDE.md` → `## Handoffs` or `## Parking` → `Location:`
-   3. User `~/.claude/CLAUDE.md` → same lookup
-   4. Default: `.parkinglot/` in project root (verify it is gitignored)
+   1. Injected context has a `Park vault:` line and `<vault>/CLAUDE.md` has a `## Parking` section with a `Location:` → that folder, relative to the vault. The section supplies only the location; filenames follow this skill.
+   2. Otherwise `.parkinglot/` in project root (verify it is gitignored). This also covers a vault with no `## Parking` section.
 
    When the file lands outside the current working directory (the vault case), use its absolute path everywhere this skill writes `[path]`, including the Resume Prompt's `unpark` line. A vault-relative path only resolves from inside the vault.
-4. Check the injected context for a `Park destination:` line. This is separate from the CLAUDE.md location above and always optional — it names a command to also send the file to once it's written, e.g. filing it into a second brain vault. Not present unless the user set the `destination` or `destination_helper` plugin setting (or the legacy `AGENT_PARK_DESTINATION` / `AGENT_PARK_DESTINATION_HELPER` env vars). Note the template if present; it's used in "After Parking" below.
+4. Get the timestamp with `date +%Y%m%d%H%M`. Every filename starts with it, then a single space.
 
 ## Continuation Template
 
@@ -91,7 +89,7 @@ names the open question to resolve. Copy-paste ready.]
 
 **Name the skill, not the raw command, for steps that have a skill.** The resuming session tends to run whatever literal command the handoff spells out, and that skips the skill that would have handled it properly. So when a next step opens, edits, or comments on a PR, write "open the PR via the `git:pull-request` skill", not `gh pr create --title ... --body ...`. The same goes for commits (`git:commit`) and working through review feedback (`git:pull-feedback`). Keep the step's specifics (branch, what the PR body must cover, draft vs ready). Just don't hand over a copy-paste command that routes around the skill.
 
-Filename: `[topic-slug].md`
+Filename: `YYYYMMDDHHMM [topic-slug].md`
 
 ## Close-out Template
 
@@ -119,7 +117,7 @@ Use when the work is done and the user is walking away. There may be open thread
 List follow-up candidates; don't file them in a tracker.]
 ```
 
-Filename: `[topic-slug]-wrapped.md`
+Filename: `YYYYMMDDHHMM [topic-slug]-wrapped.md`
 
 Close-out has no Resume Prompt and no Next Steps. If you find yourself wanting to write either, the work is probably a continuation: re-check the mode.
 
@@ -164,17 +162,7 @@ names the open question to resolve. Copy-paste ready.]
 
 Same Resume Prompt requirement as continuation: mandatory, specific, no filler.
 
-Filename: `[topic-slug]-checkpoint.md`
-
-## Sending to a Destination
-
-If step 4 above found a `Park destination:` template, run it now, after the file is written:
-
-1. Substitute placeholders in the template: `{file}` → the full path just written, `{title}` → the topic slug/heading, `{mode}` → `continuation`, `close-out`, or `idle-checkpoint`.
-2. Run the substituted command via Bash. This happens as a normal, visible tool call — never assume it succeeded without checking the result.
-3. Report the outcome to the user alongside the local path (see "After Parking" below). If the command fails, say so plainly and still report the local file as parked — the local write is the source of truth; the destination is a best-effort extra.
-
-If no `Park destination:` line was present, skip this section entirely — park behaves exactly as it does without one.
+Filename: `YYYYMMDDHHMM [topic-slug]-checkpoint.md`
 
 ## After Parking
 
@@ -203,5 +191,3 @@ Checkpointed to `[path]` (automated — this session went idle).
 If you're still working in this session, ignore this. To resume elsewhere:
 > unpark [path]
 ```
-
-If a destination command ran, append one line noting the result either way, e.g. `Also sent to [destination]` or `Destination command failed: [short reason]`.

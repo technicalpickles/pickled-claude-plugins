@@ -18,11 +18,20 @@ test('defaultVault honours the Default line, else the first vault', () => {
   expect(defaultVault('nothing here')).toBe(undefined)
 })
 
-function world(on: On, env: Record<string, string> = {}, config: string | null = CONFIG, vaultExists = true) {
+function world(
+  on: On,
+  env: Record<string, string> = {},
+  configs: Record<string, string> = { '/home/t/.claude/second-brain.md': CONFIG },
+  existing: string[] | null = null,
+  reads: string[] = [],
+) {
   const vars: Record<string, string> = { HOME: '/home/t', ...env }
   on('env.get', (_$, e) => ({ value: vars[e.name] }))
-  on('fs.read', () => (config === null ? { deny: 'ENOENT' } : { value: config }))
-  on('fs.exists', () => ({ value: vaultExists }))
+  on('fs.read', (_$, e) => {
+    reads.push(e.path)
+    return e.path in configs ? { value: configs[e.path] } : { deny: 'ENOENT' }
+  })
+  on('fs.exists', (_$, e) => ({ value: existing === null || existing.includes(e.path) }))
   on('skill.prompt', (_$, e) => ({ text: e.text }))
 }
 
@@ -43,22 +52,40 @@ test('other skills are untouched', async ($, on) => {
   expect(await ask($, 'git:commit')).toBe('BODY')
 })
 
-test('park_vault overrides the default and expands ~', { options: { park_vault: '~/elsewhere' } }, async ($, on) => {
-  world(on)
-  expect(await ask($, 'agent-meta:park')).toBe('BODY\n\nPark vault: /home/t/elsewhere')
+test('SB_NOTE_VAULT wins over second-brain.md', async ($, on) => {
+  world(on, { SB_NOTE_VAULT: ' /v/scratch ' })
+  expect(await ask($, 'agent-meta:park')).toBe('BODY\n\nPark vault: /v/scratch')
 })
 
-test('no config file, or a missing vault dir, adds nothing', async ($, on) => {
-  world(on, {}, null)
-  expect(await ask($, 'agent-meta:park')).toBe('BODY')
+test('an SB_NOTE_VAULT that is not a directory falls back to the config', async ($, on) => {
+  world(on, { SB_NOTE_VAULT: '/v/gone' }, undefined, ['/v/work'])
+  expect(await ask($, 'agent-meta:park')).toBe('BODY\n\nPark vault: /v/work')
 })
 
-test('park_in_vault off adds nothing', { options: { park_in_vault: false } }, async ($, on) => {
-  world(on)
+test('CLAUDE_CONFIG_DIR replaces ~/.claude as the dir second-brain.md is read from', async ($, on) => {
+  const reads: string[] = []
+  world(
+    on,
+    { CLAUDE_CONFIG_DIR: '/cfg' },
+    { '/cfg/second-brain.md': CONFIG, '/home/t/.claude/second-brain.md': '- home: /v/home' },
+    null,
+    reads,
+  )
+  expect(await ask($, 'agent-meta:park')).toBe('BODY\n\nPark vault: /v/work')
+  expect(reads).toEqual(['/cfg/second-brain.md'])
+})
+
+test('a CLAUDE_CONFIG_DIR list falls through to the next dir', async ($, on) => {
+  world(on, { CLAUDE_CONFIG_DIR: '/a,/b' }, { '/b/second-brain.md': '- b: /v/b' })
+  expect(await ask($, 'agent-meta:park')).toBe('BODY\n\nPark vault: /v/b')
+})
+
+test('no config file adds nothing', async ($, on) => {
+  world(on, {}, {})
   expect(await ask($, 'agent-meta:park')).toBe('BODY')
 })
 
 test('a default vault that is not a directory adds nothing', async ($, on) => {
-  world(on, {}, CONFIG, false)
+  world(on, {}, undefined, [])
   expect(await ask($, 'agent-meta:park')).toBe('BODY')
 })

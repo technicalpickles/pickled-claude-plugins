@@ -1,20 +1,4 @@
 {
   "name": "agent-meta",
-  "description": "Meta-development tools for agentic workflows",
-  "userConfig": {
-    "destination": {
-      "type": "string",
-      "title": "Park destination command",
-      "description": "Optional command template run after park writes its file, e.g. to file it into a second brain. Placeholders: {file}, {title}, {mode}. Leave empty for none.",
-      "required": false,
-      "default": ""
-    },
-    "destination_helper": {
-      "type": "string",
-      "title": "Park destination helper",
-      "description": "Optional no-arg command whose stdout is the destination template, computed at park time. Wins over the destination setting.",
-      "required": false,
-      "default": ""
-    }
-  }
+  "description": "Meta-development tools for agentic workflows"
 }

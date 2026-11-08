@@ -1,5 +1,5 @@
 {
-  "description": "Add the park destination command to park's prompt, from plugin settings or the legacy env vars",
+  "description": "Register the /session-id command",
   "modules": [
     "./register.ts"
   ]
