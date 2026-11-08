@@ -31,3 +31,8 @@ jobs:
 
       - name: Run bats
         run: bats tests/
+
+      - name: Test and validate the plugin's mods
+        run: |
+          claude plugin test .
+          claude plugin validate .
