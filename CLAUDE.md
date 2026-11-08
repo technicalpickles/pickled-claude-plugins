@@ -22,6 +22,14 @@ If `installed_plugins.json` points at a path that doesn't exist (seen with direc
 
 Changing a `routes.json` or `tool-routes.yaml`? Test it with the tool-routing CLI: [`plugins/tool-routing/docs/route-discovery.md`](plugins/tool-routing/docs/route-discovery.md) covers `tool-routing test`/`list`, `CLAUDE_PROJECT_ROOT`, and why local-scoped plugins need an exact `projectPath` match.
 
+## Testing plugins
+
+Run local source without reinstalling: `claude -p --plugin-dir plugins/{name} ...`. The reinstall-and-restart rule above is for interactive sessions.
+
+Match the test to the layer. Shell and Python hooks get `bats`. Mods get `claude plugin test plugins/{name}` and `claude plugin validate plugins/{name}`, both run in CI. A mocked engine can't tell you what the real engine passes a hook (skill names, transcript shape, settings keys), so for anything that depends on that, probe once with a headless `claude -p` run and encode the answer in a test.
+
+→ Full details and the headless end-to-end rules: [`docs/testing-plugins.md`](docs/testing-plugins.md). Worked example: [`plugins/agent-meta/docs/verifying-park.md`](plugins/agent-meta/docs/verifying-park.md)
+
 ## Shell scripts must run on bash 3.2
 
 macOS ships `/bin/bash` 3.2, and `#!/usr/bin/env bash` can resolve to it even with a newer Homebrew bash installed. So no `declare -A`, `mapfile`, `${var,,}`, `|&`, etc. — use parallel indexed arrays or a delimited string instead of associative arrays. `./scripts/check-bash-compat.sh` flags these (CI and the hk pre-commit hook run it); test locally with `/bin/bash path/to/script`. It can't catch `"${arr[@]}"` on an empty array under `set -u`, which also errors on bash < 4.4.
@@ -107,6 +115,7 @@ The `plugin-list-check.yml` workflow blocks merge until the committed table matc
 ## Documentation
 
 - [`docs/versioning.md`](docs/versioning.md) - How plugin versions are managed
+- [`docs/testing-plugins.md`](docs/testing-plugins.md) - Which test fits which layer, and how to run headless end-to-end checks
 - [`docs/claude-ai-skill-porting.md`](docs/claude-ai-skill-porting.md) - How claude.ai Skills (a separate product from Claude Code plugins) are structured and built
 - [`plugins/tool-routing/docs/route-discovery.md`](plugins/tool-routing/docs/route-discovery.md) - How routes are found and merged
 

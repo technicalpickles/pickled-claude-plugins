@@ -1,0 +1,58 @@
+name: plugin tests
+
+# Plugins that have a test suite but no workflow of their own. A plugin with
+# its own *-plugin-tests.yml workflow does not belong here.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'plugins/actually-lsp/**'
+      - 'plugins/hk/**'
+      - 'plugins/stay-principled/**'
+      - 'plugins/tool-routing/**'
+      - 'plugins/working-in-monorepos/**'
+      - 'plugins/writing-tools/**'
+      - '.github/workflows/plugin-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    name: pytest (${{ matrix.plugin }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        plugin:
+          - actually-lsp
+          - stay-principled
+          - tool-routing
+          - working-in-monorepos
+          - writing-tools
+    defaults:
+      run:
+        working-directory: plugins/${{ matrix.plugin }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v8.1.0
+
+      - name: Run pytest
+        run: uv run --with pytest python -m pytest -q
+
+  bats-hk:
+    name: bats (hk)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugins/hk
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bats
+        run: sudo apt-get update && sudo apt-get install -y bats
+
+      - name: Run bats
+        run: bats hooks/tests/

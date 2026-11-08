@@ -26,10 +26,9 @@ It runs five headless `claude -p` sessions (about three minutes, real tokens) wi
 
 ## Lessons baked into the script
 
-- **Assert on the injected value, not the label.** The skill text itself contains the words `Park vault:`. A bare grep passes with no hook at all. Match `Park vault: <path>`.
-- **Read the on-disk transcript.** `--output-format stream-json` does not include the expanded skill text. `~/.claude/projects/*/<session_id>.jsonl` does.
-- **Allow `Skill` in `--allowedTools`.** Without it, plain-word parks fail with an opaque "Skill load threw an error" that looks like a product bug.
-- **Give the vault with `--add-dir`, and keep scratch files under the working directory.** Headless runs block `cat` and redirects to paths outside the allowed directories. A real vault outside the cwd needs the same allowance (an additional directory or sandbox write rule), or parks stop at a permission prompt.
+The general rules (assert on the value not the label, read the on-disk transcript, `Skill` in `--allowedTools`, `--add-dir` for the vault, `<name>@inline` settings) are in [docs/testing-plugins.md](../../../docs/testing-plugins.md). Park adds two:
+
+- **A real vault outside the cwd needs the same allowance** (an additional directory or sandbox write rule), or parks stop at a permission prompt.
 - **Point the vault with `SB_NOTE_VAULT`, not `HOME`.** The script finds transcripts under `$HOME/.claude/projects` and `claude -p` needs the real config dir for auth, so a scratch `HOME` breaks both. Forgetting to export `SB_NOTE_VAULT` would make a run write to your real default vault.
 
 ## Known gaps
