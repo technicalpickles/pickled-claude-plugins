@@ -32,7 +32,9 @@ Requires the [pickled-claude-plugins marketplace](../../README.md#installation).
 
 ## Parking in the vault
 
-With the `agent-meta` plugin installed, `park` and `unpark` keep handoffs in your default vault (from `~/.claude/second-brain.md`) instead of `.parkinglot/`. The vault's `CLAUDE.md` `## Parking` section sets the folder and filename convention. This works for `/agent-meta:park` and plain "park" alike. Turn it off with the `park_in_vault` plugin setting, or point somewhere else with `park_vault`. Per-machine vault config means a work machine parks to its work vault.
+With the `agent-meta` plugin installed, `park` and `unpark` keep handoffs in your vault instead of `.parkinglot/`. The vault is `SB_NOTE_VAULT` if set, otherwise the default vault from `second-brain.md` in your Claude config dir (`$CLAUDE_CONFIG_DIR`, a `:` or `,` separated list tried in order, else `~/.claude`). The first one that is an existing directory wins. The vault's `CLAUDE.md` `## Parking` section sets the folder (`Location:`); without that section parks go to `.parkinglot/`. This works for `/agent-meta:park` and plain "park" alike.
+
+There are no park settings. To keep parks out of the vault, don't configure second-brain. There is no per-project opt-out. Per-machine vault config means a work machine parks to its work vault.
 
 ## Commands
 
