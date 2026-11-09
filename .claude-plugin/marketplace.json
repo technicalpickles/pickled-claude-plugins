@@ -148,7 +148,7 @@
       "name": "pickle-mode",
       "source": "./plugins/pickle-mode",
       "version": "0.1.0",
-      "description": "Josh's agent style layered on pstack's poteto-mode: personal gates plus playbook overlays"
+      "description": "Josh's agent style layered on pstack's poteto-mode: personal principles, gates, and playbook overlays"
     }
   ]
 }

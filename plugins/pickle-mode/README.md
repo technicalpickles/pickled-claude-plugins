@@ -1,6 +1,6 @@
 # pickle-mode
 
-My agent style, layered on [pstack](https://github.com/michael-denyer/pstack-claude)'s `poteto-mode`. pstack does the heavy lifting: principles, playbooks, subagent routing, autonomy. pickle-mode adds a short list of gates where I work differently, and playbook overlays that route generic steps to plugins I already use.
+My agent style, layered on [pstack](https://github.com/michael-denyer/pstack-claude)'s `poteto-mode`. pstack does the heavy lifting: principles, playbooks, subagent routing, autonomy. pickle-mode adds how I think about work (principles), a short list of gates where I work differently, and playbook overlays that route generic steps to plugins I already use.
 
 ## Install
 
@@ -16,7 +16,7 @@ Optional, to stop pstack's own SessionStart hook from also routing to plain `pot
 
 | Piece | What it does |
 |---|---|
-| [`skills/pickle-mode`](skills/pickle-mode/SKILL.md) | Loads `poteto-mode`, then applies precedence, gates, and overlays |
+| [`skills/pickle-mode`](skills/pickle-mode/SKILL.md) | Loads `poteto-mode`, then applies precedence, principles, gates, and overlays |
 | [`hooks/`](hooks/) | SessionStart routing to `pickle-mode` instead of `poteto-mode` |
 | [`.agents/playbooks/`](.agents/playbooks/) | Overlays on pstack playbooks, in pstack's project-playbook format |
 | [`scripts/check-overlays.sh`](scripts/check-overlays.sh) | Runs pstack's `check-playbooks.mjs` against the overlays |
