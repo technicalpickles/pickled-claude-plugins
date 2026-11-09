@@ -55,7 +55,7 @@ See individual plugin READMEs for details on what each plugin provides.
 | [hk](plugins/hk) | Auto-wire hk's coding-agent integration (Stop check, SessionStart instructions, MCP server) in projects that have an hk config | hk-creating-checks |
 | [mcpproxy](plugins/mcpproxy) | MCP server management and integration tools | working-with-mcp |
 | [petri-dish](https://github.com/technicalpickles/petri-dish) | Author Claude Code experiments (petri-dish cultures) with disciplined schema, baselines, and multi-run averaging | [see repo](https://github.com/technicalpickles/petri-dish) |
-| [pickle-mode](plugins/pickle-mode) | Josh's agent style layered on pstack's poteto-mode: personal gates plus playbook overlays | pickle-mode |
+| [pickle-mode](plugins/pickle-mode) | Josh's agent style layered on pstack's poteto-mode: personal principles, gates, and playbook overlays | pickle-mode |
 | [sandbox-advisor](plugins/sandbox-advisor) | Turns Claude Code sandbox EPERMs into crisp re-run-unsandboxed guidance | – |
 | [second-brain](plugins/second-brain) | Knowledge management for Obsidian vaults and structured markdown repositories | capture, connect, devlog, distill-rules, enrich, ingest, link-daily, obsidian, process-inbox, route |
 | [stay-on-target](plugins/stay-on-target) | Focused development mode - clarify, plan, verify, detect drift | – |

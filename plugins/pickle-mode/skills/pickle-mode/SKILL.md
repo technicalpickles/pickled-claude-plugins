@@ -1,11 +1,11 @@
 ---
 name: pickle-mode
-description: Use for /pickle-mode, "pickle mode", or any task pstack's poteto-mode would take (multi-file changes, design choices, bugs with unknown cause, perf). Runs poteto-mode with Josh's gates and playbook overlays on top.
+description: Use for /pickle-mode, "pickle mode", or any task pstack's poteto-mode would take (multi-file changes, design choices, bugs with unknown cause, perf). Runs poteto-mode with Josh's principles, gates, and playbook overlays on top.
 ---
 
 # Pickle mode
 
-A thin layer over pstack's `poteto-mode`. poteto-mode owns the principles, triggers, autonomy, subagent rules, reply rules, and playbook catalog. This file only adds what differs. Do not restate poteto-mode here.
+A thin layer over pstack's `poteto-mode`. poteto-mode owns its principles, triggers, autonomy, subagent rules, reply rules, and playbook catalog. This file adds how the user thinks about work, plus the few places they work differently. Do not restate poteto-mode here.
 
 ## Requirements
 
@@ -17,10 +17,29 @@ On conflict, the first match wins:
 
 1. The user's own instructions (their messages, user-level CLAUDE.md).
 2. The instructions of the repository you are working in (its CLAUDE.md or AGENTS.md, and its `.agents/playbooks/` overlays). When a task touches several repositories, each one's instructions govern the changes made in it.
-3. The pickle-mode gates and overlays below.
+3. The pickle-mode principles, gates, and overlays below.
 4. poteto-mode.
 
 Repository standards outrank pickle-mode on purpose. Git workflow, commit style, and review process belong to the repo.
+
+## Principles
+
+How the user thinks about work. Apply these inside every playbook step, next to poteto-mode's principles. They are judgment, not procedure: they say what to weigh, not which command to run.
+
+- **Understand why before doing what.** When the user proposes an approach, learn what they are trying to accomplish first. Raise a better path early, before work starts. Once work is underway, never quietly swap in a different approach. Stop and raise it instead.
+- **Look for what already exists.** Before designing something, look for the skill, script, tool, or doc that already does it or most of it, and extend that before building new. Answer "don't we already have X?" before the user has to ask it.
+- **Fix it, don't remove it.** A bug, edge case, or review comment against a feature gets fixed in place. Deleting or disabling the feature to make the complaint go away is a decision for the user, not a fix. A deferral counts only once its follow-up exists.
+- **Know what you're throwing away.** Before deleting, cleaning up, or overwriting, find out what it is, where it came from, whether anything still uses it, and what it costs to rebuild, and write that down. What is still there matters more than tidiness.
+- **Write for the reader who wasn't there.** Docs, handoffs, and notes get read later by someone without this conversation. Use absolute dates and identifiers, correct a wrong claim in place instead of stacking a correction on it, and say what something is rather than what it isn't.
+- **Reaching other people is a deliberate act.** A message, tag, review request, or ping to someone else is a choice made on purpose, never a side effect of finishing a task. The Posting gate covers the mechanics.
+- **A personal workshop, not a product.** The user's own tooling serves one person's way of working. Optimize for how they work, not for a hypothetical adopter. Skip generality, onboarding, and configurability nobody asked for.
+
+These sharpen principles poteto-mode already has. Apply the pstack principle, plus the difference named here:
+
+- **Build the lever** (`principle-build-the-lever`, `principle-encode-lessons-in-structure`). A correction the user gives you belongs in a skill, hook, rule, or memory, so it holds past this session.
+- **Stop after the second miss** (`principle-attack-the-premise`). This applies to any approach, not only fixes. After two failures, state what you observed and reassess before trying a variant.
+- **Test the actual thing** (`principle-prove-it-works`). Probe the exact path that failed, not a lookalike, which produces confident wrong theories. Test the edge of the blast radius too.
+- **Ask only what only the user can answer** (`principle-never-block-on-the-human`). Settle facts from code, docs, and history yourself. Bring the user judgment calls, with a recommendation.
 
 ## Playbook overlays
 

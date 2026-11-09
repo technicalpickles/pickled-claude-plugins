@@ -1,6 +1,6 @@
 {
   "name": "pickle-mode",
-  "description": "Josh's agent style layered on pstack's poteto-mode: poteto's playbooks and autonomy, with a short list of personal gates and playbook overlays that route to agent-meta and friends",
+  "description": "Josh's agent style layered on pstack's poteto-mode: poteto's playbooks and autonomy, with personal principles, gates, and playbook overlays that route to agent-meta and friends",
   "author": {
     "name": "Josh Nichols",
     "email": "josh@technicalpickles.com"
