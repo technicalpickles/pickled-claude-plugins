@@ -1,0 +1,1 @@
+{"hooks":{"PostToolUse":[{"matcher":"mcp__stub__.*","hooks":[{"type":"command","command":"/ABS/PATH/TO/secret-redactor-spike/redact.py"}]}]}}
