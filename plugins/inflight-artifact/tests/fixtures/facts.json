@@ -1,0 +1,99 @@
+{
+ "generated": "2026-01-15T10:00",
+ "days": 14,
+ "since": "2026-01-01",
+ "prs": [
+  {
+   "repo": "acme/widgets",
+   "short": "widgets",
+   "n": 12,
+   "title": "Add widget cache",
+   "url": "https://github.com/acme/widgets/pull/12",
+   "draft": false,
+   "mergeable": "MERGEABLE",
+   "updated": "2026-01-14",
+   "branch": "cache",
+   "author": "dev",
+   "ci": {
+    "state": "success",
+    "url": "https://ci.example/builds/1"
+   }
+  },
+  {
+   "repo": "acme/infra",
+   "short": "infra",
+   "n": 7,
+   "title": "Migrate database to v2",
+   "url": "https://github.com/acme/infra/pull/7",
+   "draft": true,
+   "mergeable": "CONFLICTING",
+   "updated": "2026-01-10",
+   "branch": "mig",
+   "author": "dev",
+   "ci": {
+    "state": "failure",
+    "url": "https://ci.example/builds/2"
+   }
+  },
+  {
+   "repo": "acme/gadgets",
+   "short": "gadgets",
+   "n": 3,
+   "title": "Old experiment",
+   "url": "https://github.com/acme/gadgets/pull/3",
+   "draft": false,
+   "mergeable": "MERGEABLE",
+   "updated": "2025-06-01",
+   "branch": "x",
+   "author": "dev",
+   "ci": {
+    "state": "none",
+    "url": ""
+   }
+  },
+  {
+   "repo": "acme/stray",
+   "short": "stray",
+   "n": 1,
+   "title": "Unrelated tweak",
+   "url": "https://github.com/acme/stray/pull/1",
+   "draft": false,
+   "mergeable": "MERGEABLE",
+   "updated": "2026-01-12",
+   "branch": "t",
+   "author": "dev",
+   "ci": {
+    "state": "pending",
+    "url": "https://ci.example/builds/3"
+   }
+  },
+  {
+   "repo": "acme/sandbox-play",
+   "short": "sandbox-play",
+   "n": 9,
+   "title": "Excluded by pattern",
+   "url": "https://github.com/acme/sandbox-play/pull/9",
+   "draft": false,
+   "mergeable": "MERGEABLE",
+   "updated": "2026-01-12",
+   "branch": "s",
+   "author": "dev",
+   "ci": {
+    "state": "none",
+    "url": ""
+   }
+  }
+ ],
+ "merged": [
+  {
+   "repo": "acme/widgets",
+   "short": "widgets",
+   "n": 11,
+   "title": "Fix widget leak",
+   "url": "https://github.com/acme/widgets/pull/11",
+   "date": "2026-01-13"
+  }
+ ],
+ "tasks": [],
+ "trees": []
+}
