@@ -149,6 +149,11 @@
       "source": "./plugins/pickle-mode",
       "version": "0.2.0",
       "description": "Josh's agent style layered on pstack's poteto-mode: personal principles, gates, and playbook overlays"
+    },
+    {
+      "name": "inflight-artifact",
+      "source": "./plugins/inflight-artifact",
+      "version": "0.1.0"
     }
   ]
 }
