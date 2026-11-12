@@ -1,21 +1,21 @@
 ---
 name: inflight-artifact-design
-description: Use when the user wants to set up or change what the in-flight page captures or how it is organized: first-run setup, add or rename a section, sort unsorted PRs or tasks, add a page (for example a separate one for a side project), change exclusions or the lede, or asks "what does it capture". Iterates on a scratch preview before touching the live page. For routine refreshes use inflight-artifact.
+description: Use when the user wants to set up or change what the in-flight page captures or how it is organized: first-run setup, add or rename a section, sort unsorted PRs or tasks, add a page (for example a separate one for a side project), change exclusions or tabs, or asks "what does it capture". Iterates on a scratch preview before touching the live page. Also use for a cold read of a page, to find prose that is no longer true. For routine refreshes use inflight-artifact-refresh.
 ---
 
 # inflight-artifact-design
 
-Owns everything that *defines* the pages. Its sibling `inflight-artifact` only runs them. The config is written by prompting: the user describes what they want, this skill writes the JSON. Nobody hand-edits it.
+Owns the *structure* of the pages: what they capture and how they surface it. Its sibling `inflight-artifact-refresh` owns the *state* they show (PRs, tasks, prod, and the prose that describes them). The config is written by prompting: the user describes what they want, this skill writes the JSON. Nobody hand-edits it.
 
 Where things live:
 
 | Thing | Location | Written by |
 |---|---|---|
 | Pages: scope, exclusions, sections and their match rules, rows, needs, tabs, refresh notes | `${user_config.config_dir}/pages/<page>.json` | this skill |
-| Page content that goes stale: lede, history entries, hand-written blocks | `pages/<page>.json`, `pages/<page>/*.html` | `inflight-artifact` on refresh, as the page's `refresh` notes say; this skill when the user asks |
+| Page content that goes stale: lede, history entries, hand-written blocks | `pages/<page>.json`, `pages/<page>/*.html` | `inflight-artifact-refresh`, as the page's `refresh` notes say; this skill when the user asks |
 | Settings: github_user, repo_roots, task_backend (used when flags are not passed) | `${user_config.config_dir}/settings.json` | this skill |
 | CSS/JS overrides (optional; the plugin's own are the default) | `${user_config.config_dir}/page.css`, `page.js` | this skill |
-| Facts, session registry, rendered HTML | `${CLAUDE_PLUGIN_DATA}` | `inflight-artifact` only |
+| Facts, session registry, rendered HTML | `${CLAUDE_PLUGIN_DATA}` | `inflight-artifact-refresh` only |
 | Engine: `gather.py`, `render.py`, templates | `${CLAUDE_PLUGIN_ROOT}` | the plugin's source repo, not this skill |
 
 A change that needs the engine (a new captured field, a new kind of card) is a change to the plugin's source. Say so, offer to make it in a checkout of the plugin repo, and do not edit files under `${CLAUDE_PLUGIN_ROOT}`: they are replaced on update.
@@ -24,7 +24,7 @@ A change that needs the engine (a new captured field, a new kind of card) is a c
 
 1. Ask for the page's name and scope: which repos and owners count, and what is off limits (becomes `exclude`, a regex over repo names, titles and task projects).
 2. Copy `${CLAUDE_PLUGIN_ROOT}/examples/config/pages/example.json` to `${user_config.config_dir}/pages/<name>.json`.
-3. Run a gather (see `inflight-artifact`), render with no sections, and look at the Unsorted list together. Propose sections from what is there: group by repo, title keywords and task projects, and cross-repo efforts the user names.
+3. Run a gather (see `inflight-artifact-refresh`), render with no sections, and look at the Unsorted list together. Propose sections from what is there: group by repo, title keywords and task projects, and cross-repo efforts the user names.
 4. Continue with the loop below until the page reads right.
 
 ## Loop
@@ -34,6 +34,15 @@ A change that needs the engine (a new captured field, a new kind of card) is a c
 3. **Re-render from the saved `facts.json`** (no re-gather, so it is fast and offline): `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/render.py" <page> --config-dir "${user_config.config_dir}" --state-dir "${CLAUDE_PLUGIN_DATA}" --preview --out <scratch dir>/<page>.html`. Re-gather only when the change needs fresh data.
 4. **Publish to a scratch artifact**, never the live URL: one artifact reused for every preview (find it by its title starting "PREVIEW:" with `Artifact` action `list`; create it on first use). `--preview` makes it unmistakable: the page title is "PREVIEW: <title> (scratch)", and it carries a sticky warning bar, a dashed outline and a striped background. Show the link and say what moved.
 5. **Wait for approval.** On a yes, render without the banner and publish to the page's `artifact_url` (read it first; a new page gets its URL recorded in its config). Append a dated line to `${user_config.config_dir}/CHANGELOG.md`: what changed and why, in a sentence.
+
+## Cold read
+
+Hand-written prose goes stale without anyone touching it: a status label whose reason is gone, a claim that was true when written, a row describing work that has since shipped. The writer cannot see this, so use a reader with no history. Run one after a large restructure, after a long gap between refreshes, or when a page feels untrustworthy.
+
+1. Spawn a fresh agent. Give it the page's config, the rendered HTML and the hand-written block files, and tell it only the page's purpose. Do not give it your conclusions.
+2. Ask it to flag, per item: a section `status` or ordering with no stated reason; a current-fact claim it can check and find false or dated; row text that disagrees with its task; shorthand a first-time reader cannot follow; a lede that describes a section differently from its contents. It may verify with read-only commands (`task <8-hex> info`, `gh` reads) and must not change anything.
+3. Have it report a table: where, exact text, what is wrong, evidence checked, confidence (checked, inferred or guess). Rank by how likely the item is to mislead a decision.
+4. Verify the inferred and guessed items yourself before acting. Apply the fixes through the loop below, one preview, and ask the user about the judgment calls.
 
 ## Config reference
 
@@ -60,6 +69,9 @@ After a render, `${CLAUDE_PLUGIN_DATA}/<page>.unsorted.json` lists the PR refs a
 - Never publish a design change straight to the live page.
 - Keep PR and CI links on every PR row.
 - Page copy: plain direct wording, no emoji.
-- Do not edit the state directory. If the facts are stale, run `inflight-artifact`.
+- A section `status` other than `now` states in its lede what it waits on. Do not carry a label over from an earlier layout without checking it still holds.
+- Prose that states a current fact names its source (a task, a PR or a command in `refresh[]`) or is dropped. Never write relative dates; write the date.
+- When a cold read or a refresh finds a class of mistake, fix it where it will be read again: a page-specific check goes in that page's `refresh[]`, a general one in this file's Rules. Do not only fix the instance.
+- Do not edit the state directory. If the facts are stale, run `inflight-artifact-refresh`.
 - Gather makes at most three `gh` calls and runs in the foreground; a credential broker may bulk-deny loops or detached runs.
 - On a "what does it capture" question, answer with a table of every field in `facts.json`, its source command, and where `render.py` shows it, so gaps are visible.

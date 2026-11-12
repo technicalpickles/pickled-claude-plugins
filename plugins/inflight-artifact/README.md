@@ -21,8 +21,8 @@ The install asks for four settings:
 
 | Piece | What it does |
 |---|---|
-| [`skills/inflight-artifact`](skills/inflight-artifact/SKILL.md) | Refreshes the page: gather facts, follow the page's refresh notes, render, publish. Changes content, never shape. |
-| [`skills/inflight-artifact-design`](skills/inflight-artifact-design/SKILL.md) | First-run setup and every later change to sections, exclusions and wording. Iterates on a clearly marked scratch preview and publishes to the live page only on your yes. |
+| [`skills/inflight-artifact-refresh`](skills/inflight-artifact-refresh/SKILL.md) | Keeps the page true: gather facts, follow the page's refresh notes, re-check the hand-written prose against its sources, render, publish. Owns state, never structure. |
+| [`skills/inflight-artifact-design`](skills/inflight-artifact-design/SKILL.md) | Owns structure: first-run setup and every later change to sections, match rules, exclusions and tabs. Also runs a cold read to find prose that has gone stale. Iterates on a clearly marked scratch preview and publishes to the live page only on your yes. |
 | [`scripts/`](scripts/) | `gather.py` (up to three `gh` GraphQL calls, plus tasks and local repos), `render.py` (pure: facts + config to HTML), `sessions.py` (session registry, one file per session), `session_hook.py` (logs each session's repo and branch at start and whenever its cwd changes, marks it idle at end). |
 | [`hooks/hooks.json`](hooks/hooks.json) | SessionStart, CwdChanged and SessionEnd run `session_hook.py`. Pages place logged sessions by scope, linked tasks, or an explicit `--page`. |
 | [`examples/config`](examples/config/) | A sanitized starting config. |
