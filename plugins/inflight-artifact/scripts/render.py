@@ -159,6 +159,10 @@ needs = [f'<li><div>{n["text"]} {" ".join(ref_html(r) for r in n.get("refs", [])
          for n in cfg.get("needs", []) if not n.get("refs") or not all(resolved(r) for r in n["refs"])]
 needs += [row_html(r, t["title"]) for t in cfg["threads"] for key in ROWS for r in t.get(key, [])
           if is_you(r) and row_live(r) and not any(r.get("text", "") == n.get("text") for n in cfg.get("needs", []))]
+# A task carrying one of the page's needs_tags is on you too, so tagging it is enough to list it here.
+you_rows = {r["task"] for t in cfg["threads"] for key in ROWS for r in t.get(key, []) if is_you(r) and r.get("task")}
+needs += [f'<li class="task" tabindex="0" role="button" data-t="{k["id8"]}"><div>{E(k["desc"][:160])} <code>{k["id8"]}</code> <span class="chip block">you</span> <small>{E(T.get(k["thread"], {}).get("title", "Unsorted"))}</small>{badge(k["id8"])}</div></li>'
+          for k in sorted(pend, key=lambda k: -k["urgency"]) if set(k["tags"]) & set(cfg.get("needs_tags", [])) and k["id8"] not in you_rows]
 def needs_html():
     return f'<div class="needs"><h2>Needs you</h2>{"<ol>" + "".join(needs) + "</ol>" if needs else "<p class=lede>Nothing is waiting on you.</p>"}</div>'
 
