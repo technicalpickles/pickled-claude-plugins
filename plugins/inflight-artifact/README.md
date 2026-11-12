@@ -23,7 +23,7 @@ The install asks for four settings:
 |---|---|
 | [`skills/inflight-artifact`](skills/inflight-artifact/SKILL.md) | Refreshes the page: gather facts, follow the page's refresh notes, render, publish. Changes content, never shape. |
 | [`skills/inflight-artifact-design`](skills/inflight-artifact-design/SKILL.md) | First-run setup and every later change to sections, exclusions and wording. Iterates on a clearly marked scratch preview and publishes to the live page only on your yes. |
-| [`scripts/`](scripts/) | `gather.py` (one `gh` GraphQL call, a second for changed files when a page matches on paths, plus tasks and local repos), `render.py` (pure: facts + config to HTML), `sessions.py` (session registry, one file per session), `session_hook.py` (logs each session's repo and branch at start, marks it idle at end). |
+| [`scripts/`](scripts/) | `gather.py` (up to three `gh` GraphQL calls, plus tasks and local repos), `render.py` (pure: facts + config to HTML), `sessions.py` (session registry, one file per session), `session_hook.py` (logs each session's repo and branch at start, marks it idle at end). |
 | [`hooks/hooks.json`](hooks/hooks.json) | SessionStart and SessionEnd run `session_hook.py`. Pages place logged sessions by scope, linked tasks, or an explicit `--page`. |
 | [`examples/config`](examples/config/) | A sanitized starting config. |
 
@@ -41,6 +41,6 @@ Previews render with `--preview`: the title becomes "PREVIEW: ... (scratch)", wi
 
 ## Notes
 
-- `gather.py` makes one `gh` call (two when a page has a `pr_paths` rule; changed files inside the search make GitHub answer 502) and must run in the foreground. A credential broker such as [Automic Vault](../automic-vault/) approves each `gh` invocation separately and ties it to Claude through the process tree, so loops and detached runs get denied.
+- `gather.py` makes at most three `gh` calls (open PRs, merged PRs one search per day, changed files for path-scoped pages; folding them into one request makes GitHub answer 502) and must run in the foreground. A credential broker such as [Automic Vault](../automic-vault/) approves each `gh` invocation separately and ties it to Claude through the process tree, so loops and detached runs get denied.
 - Facts and the session registry live in `${CLAUDE_PLUGIN_DATA}`, which survives updates.
 - Tests: `python3 -m unittest discover -s tests` from this folder.

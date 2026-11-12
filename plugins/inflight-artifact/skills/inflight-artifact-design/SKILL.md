@@ -40,7 +40,7 @@ A change that needs the engine (a new captured field, a new kind of card) is a c
 Prose in the config (`lede`, `intro`, row `text`, `needs`, `history` text, fragment files) is inline HTML: write `<code>`, `<a href>` and `<b>` directly, and escape a literal `<` or `&`. Text that comes from facts (PR titles, task descriptions) is escaped by the renderer.
 
 - `exclude`: regex, case-insensitive, matched against repo name, PR title, task project, tags and description.
-- `include`: the page's scope, `{"prs": [rule], "tasks": [rule]}`. Every key in a rule must hold; any rule admits the item. Leave a list out to admit everything. PR rule keys: `repos`, `pr_title`, `pr_paths` (regex over changed file paths; gather fetches paths only for the `repos` named beside it). Task rule keys: `task_projects`, `task_tags`, `task_desc`. A task or PR that a row names is always in scope.
+- `include`: the page's scope, `{"prs": [rule], "tasks": [rule]}`. Every key in a rule must hold; any rule admits the item. Leave a list out to admit everything. PR rule keys: `repos`, `pr_title`, `pr_paths` (regex over changed file paths; gather fetches paths for the repos a page scopes, or for every PR when the page has no PR scope, so keep path-matched pages scoped). Task rule keys: `task_projects`, `task_tags`, `task_desc`. A task or PR that a row names is always in scope.
 - `threads[]` (sections), in priority order, first match wins: `id`, `title`, `status` (`now` feeds the Overview's "Up next"), `lede`, `ignore` (true collapses it on What's next and hides it from the Overview), `match`, and three row lists: `next`, `then`, `parked` (folded away).
 - `match` keys: `repos`, `pr_refs` (`repo#n`), `pr_title` (regex), `pr_paths` (regex), `task_projects` (prefix match), `task_tags`, `task_desc` (regex), `task_refs` (8-hex prefix). A row's `task` or `pr` claims it for that section before any match rule runs.
 - Rows: `{"text", "task": "<8-hex>" | "pr": "repo#n", "you": true, "kind": "security", "tone": "crit|warn|ok|info"}`. Set `"you": true` for rows only the user can do; they appear under "Needs you" instead of "Up next". Rows with a ref disappear when the task completes or the PR is no longer open.
@@ -60,5 +60,5 @@ After a render, `${CLAUDE_PLUGIN_DATA}/<page>.unsorted.json` lists the PR refs a
 - Keep PR and CI links on every PR row.
 - Page copy: plain direct wording, no emoji.
 - Do not edit the state directory. If the facts are stale, run `inflight-artifact`.
-- Gather makes one `gh` call (two when a page has a `pr_paths` rule) and runs in the foreground; a credential broker may bulk-deny loops or detached runs.
+- Gather makes at most three `gh` calls and runs in the foreground; a credential broker may bulk-deny loops or detached runs.
 - On a "what does it capture" question, answer with a table of every field in `facts.json`, its source command, and where `render.py` shows it, so gaps are visible.

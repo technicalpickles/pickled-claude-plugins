@@ -6,10 +6,11 @@ Usage: gather.py [DAYS=14] [--config-dir D] [--state-dir D] [--github-user U]
 Settings not given on the command line come from <config-dir>/settings.json
 (github_user, repo_roots, task_backend: "taskwarrior" or "none").
 
-Credential brokers can approve every `gh` invocation separately, so this makes at most TWO gh
-calls: one GraphQL request with aliased searches, and, only when a page has a `pr_paths` rule,
-one request for the changed files of PRs in the repos those rules name. Changed files inside the
-search make GitHub answer 502. Do not add per-PR `gh pr view` loops, and run it in the foreground.
+Credential brokers can approve every `gh` invocation separately, so this makes a fixed number of gh
+calls, at most three: open PRs, merged PRs (one search per day, since a search returns at most 100),
+and, only when a page has a `pr_paths` rule, the changed files of PRs in the repos that page scopes.
+Folding these into one request makes GitHub answer 502. Do not add per-PR `gh pr view` loops, and
+run it in the foreground.
 """
 import argparse, datetime, json, os, subprocess, sys
 
@@ -47,12 +48,17 @@ PR = """number title isDraft mergeable updatedAt mergedAt url headRefName
   commits(last: 1) { nodes { commit { statusCheckRollup { contexts(first: 12) { nodes {
     ... on CheckRun { conclusion status detailsUrl }
     ... on StatusContext { state targetUrl } } } } } } }"""
-Q = f"""query {{
-  org: search(query: "is:pr is:open user:{USER}", type: ISSUE, first: 50) {{ nodes {{ ... on PullRequest {{ {PR} }} }} }}
-  mine: search(query: "is:pr is:open author:{USER}", type: ISSUE, first: 50) {{ nodes {{ ... on PullRequest {{ {PR} }} }} }}
-  merged: search(query: "is:pr is:merged author:{USER} merged:>={SINCE}", type: ISSUE, first: 50) {{ nodes {{ ... on PullRequest {{ {PR} }} }} }}
-  merged_org: search(query: "is:pr is:merged user:{USER} merged:>={SINCE}", type: ISSUE, first: 50) {{ nodes {{ ... on PullRequest {{ {PR} }} }} }}
-}}"""
+LIGHT = "number title url updatedAt mergedAt repository { nameWithOwner name }"
+DAY_KEYS = [f"d{i}" for i in range(DAYS + 1)]
+# A search returns at most 100 nodes, so merged PRs in the user's repos are asked for one day per alias.
+SEARCHES = {
+    "org": (f"is:pr is:open user:{USER}", 100, PR),
+    "mine": (f"is:pr is:open author:{USER} -user:{USER}", 100, PR),
+    "merged": (f"is:pr is:merged author:{USER} -user:{USER} merged:>={SINCE}", 100, LIGHT),
+    **{k: (f"is:pr is:merged user:{USER} merged:{datetime.date.today() - datetime.timedelta(days=i)}", 100, LIGHT) for i, k in enumerate(DAY_KEYS)},
+}
+def query(keys):
+    return "query { " + " ".join(f'{k}: search(query: "{SEARCHES[k][0]}", type: ISSUE, first: {SEARCHES[k][1]}) {{ issueCount nodes {{ ... on PullRequest {{ {SEARCHES[k][2]} }} }} }}' for k in keys) + " }"
 
 
 def ci_of(node):
@@ -78,32 +84,43 @@ def ci_of(node):
 
 import time
 
-data, raw = None, ""
-for attempt in range(3):  # GitHub's GraphQL front end intermittently answers 502 (HTML) to heavy searches
-    raw = sh(["gh", "api", "graphql", "-f", f"query={Q}"])
-    try:
-        data = json.loads(raw)["data"]
-        break
-    except Exception:
-        if attempt < 2: time.sleep(5 * (attempt + 1))
-if data is None:
+def graphql(q):
+    raw = ""
+    for attempt in range(3):  # GitHub's GraphQL front end intermittently answers 502 (HTML) to heavy searches
+        raw = sh(["gh", "api", "graphql", "-f", f"query={q}"])
+        try: return json.loads(raw)["data"]
+        except Exception:
+            if attempt < 2: time.sleep(5 * (attempt + 1))
     sys.exit("gh graphql failed (a credential broker denied it, or an API error). Raw output:\n" + raw[:600])
 
 
+# Open and merged PRs each take about 13s to search; asked together they pass the front end's timeout and come back 502.
+data = {**graphql(query(["org", "mine"])), **graphql(query(["merged", *DAY_KEYS]))}
+for k in SEARCHES:
+    if data[k]["issueCount"] > len(data[k]["nodes"]):
+        print(f"warning: search {k} matched {data[k]['issueCount']} PRs but returned {len(data[k]['nodes'])}; some are missing", file=sys.stderr)
+
+
+ALL = "*"
+
+
 def path_repos():
-    """Repos named next to a pr_paths rule in any page; only their PRs get changed files fetched."""
+    """Repos whose PRs need changed files: every repo a page scopes when the page has any pr_paths rule (ALL if unscoped)."""
     out = set()
     pages = os.path.join(os.path.expanduser(args.config_dir), "pages")
     for f in (os.listdir(pages) if os.path.isdir(pages) else []):
         if not f.endswith(".json"): continue
         page = json.load(open(os.path.join(pages, f)))
-        rules = page.get("include", {}).get("prs", []) + [t.get("match", {}) for t in page.get("threads", [])]
-        out |= {r for rule in rules if rule.get("pr_paths") for r in rule.get("repos", [])}
+        scope = page.get("include", {}).get("prs")
+        if not any(r.get("pr_paths") for r in (scope or []) + [t.get("match", {}) for t in page.get("threads", [])]): continue
+        if scope is None or any(not r.get("repos") for r in scope): return ALL
+        out |= {repo for r in scope for repo in r["repos"]}
     return out
 
 
 def fetch_paths(found):
-    want = [n for n in found if n["repository"]["name"] in path_repos()]
+    repos = path_repos()
+    want = [n for n in found if repos == ALL or n["repository"]["name"] in repos]
     if not want: return {}
     parts = [f'p{i}: repository(owner: "{n["repository"]["nameWithOwner"].split("/")[0]}", name: "{n["repository"]["name"]}") '
              f'{{ pullRequest(number: {n["number"]}) {{ files(first: 100) {{ nodes {{ path }} }} }} }}' for i, n in enumerate(want)]
@@ -111,8 +128,6 @@ def fetch_paths(found):
     except Exception: sys.exit("gh graphql for changed files failed; rerun, or drop the pr_paths rule")
     return {(n["repository"]["nameWithOwner"], n["number"]): [f["path"] for f in res[f"p{i}"]["pullRequest"]["files"]["nodes"]]
             for i, n in enumerate(want)}
-
-
 
 
 def nodes(*keys):
@@ -123,7 +138,7 @@ def nodes(*keys):
     return list(seen.values())
 
 
-PATHS = fetch_paths(nodes("org", "mine", "merged", "merged_org"))
+PATHS = fetch_paths(nodes("org", "mine", "merged", *DAY_KEYS))
 def paths_of(n): return PATHS.get((n["repository"]["nameWithOwner"], n["number"]), [])
 
 
@@ -134,7 +149,7 @@ prs = [{"repo": n["repository"]["nameWithOwner"], "short": n["repository"]["name
        for n in nodes("org", "mine")]
 merged = [{"repo": n["repository"]["nameWithOwner"], "short": n["repository"]["name"], "n": n["number"],
            "title": n["title"], "url": n["url"], "date": (n.get("mergedAt") or n["updatedAt"])[:10], "paths": paths_of(n)}
-          for n in nodes("merged", "merged_org")]
+          for n in nodes("merged", *DAY_KEYS)]
 
 
 def js(cmd, default):
