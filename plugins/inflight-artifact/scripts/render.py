@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""render.py PAGE [--out FILE] [--sessions FILE] [--preview]: facts.json + config/pages/PAGE.json -> HTML. Pure function, no network.
+"""render.py PAGE [--out FILE] [--preview]: facts.json + config/pages/PAGE.json -> HTML. Pure function, no network.
 
 Config prose (ledes, row text, needs, history, fragment files) is trusted inline HTML written by the design skill.
 Text that comes from facts (PR titles, task descriptions) is escaped.
@@ -9,7 +9,7 @@ from collections import defaultdict
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ap = argparse.ArgumentParser(); ap.add_argument("page"); ap.add_argument("--out")
 ap.add_argument("--config-dir", default=os.path.join(ROOT, "config")); ap.add_argument("--state-dir", default=os.path.join(ROOT, "data"))
-ap.add_argument("--sessions"); ap.add_argument("--preview", action="store_true", help="mark the page as a scratch preview, not the live page")
+ap.add_argument("--preview", action="store_true", help="mark the page as a scratch preview, not the live page")
 ap.add_argument("--banner", default="", help="legacy: same as --preview, with custom bar text")
 a = ap.parse_args()
 CONFIG, STATE = os.path.expanduser(a.config_dir), os.path.expanduser(a.state_dir)
@@ -19,7 +19,9 @@ facts = json.load(open(os.path.join(STATE, "facts.json")))
 def load(path, default):
     try: return json.load(open(path))
     except Exception: return default
-sessions = load(a.sessions or os.path.join(STATE, "sessions.json"), [])
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from sessions import load_all
+sessions = load_all(STATE)
 ledger = load(os.path.join(STATE, "ledger.json"), [])
 def frag(name):
     p = os.path.join(PDIR, name)
@@ -94,12 +96,24 @@ pend = [k for k in tasks if k["status"] == "pending"]
 done = [k for k in tasks if k["status"] == "completed"]
 task_by = {k["id8"]: k for k in facts["tasks"]}
 pr_by = {ref_of(p): p for p in facts["prs"]}
+# Sessions are logged with facts only; a page shows one it was assigned, or one its scope admits:
+# by a task a row here claims, or by repo where the scope is a whole repo (a path or title rule needs a person to decide).
+def session_in(s):
+    if s.get("page"): return s["page"] == a.page
+    repo = s.get("repo", "")
+    return any(t in CLAIM_T for t in s.get("tasks", [])) or bool(repo and not excluded(repo) and (
+        "prs" not in INC or any(repo in r.get("repos", []) and not r.get("pr_paths") and not r.get("pr_title") for r in INC["prs"])))
+def thread_of_session(s):
+    if s.get("thread"): return s["thread"]
+    claimed = [CLAIM_T[t] for t in s.get("tasks", []) if t in CLAIM_T]
+    if claimed: return claimed[0]
+    return next((t["id"] for t in cfg["threads"] if s.get("repo") in t.get("match", {}).get("repos", [])), "unfiled")
 live_sessions = []
 for s in sessions:
     age = (datetime.datetime.now() - datetime.datetime.fromisoformat(s.get("updated", "2000-01-01T00:00").replace("Z", ""))).days
-    if s.get("page", a.page) != a.page: continue
-    if s.get("state") in ("done", "failed") and age > 3: continue
-    s["_stale"] = age >= 1; live_sessions.append(s)
+    if not session_in(s): continue
+    if (s.get("state") in ("done", "failed") and age > 3) or age > 7: continue
+    s["thread"] = thread_of_session(s); s["_stale"] = age >= 1; live_sessions.append(s)
 in_session = {t for s in live_sessions if s.get("state") in ("running", "waiting", "idle") for t in s.get("tasks", [])}
 
 def pr_link(p, label=None): return f'<a href="{E(p["url"])}">{E(label or ref_of(p))}</a>'
@@ -164,7 +178,9 @@ def sessions_html():
         if s.get("pr") and s["pr"] in pr_by: bits.append(pr_link(pr_by[s["pr"]]))
         bits += [f'<a href="#" class="task" data-t="{E(t)}">task {E(t)}</a>' for t in s.get("tasks", [])]
         note = E(s.get("note", "")) + (f' <strong>Waiting on: {E(s["waiting-on"])}</strong>' if s.get("waiting-on") else "") + (" <em>(may be stale)</em>" if s["_stale"] else "")
-        rows.append(f'<div class="row"><div class="chips"><span class="chip {cls.get(s.get("state"), "quiet")}">{E(s.get("state", "?"))}</span></div><div class="what"><a href="claude://claude.ai/epitaxy/{E(s["id"])}">{E(s.get("title", s["id"]))}</a> <button class="copy" data-c="{E(s["id"])}">copy id</button><small>{" · ".join(bits)}</small><small>{note}</small></div></div>')
+        title = E(s.get("title") or " · ".join(x for x in (s.get("repo"), s.get("branch")) if x) or s["id"])
+        name = f'<a href="claude://claude.ai/epitaxy/{E(s["id"])}">{title}</a>' if s["id"].startswith("local_") else title
+        rows.append(f'<div class="row"><div class="chips"><span class="chip {cls.get(s.get("state"), "quiet")}">{E(s.get("state", "?"))}</span></div><div class="what">{name} <button class="copy" data-c="{E(s["id"])}">copy id</button><small>{" · ".join(bits)}</small><small>{note}</small></div></div>')
     return f'<section><h2>Active sessions <span class="tag">{len(live_sessions)}</span></h2><div class="list">{"".join(rows)}</div></section>'
 
 def counts(tid):
@@ -284,6 +300,6 @@ out = f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name=
 <footer>Short hex codes are taskwarrior UUID prefixes; tap one for its details. Refresh with the inflight-artifact skill; change the page with inflight-artifact-design.</footer></main><dialog id="dlg"><div class="dlg" id="dlg-body"></div></dialog>{data}<script>{JS}</script></body></html>'''
 dest = a.out or os.path.join(STATE, a.page + ".html")
 open(dest, "w").write(out)
-json.dump({"prs": [ref_of(p) for p in unf_prs], "tasks": [k["id8"] for k in unf_tasks]}, open(os.path.join(STATE, a.page + ".unsorted.json"), "w"), indent=1)
+json.dump({"prs": [ref_of(p) for p in unf_prs], "tasks": [k["id8"] for k in unf_tasks], "sessions": [s["id"] for s in live_sessions if s["thread"] == "unfiled"]}, open(os.path.join(STATE, a.page + ".unsorted.json"), "w"), indent=1)
 print(dest, len(out), "bytes;", "unsorted PRs:", len(unf_prs), "· unsorted tasks:", len(unf_tasks))
 if gone: print("no longer pending, drop these rows: " + ", ".join(gone))

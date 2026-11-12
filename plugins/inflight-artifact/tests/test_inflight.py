@@ -205,31 +205,118 @@ class PageFeaturesTest(unittest.TestCase):
         self.assertIn("Fix widget leak", shipped)
         self.assertNotIn("Ancient fix", happened.split("Shipped, by repo")[0])
 
+    def session(self, **row):
+        row.setdefault("updated", "2999-01-01T00:00")
+        os.makedirs(os.path.join(self.state, "sessions"), exist_ok=True)
+        with open(os.path.join(self.state, "sessions", row["id"] + ".json"), "w") as f: json.dump(row, f)
+
+    def overview_sessions(self):
+        html, _ = self.render()
+        part = html.split('id="v-overview"')[1].split('id="v-happened"')[0]
+        return part.split("Active sessions")[1].split("<h2>Sections")[0] if "Active sessions" in part else ""
+
     def test_session_tasks_badge_rows_and_reach_the_popup(self):
-        with open(os.path.join(self.state, "sessions.json"), "w") as f:
-            json.dump([{"id": "local_1", "title": "Tuning", "state": "running", "page": "p", "tasks": ["aaaa1111"], "updated": "2999-01-01T00:00"}], f)
+        self.session(id="local_1", title="Tuning", state="running", page="p", tasks=["aaaa1111"])
         html, _ = self.render()
         self.assertIn("in session", html)
         blob = json.loads(html.split('<script id="inflight-data" type="application/json">')[1].split("</script>")[0])
         self.assertEqual(blob["sessions"][0]["tasks"], ["aaaa1111"])
 
+    def test_an_unassigned_session_shows_where_the_scope_takes_its_repo(self):
+        self.page["include"] = {"prs": [{"repos": ["widgets"]}, {"repos": ["infra"], "pr_paths": "^services/"}]}
+        self.session(id="local_w", state="running", repo="widgets", branch="cache-ttl")
+        self.session(id="local_i", state="running", repo="infra", branch="db")
+        self.session(id="local_g", state="running", repo="garden", branch="main")
+        shown = self.overview_sessions()
+        self.assertIn("widgets · cache-ttl", shown)
+        self.assertNotIn("infra · db", shown, "a path-scoped repo needs a person to place the session")
+        self.assertNotIn("garden", shown)
 
-class SessionFieldsTest(unittest.TestCase):
+    def test_assigning_a_page_or_claiming_a_task_places_a_session(self):
+        self.page["include"] = {"prs": [{"repos": ["widgets"]}]}
+        self.session(id="local_i", state="running", repo="infra", branch="db", page="p")
+        self.session(id="local_t", state="running", repo="garden", branch="x", tasks=["bbbb2222"])
+        self.session(id="local_o", state="running", repo="widgets", branch="y", page="other")
+        shown = self.overview_sessions()
+        self.assertIn("infra · db", shown)
+        self.assertIn("garden · x", shown)
+        self.assertNotIn("widgets · y", shown)
+
+    def test_only_app_sessions_get_an_open_link(self):
+        self.session(id="local_a", state="running", repo="widgets", branch="a")
+        self.session(id="1234-cli", state="running", repo="widgets", branch="b")
+        shown = self.overview_sessions()
+        self.assertIn("claude://claude.ai/epitaxy/local_a", shown)
+        self.assertNotIn("epitaxy/1234-cli", shown)
+
+    def test_sessions_idle_for_a_week_drop(self):
+        self.session(id="local_old", state="idle", repo="widgets", branch="old", updated="2020-01-01T00:00")
+        self.assertNotIn("widgets · old", self.overview_sessions())
+
+
+def registry_rows(d):
+    return {f: json.load(open(os.path.join(d, "sessions", f))) for f in sorted(os.listdir(os.path.join(d, "sessions")))}
+
+
+class SessionRegistryTest(unittest.TestCase):
     def test_tasks_and_repo_are_stored(self):
         with tempfile.TemporaryDirectory() as d:
             run("sessions.py", "upsert", "--state-dir", d, "--id", "s1", "--tasks", "aaaa1111, bbbb2222", "--repo", "widgets")
-            with open(os.path.join(d, "sessions.json")) as f: row = json.load(f)[0]
+            row = registry_rows(d)["s1.json"]
             self.assertEqual((row["tasks"], row["repo"]), (["aaaa1111", "bbbb2222"], "widgets"))
 
-    def test_upsert_merges_fields_and_remove_deletes(self):
+    def test_upsert_merges_fields_clears_page_and_remove_deletes(self):
         with tempfile.TemporaryDirectory() as d:
-            run("sessions.py", "upsert", "--state-dir", d, "--id", "s1", "--title", "First", "--state", "running")
-            run("sessions.py", "upsert", "--state-dir", d, "--id", "s1", "--note", "later")
-            with open(os.path.join(d, "sessions.json")) as f: rows = json.load(f)
-            self.assertEqual(len(rows), 1)
-            self.assertEqual((rows[0]["title"], rows[0]["state"], rows[0]["note"]), ("First", "running", "later"))
+            run("sessions.py", "upsert", "--state-dir", d, "--id", "s1", "--title", "First", "--state", "running", "--page", "p")
+            run("sessions.py", "upsert", "--state-dir", d, "--id", "s1", "--note", "later", "--page", "")
+            row = registry_rows(d)["s1.json"]
+            self.assertEqual((row["title"], row["state"], row["note"], "page" in row), ("First", "running", "later", False))
             run("sessions.py", "remove", "--state-dir", d, "--id", "s1")
-            with open(os.path.join(d, "sessions.json")) as f: self.assertEqual(json.load(f), [])
+            self.assertEqual(registry_rows(d), {})
+
+    def test_the_old_single_file_registry_moves_over(self):
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "sessions.json"), "w") as f: json.dump([{"id": "local_x", "title": "Old"}], f)
+            run("sessions.py", "list", "--state-dir", d)
+            self.assertEqual(registry_rows(d)["local_x.json"]["title"], "Old")
+            self.assertTrue(os.path.exists(os.path.join(d, "sessions.json.migrated")))
+
+
+class SessionHookTest(unittest.TestCase):
+    def hook(self, event, state, payload, host_id=None):
+        env = {k: v for k, v in os.environ.items() if k != "CLAUDE_CODE_HOST_SESSION_ID"}
+        if host_id: env["CLAUDE_CODE_HOST_SESSION_ID"] = host_id
+        return subprocess.run([sys.executable, os.path.join(SCRIPTS, "session_hook.py"), event, "--state-dir", state],
+                              input=json.dumps(payload), capture_output=True, text=True, env=env)
+
+    def repo(self, root):
+        r = os.path.join(root, "widgets")
+        for cmd in (["init", "-q", "-b", "cache-ttl", r], ["-C", r, "remote", "add", "origin", "git@github.com:acme/widgets.git"]):
+            subprocess.run(["git", *cmd], check=True, capture_output=True)
+        return r
+
+    def test_start_logs_facts_under_the_app_id_and_end_marks_idle(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd, state = self.repo(d), os.path.join(d, "state")
+            p = self.hook("start", state, {"session_id": "cli-1", "cwd": cwd}, host_id="local_abc")
+            self.assertEqual(p.returncode, 0, p.stderr)
+            row = registry_rows(state)["local_abc.json"]
+            self.assertEqual((row["repo"], row["branch"], row["state"], "page" in row), ("widgets", "cache-ttl", "running", False))
+            self.hook("start", state, {"session_id": "cli-2", "cwd": cwd}, host_id="local_abc")
+            self.assertEqual(list(registry_rows(state)), ["local_abc.json"], "a /clear keeps one row per app session")
+            self.hook("end", state, {"session_id": "cli-2"}, host_id="local_abc")
+            self.assertEqual(registry_rows(state)["local_abc.json"]["state"], "idle")
+
+    def test_plain_cli_sessions_use_their_own_id(self):
+        with tempfile.TemporaryDirectory() as d:
+            state = os.path.join(d, "state")
+            self.hook("start", state, {"session_id": "cli-9", "cwd": self.repo(d)})
+            self.assertIn("cli-9.json", registry_rows(state))
+
+    def test_a_broken_input_never_fails_the_session(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = subprocess.run([sys.executable, os.path.join(SCRIPTS, "session_hook.py"), "start", "--state-dir", d], input="not json", capture_output=True, text=True)
+            self.assertEqual((p.returncode, p.stdout, p.stderr), (0, "", ""))
 
 
 class GatherArgsTest(unittest.TestCase):
