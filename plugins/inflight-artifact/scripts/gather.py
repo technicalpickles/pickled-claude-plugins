@@ -6,9 +6,10 @@ Usage: gather.py [DAYS=14] [--config-dir D] [--state-dir D] [--github-user U]
 Settings not given on the command line come from <config-dir>/settings.json
 (github_user, repo_roots, task_backend: "taskwarrior" or "none").
 
-Credential brokers can approve every `gh` invocation separately, so this makes exactly ONE gh
-call (a single GraphQL request with aliased searches). Do not add per-PR `gh pr view` loops,
-and run it in the foreground.
+Credential brokers can approve every `gh` invocation separately, so this makes at most TWO gh
+calls: one GraphQL request with aliased searches, and, only when a page has a `pr_paths` rule,
+one request for the changed files of PRs in the repos those rules name. Changed files inside the
+search make GitHub answer 502. Do not add per-PR `gh pr view` loops, and run it in the foreground.
 """
 import argparse, datetime, json, os, subprocess, sys
 
@@ -89,6 +90,31 @@ if data is None:
     sys.exit("gh graphql failed (a credential broker denied it, or an API error). Raw output:\n" + raw[:600])
 
 
+def path_repos():
+    """Repos named next to a pr_paths rule in any page; only their PRs get changed files fetched."""
+    out = set()
+    pages = os.path.join(os.path.expanduser(args.config_dir), "pages")
+    for f in (os.listdir(pages) if os.path.isdir(pages) else []):
+        if not f.endswith(".json"): continue
+        page = json.load(open(os.path.join(pages, f)))
+        rules = page.get("include", {}).get("prs", []) + [t.get("match", {}) for t in page.get("threads", [])]
+        out |= {r for rule in rules if rule.get("pr_paths") for r in rule.get("repos", [])}
+    return out
+
+
+def fetch_paths(found):
+    want = [n for n in found if n["repository"]["name"] in path_repos()]
+    if not want: return {}
+    parts = [f'p{i}: repository(owner: "{n["repository"]["nameWithOwner"].split("/")[0]}", name: "{n["repository"]["name"]}") '
+             f'{{ pullRequest(number: {n["number"]}) {{ files(first: 100) {{ nodes {{ path }} }} }} }}' for i, n in enumerate(want)]
+    try: res = json.loads(sh(["gh", "api", "graphql", "-f", "query={ " + " ".join(parts) + " }"]))["data"]
+    except Exception: sys.exit("gh graphql for changed files failed; rerun, or drop the pr_paths rule")
+    return {(n["repository"]["nameWithOwner"], n["number"]): [f["path"] for f in res[f"p{i}"]["pullRequest"]["files"]["nodes"]]
+            for i, n in enumerate(want)}
+
+
+
+
 def nodes(*keys):
     seen = {}
     for k in keys:
@@ -97,13 +123,17 @@ def nodes(*keys):
     return list(seen.values())
 
 
+PATHS = fetch_paths(nodes("org", "mine", "merged", "merged_org"))
+def paths_of(n): return PATHS.get((n["repository"]["nameWithOwner"], n["number"]), [])
+
+
 prs = [{"repo": n["repository"]["nameWithOwner"], "short": n["repository"]["name"], "n": n["number"],
         "title": n["title"], "url": n["url"], "draft": n["isDraft"], "mergeable": n["mergeable"],
         "updated": n["updatedAt"][:10], "branch": n["headRefName"],
-        "author": (n.get("author") or {}).get("login", ""), "ci": ci_of(n)}
+        "author": (n.get("author") or {}).get("login", ""), "ci": ci_of(n), "paths": paths_of(n)}
        for n in nodes("org", "mine")]
 merged = [{"repo": n["repository"]["nameWithOwner"], "short": n["repository"]["name"], "n": n["number"],
-           "title": n["title"], "url": n["url"], "date": (n.get("mergedAt") or n["updatedAt"])[:10]}
+           "title": n["title"], "url": n["url"], "date": (n.get("mergedAt") or n["updatedAt"])[:10], "paths": paths_of(n)}
           for n in nodes("merged", "merged_org")]
 
 
@@ -117,7 +147,8 @@ for status, extra in (() if TASKS == "none" else (("pending", []), ("completed",
     for t in js(["task", *extra, f"status:{status}", "export"], []):
         tasks.append({"uuid": t["uuid"], "id8": t["uuid"][:8], "project": t.get("project", ""),
                       "tags": t.get("tags", []), "desc": t["description"], "status": t["status"],
-                      "end": (t.get("end", "") or "")[:8], "urgency": t.get("urgency", 0)})
+                      "end": (t.get("end", "") or "")[:8], "urgency": t.get("urgency", 0),
+                      "annotations": [x["description"] for x in t.get("annotations", [])]})
 
 trees = []
 for gh_dir in REPO_ROOTS:
@@ -134,4 +165,10 @@ out = {"generated": datetime.datetime.now().isoformat(timespec="minutes"), "days
        "prs": prs, "merged": merged, "tasks": tasks, "trees": trees}
 os.makedirs(STATE, exist_ok=True)
 json.dump(out, open(os.path.join(STATE, "facts.json"), "w"), indent=1)
+# ledger.json keeps every merged PR ever gathered, so "Shipped, by repo" outlives the gather window.
+LEDGER = os.path.join(STATE, "ledger.json")
+try: ledger = {(p["repo"], p["n"]): p for p in json.load(open(LEDGER))}
+except Exception: ledger = {}
+for p in merged: ledger[(p["repo"], p["n"])] = p
+json.dump(sorted(ledger.values(), key=lambda p: p["date"], reverse=True), open(LEDGER, "w"), indent=1)
 print(f"facts.json: {len(prs)} open PRs, {len(merged)} merged, {len(tasks)} tasks, {len(trees)} trees")

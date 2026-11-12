@@ -7,8 +7,9 @@ ap.add_argument("cmd", choices=["list", "upsert", "remove"])
 ap.add_argument("--state-dir", default=os.path.join(ROOT, "data"))
 ap.add_argument("--file")
 ap.add_argument("--id")
-for k in ("title", "page", "thread", "state", "branch", "pr", "note", "waiting-on"):
+for k in ("title", "page", "thread", "state", "branch", "pr", "repo", "note", "waiting-on"):
     ap.add_argument("--" + k)
+ap.add_argument("--tasks", help="comma-separated 8-hex task prefixes")
 a = ap.parse_args()
 a.file = a.file or os.path.join(os.path.expanduser(a.state_dir), "sessions.json")
 try: rows = json.load(open(a.file))
@@ -19,9 +20,10 @@ else:
     rows = [r for r in rows if r["id"] != a.id]
     if a.cmd == "upsert":
         old = next((r for r in json.load(open(a.file)) if r["id"] == a.id), {}) if os.path.exists(a.file) else {}
-        for k in ("title", "page", "thread", "state", "branch", "pr", "note", "waiting-on"):
+        for k in ("title", "page", "thread", "state", "branch", "pr", "repo", "note", "waiting-on"):
             v = getattr(a, k.replace("-", "_"))
             if v is not None: old[k] = v
+        if a.tasks is not None: old["tasks"] = [t.strip() for t in a.tasks.split(",") if t.strip()]
         old["id"] = a.id; old["updated"] = datetime.datetime.now().isoformat(timespec="minutes")
         rows.append(old)
     json.dump(rows, open(a.file, "w"), indent=1)

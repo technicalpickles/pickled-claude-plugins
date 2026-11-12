@@ -1,6 +1,6 @@
 # inflight-artifact
 
-A private "what's in flight" page, as a Claude artifact. It shows your open PRs with links to their CI builds, the Claude sessions you have running, what shipped recently, and what needs you. You shape it by prompting: tell `inflight-artifact-design` which work belongs together ("the Postgres migration", "dev hosts") and it writes the config. Nothing is hand-edited.
+A private "what's in flight" page, as a Claude artifact. It shows your open PRs with links to their CI builds, the Claude sessions you have running, what shipped recently, and what needs you. You shape it by prompting: tell `inflight-artifact-design` which work belongs together ("the Postgres migration", "dev hosts") and it writes the config. A page can also carry hand-written blocks and extra tabs (a status table, a capabilities list) that the refresh keeps current from notes in its config.
 
 ## Install
 
@@ -21,9 +21,9 @@ The install asks for four settings:
 
 | Piece | What it does |
 |---|---|
-| [`skills/inflight-artifact`](skills/inflight-artifact/SKILL.md) | Refreshes the page: gather facts, render, publish. Never edits config. |
+| [`skills/inflight-artifact`](skills/inflight-artifact/SKILL.md) | Refreshes the page: gather facts, follow the page's refresh notes, render, publish. Changes content, never shape. |
 | [`skills/inflight-artifact-design`](skills/inflight-artifact-design/SKILL.md) | First-run setup and every later change to sections, exclusions and wording. Iterates on a clearly marked scratch preview and publishes to the live page only on your yes. |
-| [`scripts/`](scripts/) | `gather.py` (one `gh` GraphQL call plus tasks and local repos), `render.py` (pure: facts + config to HTML), `sessions.py` (session registry). |
+| [`scripts/`](scripts/) | `gather.py` (one `gh` GraphQL call, a second for changed files when a page matches on paths, plus tasks and local repos), `render.py` (pure: facts + config to HTML), `sessions.py` (session registry). |
 | [`examples/config`](examples/config/) | A sanitized starting config. |
 
 ## The page
@@ -40,6 +40,6 @@ Previews render with `--preview`: the title becomes "PREVIEW: ... (scratch)", wi
 
 ## Notes
 
-- `gather.py` makes exactly one `gh` call and must run in the foreground. A credential broker such as [Automic Vault](../automic-vault/) approves each `gh` invocation separately and ties it to Claude through the process tree, so loops and detached runs get denied.
+- `gather.py` makes one `gh` call (two when a page has a `pr_paths` rule; changed files inside the search make GitHub answer 502) and must run in the foreground. A credential broker such as [Automic Vault](../automic-vault/) approves each `gh` invocation separately and ties it to Claude through the process tree, so loops and detached runs get denied.
 - Facts and the session registry live in `${CLAUDE_PLUGIN_DATA}`, which survives updates.
 - Tests: `python3 -m unittest discover -s tests` from this folder.

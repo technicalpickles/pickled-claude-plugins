@@ -44,4 +44,12 @@ nav a.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
 .preview-bar{position:sticky;top:0;z-index:10;margin:-32px 0 20px;padding:10px 16px;background:var(--warn);color:var(--bg);font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;text-align:center}
 body.preview{background-image:repeating-linear-gradient(135deg,transparent 0 16px,color-mix(in srgb,var(--warn) 9%,transparent) 16px 32px)}
 body.preview main{outline:3px dashed var(--warn);outline-offset:14px}
-body.preview h1::before{content:"PREVIEW ";color:var(--warn)}
+
+section>h2 small{font-size:13px;font-weight:400;color:var(--muted)}
+ul.rows{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}.needs li>div,ul.rows li>div{display:inline}
+.task{cursor:pointer}li.task:hover>div,li.task:focus-visible>div{text-decoration:underline;text-decoration-color:var(--rule)}code.task{text-decoration:underline dotted}
+dialog{max-width:min(680px,calc(100vw - 32px));border:1px solid var(--rule);border-radius:8px;background:var(--surface);color:var(--ink);padding:20px 22px}
+dialog::backdrop{background:rgb(0 0 0/.35)}.dlg h2{margin:0 0 8px;font-size:18px}.dlg h3{margin:16px 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.dlg .meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;text-transform:none}.dlg p{margin:0 0 8px}.dlg small{display:block;color:var(--muted)}
+.note-row{display:grid;grid-template-columns:90px minmax(0,1fr);gap:10px;border-top:1px solid var(--rule);padding-top:8px;margin-top:8px}.note-row time{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+#dlg-close{margin-top:14px;font:inherit;padding:4px 14px;border:1px solid var(--rule);border-radius:4px;background:var(--bg);color:var(--ink);cursor:pointer}

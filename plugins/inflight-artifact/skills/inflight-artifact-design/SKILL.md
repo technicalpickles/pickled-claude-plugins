@@ -11,7 +11,8 @@ Where things live:
 
 | Thing | Location | Written by |
 |---|---|---|
-| Pages: exclusions, sections and their match rules, lede, needs, next rows, history | `${user_config.config_dir}/pages/<page>.json` | this skill |
+| Pages: scope, exclusions, sections and their match rules, rows, needs, tabs, refresh notes | `${user_config.config_dir}/pages/<page>.json` | this skill |
+| Page content that goes stale: lede, history entries, hand-written blocks | `pages/<page>.json`, `pages/<page>/*.html` | `inflight-artifact` on refresh, as the page's `refresh` notes say; this skill when the user asks |
 | Settings: github_user, repo_roots, task_backend (used when flags are not passed) | `${user_config.config_dir}/settings.json` | this skill |
 | CSS/JS overrides (optional; the plugin's own are the default) | `${user_config.config_dir}/page.css`, `page.js` | this skill |
 | Facts, session registry, rendered HTML | `${CLAUDE_PLUGIN_DATA}` | `inflight-artifact` only |
@@ -36,12 +37,22 @@ A change that needs the engine (a new captured field, a new kind of card) is a c
 
 ## Config reference
 
+Prose in the config (`lede`, `intro`, row `text`, `needs`, `history` text, fragment files) is inline HTML: write `<code>`, `<a href>` and `<b>` directly, and escape a literal `<` or `&`. Text that comes from facts (PR titles, task descriptions) is escaped by the renderer.
+
 - `exclude`: regex, case-insensitive, matched against repo name, PR title, task project, tags and description.
-- `threads[]` (sections), in priority order, first match wins: `id`, `title`, `status`, `lede`, `ignore` (true collapses it on What's next and hides it from the Overview), `match`, `next`.
-- `match` keys: `repos`, `pr_refs` (`repo#n`), `pr_title` (regex), `task_projects` (prefix match), `task_tags`, `task_desc` (regex), `task_refs` (8-hex prefix).
-- `next[]` rows: `{"text", "task": "<8-hex>" | "pr": "repo#n", "you": true}`. Set `"you": true` for rows only the user can do; they also appear under "Needs you". Rows with a ref disappear when the task completes or the PR is no longer open.
+- `include`: the page's scope, `{"prs": [rule], "tasks": [rule]}`. Every key in a rule must hold; any rule admits the item. Leave a list out to admit everything. PR rule keys: `repos`, `pr_title`, `pr_paths` (regex over changed file paths; gather fetches paths only for the `repos` named beside it). Task rule keys: `task_projects`, `task_tags`, `task_desc`. A task or PR that a row names is always in scope.
+- `threads[]` (sections), in priority order, first match wins: `id`, `title`, `status` (`now` feeds the Overview's "Up next"), `lede`, `ignore` (true collapses it on What's next and hides it from the Overview), `match`, and three row lists: `next`, `then`, `parked` (folded away).
+- `match` keys: `repos`, `pr_refs` (`repo#n`), `pr_title` (regex), `pr_paths` (regex), `task_projects` (prefix match), `task_tags`, `task_desc` (regex), `task_refs` (8-hex prefix). A row's `task` or `pr` claims it for that section before any match rule runs.
+- Rows: `{"text", "task": "<8-hex>" | "pr": "repo#n", "you": true, "kind": "security", "tone": "crit|warn|ok|info"}`. Set `"you": true` for rows only the user can do; they appear under "Needs you" instead of "Up next". Rows with a ref disappear when the task completes or the PR is no longer open.
 - `needs[]`: `{"text", "refs": ["task:<8-hex>", "pr:repo#n"]}`; an item drops when every ref has resolved.
-- `history[]`: `{"date", "thread", "text"}` hand-written notes shown on What happened.
+- `history[]`: `{"date", "text", "thread" | "group"}` hand-written notes on What happened. Never trimmed.
+- `filters[]`: `{"id", "label", "repos", "task_projects"}` replaces the per-section filter on What happened with groups such as one per repo. History entries name their `group`.
+- `auto_events`: `false` keeps What happened to the hand-written history; merged PRs still list under "Shipped, by repo" (which reads `ledger.json`, every merged PR gather has seen).
+- `intro` (under the title), `happened_lede`, `next_lede`: page-level prose.
+- Hand-written blocks live as files in `pages/<page>/`: `overview_html` (list, shown after the lede), `tabs` (`[{"id", "title", "file"}]`, extra tabs after What's next), `css` (extra CSS for those blocks; scope it under a wrapper class so it cannot restyle the rest of the page), `shipped_archive` (an old hand-written shipped list, folded under "Shipped, by repo"). Task rows in a block use `<li class="task" tabindex="0" role="button" data-t="<8-hex>">` so they open the task popup, and a task a block shows counts as sorted.
+- `refresh[]`: instructions the run skill follows on every refresh of this page (which block to rewrite from which command, what to re-verify and against what). Put page-specific knowledge here, not in the skills.
+
+After a render, `${CLAUDE_PLUGIN_DATA}/<page>.unsorted.json` lists the PR refs and task prefixes no section claims. Read it when sorting.
 
 ## Rules
 
@@ -49,5 +60,5 @@ A change that needs the engine (a new captured field, a new kind of card) is a c
 - Keep PR and CI links on every PR row.
 - Page copy: plain direct wording, no emoji.
 - Do not edit the state directory. If the facts are stale, run `inflight-artifact`.
-- Gather makes one `gh` call and runs in the foreground; a credential broker may bulk-deny loops or detached runs.
+- Gather makes one `gh` call (two when a page has a `pr_paths` rule) and runs in the foreground; a credential broker may bulk-deny loops or detached runs.
 - On a "what does it capture" question, answer with a table of every field in `facts.json`, its source command, and where `render.py` shows it, so gaps are visible.
