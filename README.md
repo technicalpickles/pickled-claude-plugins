@@ -53,7 +53,7 @@ See individual plugin READMEs for details on what each plugin provides.
 | [git](plugins/git) | Git workflow tools: commits, PRs, review inbox, checkout, and work triage | checkout, commit, inbox, pull-feedback, pull-request, push, triage, update |
 | [github-actions](plugins/github-actions) | GitHub Actions CI tools: investigate failing runs via gh + a structured snapshot helper | investigating-runs |
 | [hk](plugins/hk) | Auto-wire hk's coding-agent integration (Stop check, SessionStart instructions, MCP server) in projects that have an hk config | hk-creating-checks |
-| [inflight-artifact](plugins/inflight-artifact) | Generate and refresh a private 'in-flight work' page (open PRs with CI links, sessions, tasks, what shipped) as a Claude artifact, with sections you shape by prompting | inflight-artifact, inflight-artifact-design |
+| [inflight-artifact](plugins/inflight-artifact) | Generate and refresh a private 'in-flight work' page (open PRs with CI links, sessions, tasks, what shipped) as a Claude artifact, with sections you shape by prompting | inflight-artifact-design, inflight-artifact-refresh |
 | [mcpproxy](plugins/mcpproxy) | MCP server management and integration tools | working-with-mcp |
 | [petri-dish](https://github.com/technicalpickles/petri-dish) | Author Claude Code experiments (petri-dish cultures) with disciplined schema, baselines, and multi-run averaging | [see repo](https://github.com/technicalpickles/petri-dish) |
 | [pickle-mode](plugins/pickle-mode) | Josh's agent style layered on pstack's poteto-mode: personal principles, gates, and playbook overlays | pickle-mode |
