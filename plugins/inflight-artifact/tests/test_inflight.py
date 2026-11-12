@@ -283,8 +283,9 @@ class SessionRegistryTest(unittest.TestCase):
 
 
 class SessionHookTest(unittest.TestCase):
-    def hook(self, event, state, payload, host_id=None):
-        env = {k: v for k, v in os.environ.items() if k != "CLAUDE_CODE_HOST_SESSION_ID"}
+    def hook(self, event, state, payload, host_id=None, entrypoint="claude-desktop"):
+        env = {k: v for k, v in os.environ.items() if k not in ("CLAUDE_CODE_HOST_SESSION_ID", "CLAUDE_CODE_ENTRYPOINT")}
+        env["CLAUDE_CODE_ENTRYPOINT"] = entrypoint
         if host_id: env["CLAUDE_CODE_HOST_SESSION_ID"] = host_id
         return subprocess.run([sys.executable, os.path.join(SCRIPTS, "session_hook.py"), event, "--state-dir", state],
                               input=json.dumps(payload), capture_output=True, text=True, env=env)
@@ -302,15 +303,32 @@ class SessionHookTest(unittest.TestCase):
             self.assertEqual(p.returncode, 0, p.stderr)
             row = registry_rows(state)["local_abc.json"]
             self.assertEqual((row["repo"], row["branch"], row["state"], "page" in row), ("widgets", "cache-ttl", "running", False))
-            self.hook("start", state, {"session_id": "cli-2", "cwd": cwd}, host_id="local_abc")
+            self.hook("start", state, {"session_id": "cli-2", "cwd": cwd, "source": "clear"}, host_id="local_abc")
             self.assertEqual(list(registry_rows(state)), ["local_abc.json"], "a /clear keeps one row per app session")
+            self.assertEqual(registry_rows(state)["local_abc.json"]["cli"], "cli-2")
             self.hook("end", state, {"session_id": "cli-2"}, host_id="local_abc")
             self.assertEqual(registry_rows(state)["local_abc.json"]["state"], "idle")
+
+    def test_a_claude_run_inside_a_desktop_session_leaves_its_row_alone(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd, state = self.repo(d), os.path.join(d, "state")
+            self.hook("start", state, {"session_id": "cli-1", "cwd": cwd, "source": "startup"}, host_id="local_abc")
+            self.hook("start", state, {"session_id": "nested", "cwd": d, "source": "startup"}, host_id="local_abc")
+            self.hook("end", state, {"session_id": "nested"}, host_id="local_abc")
+            row = registry_rows(state)["local_abc.json"]
+            self.assertEqual((row["cwd"], row["state"], row["cli"]), (cwd, "running", "cli-1"))
+            self.assertEqual(list(registry_rows(state)), ["local_abc.json"])
+
+    def test_headless_runs_are_not_logged(self):
+        with tempfile.TemporaryDirectory() as d:
+            state = os.path.join(d, "state")
+            self.hook("start", state, {"session_id": "worker", "cwd": self.repo(d)}, entrypoint="sdk-cli")
+            self.assertFalse(os.path.exists(os.path.join(state, "sessions")) and os.listdir(os.path.join(state, "sessions")))
 
     def test_plain_cli_sessions_use_their_own_id(self):
         with tempfile.TemporaryDirectory() as d:
             state = os.path.join(d, "state")
-            self.hook("start", state, {"session_id": "cli-9", "cwd": self.repo(d)})
+            self.hook("start", state, {"session_id": "cli-9", "cwd": self.repo(d)}, entrypoint="cli")
             self.assertIn("cli-9.json", registry_rows(state))
 
     def test_a_broken_input_never_fails_the_session(self):

@@ -27,17 +27,23 @@ def main():
     event = sys.argv[1]
     state_dir = sys.argv[sys.argv.index("--state-dir") + 1]
     data = json.load(sys.stdin)
+    if os.environ.get("CLAUDE_CODE_ENTRYPOINT") == "sdk-cli": return  # headless `claude -p`: nobody follows it on a page
+    cli = data["session_id"]
     # The desktop app's own id (local_...) survives /clear and links to the session; plain CLI sessions use their own id.
-    sid = os.environ.get("CLAUDE_CODE_HOST_SESSION_ID") or data["session_id"]
+    sid = os.environ.get("CLAUDE_CODE_HOST_SESSION_ID") or cli
     path = os.path.join(state_dir, "sessions", sid + ".json")
     try: row = json.load(open(path))
     except Exception: row = {}
+    # A `claude` run from inside a desktop session inherits the app's id. The app's own process reports clear or
+    # resume after its first startup, so a fresh startup from another CLI session under that id is a nested run.
+    owner = row.get("cli")
     if event == "start":
+        if owner and owner != cli and data.get("source", "startup") == "startup": return
         cwd = data.get("cwd") or os.getcwd()
-        fields = {"cwd": cwd, "repo": repo_of(cwd), "branch": git(cwd, "branch", "--show-current"), "state": "running"}
+        fields = {"cwd": cwd, "repo": repo_of(cwd), "branch": git(cwd, "branch", "--show-current"), "state": "running", "cli": cli}
         if "started" not in row: fields["started"] = datetime.datetime.now().isoformat(timespec="minutes")
         upsert(state_dir, sid, fields)
-    elif row.get("state") == "running":
+    elif row.get("state") == "running" and owner in (None, cli):
         upsert(state_dir, sid, {"state": "idle"})
 
 
