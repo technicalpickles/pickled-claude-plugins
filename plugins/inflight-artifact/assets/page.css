@@ -28,6 +28,7 @@ header{display:flex;flex-direction:column;gap:6px}
 nav{display:flex;gap:4px;border-bottom:1px solid var(--rule);margin-top:10px;overflow-x:auto}
 nav a{padding:8px 14px;text-decoration:none;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
 nav a.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+@media (max-width:520px){nav{flex-wrap:wrap;overflow-x:visible}}
 [hidden]{display:none!important}
 .big{font-size:17px;color:var(--ink)}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}

@@ -151,6 +151,19 @@ class PageFeaturesTest(unittest.TestCase):
         self.assertIn("Sign off on the cache", overview.split("Needs you")[1].split("Up next")[0])
         self.assertNotIn("Sign off on the cache", up)
 
+    def test_a_task_tagged_with_a_needs_tag_is_listed_under_needs_once(self):
+        with open(os.path.join(self.state, "facts.json")) as f: facts = json.load(f)
+        for k in facts["tasks"]:
+            if k["id8"] in ("dddd4444", "cccc3333", "bbbb2222"): k["tags"] = ["me"]
+        with open(os.path.join(self.state, "facts.json"), "w") as f: json.dump(facts, f)
+        self.page["needs_tags"] = ["me"]
+        self.page["threads"][0]["then"] = [{"text": "Back up v1", "task": "bbbb2222", "you": True}]
+        html, _ = self.render()
+        needs = html.split('id="v-overview"')[1].split("Needs you")[1].split("Up next")[0]
+        self.assertIn("Water the plants", needs)
+        self.assertEqual(needs.count('data-t="bbbb2222"'), 1)
+        self.assertNotIn("Write the cache ADR", needs)
+
     def test_then_and_parked_rows_show_on_whats_next(self):
         nxt = self.render()[0].split('id="v-next"')[1]
         self.assertIn("<h4>Then</h4>", nxt)
