@@ -70,3 +70,6 @@ function openTask(pre){
 }
 document.addEventListener('click',e=>{const r=e.target.closest&&e.target.closest('.task');if(r&&!e.target.closest('a:not(.task)')){e.preventDefault();openTask(r.dataset.t)}if(e.target===dlg)dlg.close()});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.classList&&e.target.classList.contains('task'))openTask(e.target.dataset.t)});
+
+// Staleness is counted when the page is viewed, not when it was rendered: a page opened days after its last refresh should say so.
+document.querySelectorAll('[data-checked]').forEach(e=>{const d=Date.parse(e.dataset.checked);if(isNaN(d))return;const days=Math.floor((Date.now()-d)/864e5);if(days>=(+e.dataset.staleAfter||3))e.insertAdjacentHTML('beforeend',' <span class="chip wait">stale '+days+'d</span>')});
