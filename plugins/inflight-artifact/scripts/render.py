@@ -283,11 +283,14 @@ views = [("overview", "Overview", overview), ("happened", "What happened", happe
 nav = "".join(f'<a data-tab="{E(v)}" href="#{E(v)}">{E(title)}</a>' for v, title, _ in views)
 body = "".join(f'<div id="v-{E(v)}"{" hidden" if i else ""}>{b}</div>' for i, (v, _, b) in enumerate(views))
 
-# Task popups: embed only the tasks this page shows; report references to tasks that are no longer pending.
-refs = sorted(set(re.findall(r'data-t="([0-9a-f]{8})"', body)))
-gone = [r for r in refs if task_by.get(r, {}).get("status") != "pending"]
+# Task popups: embed only the pending tasks this page shows. Report config rows, needs refs and fragment blocks that
+# point at finished tasks; a session's linked tasks come from the registry, not config, so there is nothing to drop.
+done = lambda r: task_by.get(r, {}).get("status") != "pending"
+refs = sorted(r for r in set(re.findall(r'data-t="([0-9a-f]{8})"', body)) if not done(r))
+config_refs = set(CLAIM_T) | FRAG_T | {ref.partition(":")[2] for n in cfg.get("needs", []) for ref in n.get("refs", []) if ref.startswith("task:")}
+gone = sorted(r for r in config_refs if done(r))
 popup = [{"uuid": task_by[r].get("uuid", r), "description": task_by[r]["desc"], "project": task_by[r]["project"], "tags": task_by[r]["tags"],
-          "annotations": task_by[r].get("annotations", [])} for r in refs if r not in gone]
+          "annotations": task_by[r].get("annotations", [])} for r in refs]
 sess_js = [{k: s.get(k) for k in ("id", "title", "state", "note", "tasks")} for s in live_sessions if s.get("tasks")]
 repos = sorted({p["repo"] for p in facts["prs"] + all_merged})
 blob = lambda x: json.dumps(x).replace("</", "<\\/")
