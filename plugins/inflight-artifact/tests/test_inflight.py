@@ -188,6 +188,17 @@ class PageFeaturesTest(unittest.TestCase):
         self.page["tabs"] = [{"id": "caps", "title": "Caps", "file": "caps.html"}]
         self.assertIn("no longer pending, drop these rows: cccc3333", self.render()[1])
 
+    def test_a_session_linked_to_a_finished_task_is_not_a_row_to_drop(self):
+        self.session(id="local_1", title="Done work", state="running", page="p", tasks=["cccc3333"])
+        html, out = self.render()
+        self.assertIn("task cccc3333", html)
+        self.assertNotIn("no longer pending", out)
+        self.assertNotIn("cccc3333", self.popup_tasks(html))
+
+    def test_a_hidden_row_for_a_finished_task_is_reported(self):
+        self.page["threads"][0]["next"].append({"text": "Old ADR", "task": "cccc3333"})
+        self.assertIn("no longer pending, drop these rows: cccc3333", self.render()[1])
+
     def test_history_filters_group_by_repo_and_auto_events_can_be_off(self):
         self.page.update(filters=[{"id": "w", "label": "widgets", "repos": ["widgets"]}], auto_events=False,
                          history=[{"date": "2026-01-14", "group": "w", "text": "Shipped <a href=\"#x\">the cache</a>"}])
@@ -318,6 +329,19 @@ class SessionHookTest(unittest.TestCase):
             row = registry_rows(state)["local_abc.json"]
             self.assertEqual((row["cwd"], row["state"], row["cli"]), (cwd, "running", "cli-1"))
             self.assertEqual(list(registry_rows(state)), ["local_abc.json"])
+
+    def test_moving_into_a_repo_updates_the_row(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd, state = self.repo(d), os.path.join(d, "state")
+            self.hook("start", state, {"session_id": "cli-1", "cwd": d}, host_id="local_abc")
+            row = registry_rows(state)["local_abc.json"]
+            self.assertEqual((row["cwd"], row["repo"], row["branch"]), (d, "", ""))
+            p = self.hook("cwd", state, {"session_id": "cli-1", "old_cwd": d, "new_cwd": cwd}, host_id="local_abc")
+            self.assertEqual(p.returncode, 0, p.stderr)
+            row = registry_rows(state)["local_abc.json"]
+            self.assertEqual((row["cwd"], row["repo"], row["branch"], row["state"]), (cwd, "widgets", "cache-ttl", "running"))
+            self.hook("cwd", state, {"session_id": "nested", "old_cwd": cwd, "new_cwd": d}, host_id="local_abc")
+            self.assertEqual(registry_rows(state)["local_abc.json"]["cwd"], cwd, "a nested run's cd leaves the row alone")
 
     def test_headless_runs_are_not_logged(self):
         with tempfile.TemporaryDirectory() as d:
