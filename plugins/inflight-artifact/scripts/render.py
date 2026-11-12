@@ -304,7 +304,7 @@ out = f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name=
 <header><div class="meta">Refreshed {facts["generated"].replace("T", " ")} · last {facts["days"]} days</div><h1>{E(PAGE_TITLE)}</h1>{f"<p>{cfg['intro']}</p>" if cfg.get("intro") else ""}
 <nav>{nav}</nav></header>
 {body}
-<footer>Short hex codes are taskwarrior UUID prefixes; tap one for its details. Refresh with the inflight-artifact skill; change the page with inflight-artifact-design.</footer></main><dialog id="dlg"><div class="dlg" id="dlg-body"></div></dialog>{data}<script>{JS}</script></body></html>'''
+<footer>Short hex codes are taskwarrior UUID prefixes; tap one for its details. Refresh with the inflight-artifact-refresh skill; change the page with inflight-artifact-design.</footer></main><dialog id="dlg"><div class="dlg" id="dlg-body"></div></dialog>{data}<script>{JS}</script></body></html>'''
 dest = a.out or os.path.join(STATE, a.page + ".html")
 open(dest, "w").write(out)
 json.dump({"prs": [ref_of(p) for p in unf_prs], "tasks": [k["id8"] for k in unf_tasks], "sessions": [s["id"] for s in live_sessions if s["thread"] == "unfiled"]}, open(os.path.join(STATE, a.page + ".unsorted.json"), "w"), indent=1)
