@@ -16,6 +16,16 @@ Use when a command mentions `av` or Automic Vault, a task needs a credential on 
 - The error table: sandbox blocks the approval service, `Approval presentation interrupted`, locked Mac (`-25308`), ssh/signing `agent refused operation`
 - What not to do to get unblocked (skip signing, swap SSH keys, extract tokens)
 
+### automic-vault-upstream
+
+User-invoked only (`/automic-vault:automic-vault-upstream [question]`). Answers a question about `av` from upstream's source and docs, citing the path and the version it describes, or with `drift` runs `bats tests/` to see whether the credentials skill still matches the CLI and source.
+
+**Covers:**
+- Finding the upstream remote (a clone's `origin` can be a stale fork) and fetching it
+- Reporting installed, local-tree and latest-upstream versions before answering
+- Where each kind of question is answered in upstream's repo
+- Read-only: never runs `inject`, `save`, `harden` or other Approval-gated commands
+
 ## Provenance
 
 Written from past session transcripts where agents guessed `av run`/`av set`, offered `GITHUB_TOKEN=$(gh auth token)`, or called an ssh refusal "deliberate policy" without reading `av history`. Checked with fresh-subagent scenarios with and without the skill (one sample each, so a signal and not proof).
