@@ -1,0 +1,5 @@
+{
+  "routes": [
+    "./skills/wait-for-it/tool-routes.yaml"
+  ]
+}
