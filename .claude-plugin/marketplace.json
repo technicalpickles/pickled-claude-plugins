@@ -54,7 +54,7 @@
     {
       "name": "agent-meta",
       "source": "./plugins/agent-meta",
-      "version": "3.0.0"
+      "version": "3.1.0"
     },
     {
       "name": "buildkite",
@@ -147,7 +147,7 @@
     {
       "name": "pickle-mode",
       "source": "./plugins/pickle-mode",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Josh's agent style layered on pstack's poteto-mode: personal principles, gates, and playbook overlays"
     },
     {
