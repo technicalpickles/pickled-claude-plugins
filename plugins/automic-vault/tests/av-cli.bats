@@ -8,7 +8,7 @@
 # Only read-only av commands run here. inject/save/harden/unharden are never executed.
 
 PLUGIN_DIR="$BATS_TEST_DIRNAME/.."
-SKILL="$PLUGIN_DIR/skills/automic-vault-credentials/SKILL.md"
+SKILLS="$PLUGIN_DIR"/skills/*/SKILL.md
 
 setup() {
   command -v av >/dev/null 2>&1 || skip "av not installed"
@@ -20,9 +20,10 @@ need_source() {
   [ -f "$SRC/src/cli/mod.rs" ] || skip "no av source checkout at $SRC"
 }
 
-# Subcommands the skill names in backticks, e.g. `av inject +NAME` -> inject.
+# Subcommands the plugin's skills name in backticks, e.g. `av inject +NAME` -> inject.
 skill_subcommands() {
-  grep -oE '`av [a-z][a-z-]*' "$SKILL" | sed 's/^`av //' | sort -u
+  # shellcheck disable=SC2086
+  grep -ohE '`av [a-z][a-z-]*' $SKILLS | sed 's/^`av //' | sort -u
 }
 
 # Subcommands listed in a usage block on stdin: lines like "  $ av scan ...".
