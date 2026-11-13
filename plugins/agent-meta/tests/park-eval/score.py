@@ -78,6 +78,7 @@ def score(run, scenario):
     fb = fences(ft)
     r["after_path_fenced"] = any(path in b for b in fb)
     r["after_unpark_fenced"] = any(re.search(r"unpark\s+\"?" + re.escape(path), b) for b in fb)
+    r["after_path_once"] = ft.count(path) == 1
     r["after_blockquote"] = bool(re.search(r"^>\s*unpark", ft, re.M))
     return r
 
@@ -94,14 +95,14 @@ def main(root):
                 continue
             s = score(os.path.join(ld, run), m.group(1))
             rows.append((label, m.group(1), run, s))
-    print(f"{'run':28} {'words':>5} {'pW':>4} {'pS':>3} {'rest':>4} {'abs':>3} {'dup':>3} {'rd':>2} {'facts':>5} {'aft-path':>8} {'aft-cmd':>7} {'bq':>2}")
+    print(f"{'run':28} {'words':>5} {'pW':>4} {'pS':>3} {'rest':>4} {'abs':>3} {'dup':>3} {'rd':>2} {'facts':>5} {'aft-path':>8} {'aft-cmd':>7} {'bq':>2} {'once':>4}")
     for label, sc, run, s in rows:
         if not s:
             print(f"{label+'/'+run:28} NO PARK FILE")
             continue
         print(f"{label+'/'+run:28} {s['words']:5} {s['prompt_words']:4} {s['prompt_sents']:3} {s['prompt_restated']:4} "
               f"{int(s['unpark_abs']):3} {int(s['dup_claude_md']):3} {s['read_files']:2} {s['facts_kept']}/{s['facts_total']:<3} "
-              f"{int(s['after_path_fenced']):8} {int(s['after_unpark_fenced']):7} {int(s['after_blockquote']):2}")
+              f"{int(s['after_path_fenced']):8} {int(s['after_unpark_fenced']):7} {int(s['after_blockquote']):2} {int(s['after_path_once']):4}")
     print("\nsummary (median over reps; n = parks found / runs)")
     keys = sorted({(l, sc) for l, sc, _, _ in rows})
     for l, sc in keys:
@@ -115,7 +116,7 @@ def main(root):
         print(f"{l:10} {sc:10} n={len(ok)}/{len(ss)} words={med('words'):.0f} promptW={med('prompt_words'):.0f} "
               f"promptS={med('prompt_sents'):.0f} restated={med('prompt_restated'):.0f} abs={cnt('unpark_abs')} "
               f"dup={cnt('dup_claude_md')} readFiles={med('read_files'):.0f} facts={sum(x['facts_kept'] for x in ok)}/{sum(x['facts_total'] for x in ok)} "
-              f"afterPath={cnt('after_path_fenced')} afterCmd={cnt('after_unpark_fenced')} bq={cnt('after_blockquote')}")
+              f"afterPath={cnt('after_path_fenced')} afterCmd={cnt('after_unpark_fenced')} bq={cnt('after_blockquote')} once={cnt('after_path_once')}")
 
 
 if __name__ == "__main__":

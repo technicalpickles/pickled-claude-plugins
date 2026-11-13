@@ -134,18 +134,12 @@ The labels tell a later `park` call in this same session what already happened h
 
 ## After Writing
 
-Close with the path and the resume line, each alone in a fenced block so it copies cleanly. Use the absolute path, with no blockquote and no quotes.
+Close with one fenced block so it copies cleanly. The path appears once: inside the `unpark` line, or alone when there is no `unpark` line (close-out). Use the absolute path, with no blockquote and no quotes.
 
 Continuation:
 
 ~~~
-Parked to:
-
-```
-[path]
-```
-
-Resume in a new session:
+Parked. Resume in a new session:
 
 ```
 unpark [path]
@@ -167,13 +161,7 @@ This is a close-out record. To start fresh work that builds on it, reference the
 Idle checkpoint:
 
 ~~~
-Checkpointed (automated, this session went idle) to:
-
-```
-[path]
-```
-
-If you're still working here, ignore this. To resume elsewhere:
+Checkpointed (automated, this session went idle). If you're still working here, ignore this. To resume elsewhere:
 
 ```
 unpark [path]
