@@ -45,6 +45,7 @@ Pick once and commit. Do not switch modes mid-write.
    2. Otherwise `.parkinglot/` in project root (verify it is gitignored). This also covers a vault with no `## Parking` section.
 4. Get the timestamp with `date +%Y%m%d%H%M`. Every filename starts with it, then a single space.
 5. Resolve the file's **absolute path**, whichever location it lands in. Every place this skill writes `[path]` takes that absolute path, because a relative path only resolves from one directory and a resumed session often starts elsewhere.
+6. Find the **predecessor**. When this session was resumed from a park, the transcript holds an `unpark <file>` invocation (a typed line or an `unpark` skill call with a path). The file it names is the predecessor, as an absolute path. With several, take the latest. With none, there is no predecessor: skip the `Supersedes` line and the whole Superseding section.
 
 ## Continuation Template
 
@@ -55,6 +56,7 @@ Pick once and commit. Do not switch modes mid-write.
 **Session:** [session ID]
 **Branch:** [branch-name]
 **Worktree:** [absolute path, if applicable]
+**Supersedes:** [absolute path of the predecessor. Omit the line when there is none]
 
 ## Resume Prompt
 
@@ -105,6 +107,7 @@ Use when the work is done and the user is walking away. There may be open thread
 **Session:** [session ID]
 **Branch:** [branch-name]
 **Worktree:** [absolute path, if applicable]
+**Supersedes:** [absolute path of the predecessor. Omit the line when there is none]
 
 ## Outcome
 [What got done. Past tense. Reference commits where applicable.]
@@ -120,6 +123,8 @@ Use when the work is done and the user is walking away. There may be open thread
 List follow-up candidates; don't file them in a tracker.]
 ~~~
 
+**A Wrapped file has to earn its place.** Write one only when Key Decisions or Open Threads holds something the commits and PR do not show: a decision with its reason, a thread someone should pick up. List those two sections first. If both come out empty, or only restate the commit log, write no file. Say so in one line (`Nothing to record beyond the commits, so no file written.`) and stop, apart from Superseding below. Outcome alone is not a reason to write.
+
 Close-out has no Resume Prompt and no Next Steps. If you find yourself wanting to write either, the work is probably a continuation: re-check the mode.
 
 ## Idle Checkpoint Template
@@ -129,8 +134,20 @@ Written when a watchdog parks a session near its prompt-cache expiry, not when a
 - Heading `# Checkpoint: [Topic]`.
 - `**Checkpointed:**` replaces `**Parked:**`.
 - A `**Trigger:** automated (idle)` line after `**Worktree:**`.
+- The `**Supersedes:**` line, when there is a predecessor, goes after `**Trigger:**`.
 
 The labels tell a later `park` call in this same session what already happened here.
+
+## Superseding the predecessor
+
+Runs after the new file is written, and only when step 6 found a predecessor. A close-out that wrote no file still runs it.
+
+1. When a file was written, confirm it exists (`ls` its absolute path). If it is missing, stop and leave the predecessor. When the close-out wrote no file, there is nothing to confirm: go on.
+2. Read the predecessor's first heading. Delete it only if it is `Parked:` or `Checkpoint:`. A `Wrapped:` record is not a handoff, and a missing file needs nothing.
+3. Delete that one file by its exact absolute path (`rm "[predecessor path]"`). No glob, no directory, no other file, even a similar-looking sibling.
+4. Say so in the closing message with the path: `Deleted [predecessor path], the handoff this session resumed.` The vault is not a git repo, so only sync history can bring it back.
+
+The `Supersedes` line stays in the new file as the record of what it replaced.
 
 ## After Writing
 
