@@ -11,6 +11,7 @@ Use when a command mentions `av` or Automic Vault, a task needs a credential on 
 **Covers:**
 - What `av` is, and that it replaces `gh auth token`, `op read` and `.env` files as the way to get a credential
 - Injecting secrets by name (`av inject`), checking names (`av list`), and handing `av save` to the user
+- Finding presentation settings (`av settings list`) for quieting notifications, without the skill listing keys that would go stale
 - Diagnosing a denial or slow approval with `av history` before guessing
 - The error table: sandbox blocks the approval service, `Approval presentation interrupted`, locked Mac (`-25308`), ssh/signing `agent refused operation`
 - What not to do to get unblocked (skip signing, swap SSH keys, extract tokens)
