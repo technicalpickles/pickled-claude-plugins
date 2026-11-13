@@ -123,7 +123,7 @@
     {
       "name": "wait-for-it",
       "source": "./plugins/wait-for-it",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Turn \"tell me when X happens\" into a zero-token shell watch instead of a prompt loop"
     },
     {
