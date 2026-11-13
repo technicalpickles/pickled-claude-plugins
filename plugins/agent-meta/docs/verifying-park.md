@@ -70,7 +70,7 @@ Each cell builds its own scratch repo and vault (`lifecycle-setup.sh`). Two-call
 | `wrapreal` | Close-out with a non-obvious decision and an open thread | A `-wrapped` file is written (guards against the gate over-firing) |
 | `sweep` | Five handoffs: one with a merged branch, one whose only task is done, two live, one wrapped. Real `git merge` and a scratch Taskwarrior (`TASKRC`/`TASKDATA`) | Listing flags exactly the two stale ones, deletes nothing until answered, then deletes only those two after "yes" |
 
-- **`AskUserQuestion` is not available in `claude -p`.** The sweep cell runs the plain-text fallback the skill allows, and the second call stands in for the user's answer. The tool call itself is untested here, so the `asked` column reads 0 on both labels. Check it in an interactive session.
+- **`AskUserQuestion` is not available in `claude -p`.** The sweep cell runs the plain-text fallback the skill allows, and the second call stands in for the user's answer, so the `asked` column reads 0 on both labels. The real tool was checked once by hand in tmux (`tmux new-session -d`, `send-keys`, `capture-pane`) against the same sweep fixture: it showed a multi-select with the two stale files, and picking one deleted only that file.
 - **The scorer reads names.** `flag_tasks_done` looks for the handoff's filename on a `stale` line, so a reply that names it by heading instead scores 0. Read those rows.
 - **Squash merges are not covered.** The sweep fixture uses real merge commits, which `git branch --merged` sees. A squash-merged branch looks unmerged to it.
 - **A delete in the vault is not undoable.** The vault is not a git repo. Check the real vault for strays after every run (`Park vault:` lines in the transcripts should all be scratch paths).
