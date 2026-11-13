@@ -24,6 +24,11 @@ Claude to the second shape and gives it the pieces to do that well.
   finishes. A subagent waiting on its own background child polls for that,
   since completion notifications only reach the top-level session. Requires
   `jq`.
+- **`piped-build-exit-code` tool route** (`skills/wait-for-it/tool-routes.yaml`):
+  blocks a build, test or push piped into `tail` or `head`, since the pipe
+  reports `tail`'s exit status instead of the tool's. Needs the
+  `tool-routing` plugin installed, which runs the hook; without it the route
+  is inert and `references/local.md` is the only guard.
 - **Probe recipes** in `skills/wait-for-it/references/`: GitHub, Buildkite,
   local (tests, logs, ports, subagents), Datadog.
 
