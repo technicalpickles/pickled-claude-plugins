@@ -1,134 +1,82 @@
 ---
 name: unpark
-description: Resume work from a parked handoff
+description: Use when resuming work from a parked handoff, or reading a wrapped close-out record as reference
 ---
 
 # Unpark
 
-Resume work from a parked handoff document, or read a wrapped close-out record as reference.
+Validate the handoff, report in a few lines, then keep going. Ask only when something new needs a human: drift that changes the plan, context the user added, or a question the handoff left open.
 
-## Process
+## 1. Find the handoff
 
-### 1. Find Handoff
+Look in every location that applies, together: the vault (when the injected context has a `Park vault:` line and `<vault>/CLAUDE.md` has a `## Parking` section with a `Location:`, that folder relative to the vault) and `.parkinglot/` in the project root.
 
-List parks from every location that applies, together:
+- **A path:** use it.
+- **A name or topic:** match filenames and first headings. One match, use it. Several close matches, list them and ask which.
+- **Nothing given:** the newest `Parked:` or `Checkpoint:` file whose Branch or Worktree is in the current repo, else the newest overall. Name it in the report.
+- **The user asked to see what exists:** list both locations grouped as active (`Parked:`, `Checkpoint:`) and wrapped, each labeled `[vault]` or `[.parkinglot]`, and stop.
 
-1. The vault: when the injected context has a `Park vault:` line and `<vault>/CLAUDE.md` has a `## Parking` section with a `Location:`, list that folder (relative to the vault).
-2. The project: `.parkinglot/` in project root.
+The first heading decides the mode, not the filename. If they disagree, trust the heading.
 
-Group the entries by mode, and show which location each is from:
+## 2. Go where the work is
 
-```
-Active handoffs:
-(A) 202605061412 jwt-authentication.md  - Parked 2026-05-06 [vault]
-(B) fix-login-bug.md                    - Parked 2026-05-04 [.parkinglot]
+Work from the handoff's Worktree, else the repo its Branch belongs to. Put the `cd` or `git -C` in every command, including commands you hand the user. A missing worktree is drift.
 
-Wrapped (reference only):
-(C) 202603301005 sanitation-skill-fix-wrapped.md - Wrapped 2026-03-30 [vault]
-(D) confirm-dotfiles-work-role-wrapped.md        - Wrapped 2026-04-12 [.parkinglot]
+## 3. Validate the claims
 
-(E) Other location
-```
+Check what the `Parked:` or `Checkpoint:` handoff asserts against reality:
 
-Older files may have no timestamp prefix. Detect group by filename suffix (`-wrapped.md`, `-checkpoint.md`) and the file's first heading (`Parked:`, `Checkpoint:`, or `Wrapped:`). List checkpoints with the active handoffs. Filename and heading should agree; if they disagree, trust the heading and note the mismatch.
+- the branch and worktree exist, and what landed on the branch since the `Parked:` time
+- the key files exist
+- the PRs, tasks and commits named in Current State and Next Steps are in the state it says (`gh`, `task`, `git`)
 
-### 2. Branch on Mode
+**In the same step as the first check, look up the devlog, even when the checks already show drift.**
 
-After the user picks a file, read it and check the first heading.
+1. Take the handoff's `Session:` id and keep the first 8 characters.
+2. `grep -rlF --include='*.md' "claude-code session <id8>" <Park vault>`. Notes move into topic folders, so search by that string, not by path. No `Park vault:` line or no hit means move on.
+3. Read the note, about 6 KB at most (the latest entries if longer). Keep what the handoff lacks: traps, gotchas, decisions the user made, corrections. Entries timestamped after the `Parked:` time are newer than the handoff, so check them for drift. The date is in the note's filename prefix.
 
-- `# Parked:` or `# Checkpoint:` -> continue with **Continuation Flow** below
-- `# Wrapped:` -> switch to **Reference Flow** below
+## 4. Report, then act
 
-### Continuation Flow
+The report is at most five lines, each one sentence:
 
-#### 2a. Read and Present
-
-Read the handoff and present a summary:
-
-```
-Resuming: [Topic]
-
-Parked: [Date]
-Branch: [branch]
-
-Current state: [Brief summary]
-
-Next steps:
-1. [Step 1]
-2. [Step 2]
-```
-
-#### 2b. Validate
-
-Check that the handoff is still valid:
-
-- [ ] Git branch matches (or can be checked out)
-- [ ] Worktree exists (if specified)
-- [ ] Key files still exist
-- [ ] Decisions still seem relevant
-
-#### 2c. Handle Validation Results
-
-**If valid:**
+1. `✅ Handoff holds.` plus what you checked (head commit, clean tree, pending tasks), or `⚠️ Drift.` plus the one fact that changes the plan.
+2. `📓` plus one devlog trap, decision or correction the handoff lacks. Omit the line when there is none.
+3. `▶️ Picking up with <first next step>`, then do it. On drift, one question with a recommended default instead: `AskUserQuestion` when available, two options, recommended first.
 
 ```
-Validation passed. Ready to continue with: [first next step]
-
-Proceed?
-(A) Yes, continue
-(B) Review the full handoff first
-(C) Adjust the plan
+✅ Handoff holds. main @837b3bc, clean, tasks a1b2c3d4 and e5f6a7b8 still pending.
+📓 The sync failure was a renamed container, not a timeout. The timeout was already fixed.
+▶️ Picking up with the dashboard check.
 ```
 
-**If stale or invalid:**
-
 ```
-Validation found issues:
-- [Issue 1]
-- [Issue 2]
-
-Options:
-(A) Update handoff and try again - I'll revise based on current state
-(B) Start fresh - discard this handoff
-(C) Continue anyway - I understand the context has changed
+⚠️ Drift. Steps 1 to 4 landed in #41 and later PRs, and the worktree is gone.
+📓 The uncommitted fix shipped inside #44, so nothing was lost.
+Start at step 5, or retire this handoff?
 ```
 
-If option A: update the handoff file with current findings, then recommend unparking again.
-
-### Reference Flow
-
-For `Wrapped:` files. No validation runs by default. Present the file as a reference:
-
 ```
-This is a close-out record, not a handoff. Showing it as reference.
-
-Wrapped: [topic]
-Date: [...]
-Outcome: [first paragraph from Outcome section]
-
-Options:
-(A) Read the full record
-(B) Start fresh work building on this   (invokes brainstorming with this doc as context)
-(C) Treat as continuation anyway        (runs full validation despite the heading)
+⚠️ Drift. Every step landed in #41 through #47, and 5 follow-ups remain, the main one c9d0e1f2 (the lint check skips in worktrees).
+Pick up c9d0e1f2, or retire this handoff?
 ```
 
-Option (A): print the file contents as a reference, no further action.
-Option (B): invoke `superpowers:brainstorming` and pass the wrapped doc's path as starting context.
-Option (C): rare escape hatch. Treat the file as if it were a continuation and run the validate step from the Continuation Flow. Useful if the user wrapped something prematurely.
+Nothing else goes in the report. No bullet lists, no list of what landed or what is still open (give a count and the one that matters), and no remark about a missing devlog. The user can ask for detail.
 
-## Session Chains
+Drift is a next step that already landed, a missing branch or worktree, a decision that no longer holds, or a newer devlog entry that contradicts the handoff. A moved `main` or an unrelated commit goes in the `✅` line. An old handoff's age goes there too.
 
-Both `Parked:` and `Wrapped:` files include a `Session:` field. Session tracking tools can use this to link work across sessions:
+## 5. Extra context is where to ask
 
-```
-Session A (parked) -> handoff.md -> Session B (unparked) -> parked again -> ...
-Session A (wrapped) -> wrapped.md -> [end of chain, unless treated as continuation]
-```
+Ask one question with a default when:
 
-## Edge Cases
+- **The user added context** that conflicts with or extends the handoff's next step. Say how you would merge it. Consistent, additive context needs no question.
+- **An open question in the handoff blocks the first next step.** Others wait until the work reaches them.
+- **The next step is irreversible or outward** (deploy, publish, delete, message someone). The usual rules apply. Unpark adds no gate of its own.
 
-- **Branch doesn't exist:** Offer to create it or pick a different branch.
-- **Files deleted:** Note in validation, may still be able to continue.
-- **Handoff is very old:** Extra scrutiny on decisions, they may need revisiting.
-- **Filename/heading mismatch:** Trust the heading. Note the mismatch to the user.
-- **Legacy `Parked:` file with old shape (Resume Prompt at bottom):** Works fine. The validation flow does not depend on section order.
+## 6. Wrapped files
+
+A `Wrapped:` file is a record, not a handoff. Skip validation. Show the Outcome's first paragraph and the Open Threads as one-liners, and ask what to do with them. If the user already said, do that. New work building on the record goes through `superpowers:brainstorming` with the file as context. If they say it was wrapped too early, run steps 2 to 4.
+
+## Leave the handoff alone
+
+Don't edit, rename or delete the handoff while resuming.
