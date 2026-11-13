@@ -1,0 +1,166 @@
+{
+ "generated": "2026-01-15T10:00",
+ "days": 14,
+ "since": "2026-01-01",
+ "prs": [
+  {
+   "repo": "acme/widgets",
+   "short": "widgets",
+   "n": 12,
+   "title": "Add widget cache",
+   "url": "https://github.com/acme/widgets/pull/12",
+   "draft": false,
+   "mergeable": "MERGEABLE",
+   "updated": "2026-01-14",
+   "branch": "cache",
+   "author": "dev",
+   "ci": {
+    "state": "success",
+    "url": "https://ci.example/builds/1"
+   },
+   "paths": [
+    "src/cache.py"
+   ]
+  },
+  {
+   "repo": "acme/infra",
+   "short": "infra",
+   "n": 7,
+   "title": "Migrate database to v2",
+   "url": "https://github.com/acme/infra/pull/7",
+   "draft": true,
+   "mergeable": "CONFLICTING",
+   "updated": "2026-01-10",
+   "branch": "mig",
+   "author": "dev",
+   "ci": {
+    "state": "failure",
+    "url": "https://ci.example/builds/2"
+   },
+   "paths": [
+    "services/db/migrate.sql"
+   ]
+  },
+  {
+   "repo": "acme/gadgets",
+   "short": "gadgets",
+   "n": 3,
+   "title": "Old experiment",
+   "url": "https://github.com/acme/gadgets/pull/3",
+   "draft": false,
+   "mergeable": "MERGEABLE",
+   "updated": "2025-06-01",
+   "branch": "x",
+   "author": "dev",
+   "ci": {
+    "state": "none",
+    "url": ""
+   },
+   "paths": [
+    "README.md"
+   ]
+  },
+  {
+   "repo": "acme/stray",
+   "short": "stray",
+   "n": 1,
+   "title": "Unrelated tweak",
+   "url": "https://github.com/acme/stray/pull/1",
+   "draft": false,
+   "mergeable": "MERGEABLE",
+   "updated": "2026-01-12",
+   "branch": "t",
+   "author": "dev",
+   "ci": {
+    "state": "pending",
+    "url": "https://ci.example/builds/3"
+   },
+   "paths": [
+    "docs/x.md"
+   ]
+  },
+  {
+   "repo": "acme/sandbox-play",
+   "short": "sandbox-play",
+   "n": 9,
+   "title": "Excluded by pattern",
+   "url": "https://github.com/acme/sandbox-play/pull/9",
+   "draft": false,
+   "mergeable": "MERGEABLE",
+   "updated": "2026-01-12",
+   "branch": "s",
+   "author": "dev",
+   "ci": {
+    "state": "none",
+    "url": ""
+   },
+   "paths": [
+    "a"
+   ]
+  }
+ ],
+ "merged": [
+  {
+   "repo": "acme/widgets",
+   "short": "widgets",
+   "n": 11,
+   "title": "Fix widget leak",
+   "url": "https://github.com/acme/widgets/pull/11",
+   "date": "2026-01-13",
+   "paths": [
+    "src/leak.py"
+   ]
+  }
+ ],
+ "tasks": [
+  {
+   "uuid": "aaaa1111-0000-4000-8000-000000000001",
+   "id8": "aaaa1111",
+   "project": "widgets",
+   "tags": [
+    "cache"
+   ],
+   "desc": "Tune the widget cache TTL. Measure hit rate first.",
+   "status": "pending",
+   "end": "",
+   "urgency": 5.0,
+   "annotations": [
+    "2026-01-10: hit rate is 40%"
+   ]
+  },
+  {
+   "uuid": "bbbb2222-0000-4000-8000-000000000002",
+   "id8": "bbbb2222",
+   "project": "infra.db",
+   "tags": [],
+   "desc": "Back up the v1 database",
+   "status": "pending",
+   "end": "",
+   "urgency": 3.0,
+   "annotations": []
+  },
+  {
+   "uuid": "cccc3333-0000-4000-8000-000000000003",
+   "id8": "cccc3333",
+   "project": "widgets",
+   "tags": [],
+   "desc": "Write the cache ADR",
+   "status": "completed",
+   "end": "20260112T100000Z",
+   "urgency": 0,
+   "annotations": []
+  },
+  {
+   "uuid": "dddd4444-0000-4000-8000-000000000004",
+   "id8": "dddd4444",
+   "project": "garden",
+   "tags": [],
+   "desc": "Water the plants",
+   "status": "pending",
+   "end": "",
+   "urgency": 1.0,
+   "annotations": []
+  }
+ ],
+ "trees": []
+}
