@@ -19,6 +19,7 @@ description: Use when a command mentions `av`, Automic Vault or automic-vault, w
 | Tool already hardened (`gh`, `aws`, `docker`, `ssh`, git signing) | Run the tool normally. Approval happens behind it |
 | Why was something denied or slow | `av history --json --since 1h --no-pager` |
 | Is hardening intact | `av doctor <tool>` |
+| Change how `av` notifies or presents (hide auto-approved noise, compact notifications) | `av settings list`, then `get` / `set`. Presentation only: policy and Approval methods are app-only. Quieting feedback needs the user's Approval. Details: [Presentation settings](https://github.com/automic-vault/automic-vault#presentation-settings) |
 | Does `av` cover tool X, or how do I do Y | `av hardeners --json` lists supported tools. Then `av help` and https://www.automicvault.com/docs/ (start at "Choosing a Mechanism"). Say "not sure yet" before "can't" |
 
 ## Errors
