@@ -21,7 +21,10 @@ See `../obsidian/references/routing-memory.md` for the correction and learning l
 
 ## Input
 
-An enriched note in the inbox with `status: enriched`.
+An enriched note in the inbox with `status: enriched`, or a finished note
+with a vault status (`seedling`, `filed`, ...) or none. For a finished note,
+skip every `status` write below: move it or leave it, and its status stays.
+See "Status Values" in `../obsidian/references/pipeline.md`.
 
 ## Process
 
@@ -43,13 +46,18 @@ An enriched note in the inbox with `status: enriched`.
    - Score >= `auto-route-threshold`: auto-route, move file, set `status: routed`
    - Score < threshold: set `status: pending-review`, return without moving
 
-4. If auto-routing, move the file:
+4. Before moving, Glob the destination for a note on the same subject (its
+   title's words all in another title, or the reverse). If one is there,
+   don't move: present it like a pending-review note, with "merge into
+   {existing}" as the first option.
+
+5. If auto-routing, move the file:
    ```bash
    npx @techpickles/sb note move --from "{note-path}" --to "{destination}/"
    ```
    Update frontmatter: `status: routed`
 
-5. If pending-review, present suggestions to human (when called by orchestrator):
+6. If pending-review, present suggestions to human (when called by orchestrator):
    - Show top 2-3 destinations with scores and reasoning
    - Include "Leave in inbox" option
    - If user overrides suggestion, capture correction to `.routing-memory.md`
