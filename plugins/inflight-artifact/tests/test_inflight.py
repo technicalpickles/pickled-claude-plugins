@@ -1,9 +1,10 @@
-import json, os, shutil, subprocess, sys, tempfile, unittest
+import datetime, json, os, shutil, subprocess, sys, tempfile, time, unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCRIPTS = os.path.join(ROOT, "scripts")
 EXAMPLE_CONFIG = os.path.join(ROOT, "examples", "config")
 FIXTURE = os.path.join(ROOT, "tests", "fixtures", "facts.json")
+sys.path.insert(0, SCRIPTS)
 
 
 def run(script, *args, check=True):
@@ -280,6 +281,36 @@ class PageFeaturesTest(unittest.TestCase):
 
 def registry_rows(d):
     return {f: json.load(open(os.path.join(d, "sessions", f))) for f in sorted(os.listdir(os.path.join(d, "sessions")))}
+
+
+class LocalTimeTest(unittest.TestCase):
+    def setUp(self):
+        self.old_tz = os.environ.get("TZ")
+        os.environ["TZ"] = "America/New_York"
+        time.tzset()
+
+    def tearDown(self):
+        if self.old_tz is None:
+            os.environ.pop("TZ", None)
+        else:
+            os.environ["TZ"] = self.old_tz
+        time.tzset()
+
+    def test_an_evening_merge_stays_on_its_local_day(self):
+        from localtime import local_date
+        self.assertEqual(local_date("2026-11-14T02:46:50Z"), "2026-11-13")
+        self.assertEqual(local_date("2026-11-14T05:00:00Z"), "2026-11-14")
+
+    def test_a_task_end_stamp_is_read_in_local_time(self):
+        from localtime import local_ymd
+        self.assertEqual(local_ymd("20261114T031500Z"), "20261113")
+        self.assertEqual(local_ymd(""), "")
+
+    def test_a_day_search_range_carries_the_local_offset_across_dst(self):
+        from localtime import day_range, day_start
+        self.assertEqual(day_range(datetime.date(2026, 11, 13)), "2026-11-13T00:00:00-05:00..2026-11-13T23:59:59-05:00")
+        self.assertEqual(day_range(datetime.date(2026, 7, 4)), "2026-07-04T00:00:00-04:00..2026-07-04T23:59:59-04:00")
+        self.assertEqual(day_start(datetime.date(2026, 11, 1)), "2026-11-01T00:00:00-04:00")
 
 
 class SessionRegistryTest(unittest.TestCase):
