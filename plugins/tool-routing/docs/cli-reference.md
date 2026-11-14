@@ -75,7 +75,13 @@ Run all inline test fixtures from all route sources.
 
 ```bash
 uv run tool-routing test
+uv run tool-routing test --merged
 ```
+
+Each route's tests run against that route alone, so a test asserts what its
+own route does and routes from other plugins cannot fail or satisfy it. Pass
+`--merged` to run every test against the whole merged table instead. That
+finds routes that overlap on the same command.
 
 **Output:** Shows pass/fail for each test, grouped by source file:
 
