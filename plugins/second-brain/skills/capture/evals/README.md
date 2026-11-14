@@ -60,7 +60,10 @@ Worth measuring before assuming those skills are unwanted rather than unreachabl
 
 ## Running them
 
+From the repo root (`--plugin-src ../../..` is the plugin root relative to the evals directory):
+
 ```bash
+cd plugins/second-brain/skills/capture/evals
 ./trigger_eval.py \
   --eval-set trigger-evals.json \
   --plugin-src ../../.. \

@@ -26,7 +26,31 @@ Each note carries its pipeline state in frontmatter:
 | `complete` | All stages done, daily note linked. |
 | `pending-review` | Route stage needs human input (low confidence). |
 
-Notes without a `status` field are treated as `raw`.
+A session note (`type: session-notes`) without a `status` field is treated as `raw`.
+
+### One key, three vocabularies
+
+`status` also carries values the pipeline doesn't own:
+
+| Vocabulary | Values | Set by |
+|------------|--------|--------|
+| Pipeline state | the table above | the pipeline skills |
+| Zettelkasten maturity | `seedling`, `budding`, `evergreen` | `capture`, the user |
+| Vault lifecycle | `filed`, `incubating`, `active`, `complete`, `dormant`, `abandoned` | the user, the vault's own conventions |
+
+`complete` appears in both pipeline state and vault lifecycle. In the inbox
+it means lifecycle: a note the pipeline completed has already been routed
+out of the inbox.
+
+A note with a maturity or lifecycle status, or a non-session note with no
+status at all, is a finished note waiting in the inbox. It goes straight to
+`route`, and the pipeline never writes a pipeline value over its status:
+`route` moves it or leaves it, and `connect` and `link-daily` run on it in the
+same `process-inbox` pass without writing a status. A status in none of these
+vocabularies is the vault's own; ask rather than guess. The vault's
+`CLAUDE.md` may define more values, and it wins.
+
+`scripts/survey-inbox.py` applies these rules to a whole inbox.
 
 ## Status Flow
 
