@@ -47,7 +47,7 @@ build_rows() {
       skills_dir="$REPO_ROOT/plugins/$name/skills"
       skills=""
       if [[ -d "$skills_dir" ]]; then
-        skills="$(find "$skills_dir" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; \
+        skills="$(find "$skills_dir" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -exec basename {} \; \
           | grep -v -- '-workspace$' | sort | paste -sd, - | sed 's/,/, /g')"
       fi
       skills_cell="${skills:-–}"
