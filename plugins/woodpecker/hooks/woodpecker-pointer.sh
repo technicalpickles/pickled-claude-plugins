@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Points Claude at the woodpecker skills, a backstop for when description
-# matching alone misses them (pirpg#68 never loaded either skill).
+# matching alone misses them (seen in a real session where neither skill loaded).
 #
 # PostToolUse only, once per session. SessionStart is not used: sessions often
 # start in a parent directory and `cd` into the repo, which SessionStart never
