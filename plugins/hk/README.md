@@ -2,11 +2,10 @@
 
 Brings [hk](https://hk.jdx.dev)'s coding-agent integration to Claude Code, in projects that use hk. hk is a git hook manager: a project's `hk.pkl` (written in the Pkl config language) defines *steps*, which are lint and format commands, and hk runs them as git hooks or on demand with `hk check` and `hk fix`.
 
-hk can print what an agent needs: a Stop hook (`hk agent hooks`), a block of instructions (`hk agent instructions`), and an MCP server (`hk mcp`). Normally you copy those into each project's Claude Code settings. This plugin does it once, for every project:
+hk can print what an agent needs: a Stop hook (`hk agent hooks`) and a block of instructions (`hk agent instructions`). Normally you copy those into each project's Claude Code settings. This plugin does it once, for every project, and follows you into an hk repo even when the session started somewhere else, such as a parent directory full of clones:
 
-- **SessionStart** injects hk's instructions.
+- **PostToolUse** injects hk's instructions the first time a tool call runs inside an hk project.
 - **Stop** runs the project's `check` hook (what `hk check` runs) before Claude finishes, and blocks if it fails.
-- **MCP** registers hk's MCP server.
 
 ## Installation
 
@@ -18,28 +17,26 @@ Requires hk 2.6 or later in the project, and `jq` on PATH.
 
 ## When it's active
 
-All three pieces stay off unless every one of these holds, and they do nothing and print nothing otherwise:
+Both pieces stay off unless every one of these holds, and they do nothing and print nothing otherwise:
 
 - An hk config file exists at or above the directory Claude is working in: `hk.pkl`, `hk.local.pkl`, or either under `.config/`. This is the same upward walk hk does, and it checks only that the file exists, so a broken `hk.pkl` still counts.
 - `hk` runs there. A mise shim with no hk version set fails this, as does `hk` missing from PATH.
 - hk is 2.6 or later, read from `hk --version`. hk 2.5 added `agent stop-hook` and 2.6 made it pass quietly in a project whose config has no `check` hook (2.5.x blocks there). Older hk answers `agent stop-hook` with a usage error that exits 2, which Claude Code would treat as a block.
 
-The same check gates all three pieces, even though `hk agent instructions` and `hk mcp` exist from 1.55, because the plugin is built around the Stop hook and a project on an older hk would otherwise get half of it. The check runs `hk --version` once per SessionStart, Stop and MCP launch.
+The same check gates both pieces, even though `hk agent instructions` exists from 1.55, because the plugin is built around the Stop hook and a project on an older hk would otherwise get half of it. The config walk runs first, so a tool call outside any hk project never starts hk. `hk --version` runs once per Stop, and on each PostToolUse call until the instructions have been injected.
 
 ## Hooks
 
-Both hooks take the directory from the hook payload's `cwd` and run hk there.
+Both hooks take the directory from the hook payload's `cwd` and run hk there. Claude Code sets `cwd` on every tool call and follows a Bash `cd`, so neither hook cares where the session started.
 
-- **SessionStart** injects the output of `hk agent instructions --target claude-code` as context. It fires on startup, resume, clear and compact (the hook has no matcher), so the instructions come back after a `/clear`. If hk fails to print them, it stays silent.
+- **PostToolUse** (on `Bash`, `Read`, `Edit`, `MultiEdit` and `Write`) injects the output of `hk agent instructions --target claude-code` as context, once per session. A marker file named for the session id in `${TMPDIR:-/tmp}` records that it happened. Calls outside an hk project do nothing and leave no marker, so a session that starts in a parent directory gets the instructions on the first tool call after it moves into a repo. The instructions do not come back after `/compact`. If hk fails to print them, it stays silent and tries again on the next call.
 - **Stop** runs `hk agent stop-hook --target claude-code --timeout 570`, which is what `hk agent hooks --target claude-code` prints. hk does the work. It runs `hk run check --safe`, passes when `stop_hook_active` is set (Claude Code's flag for "already continuing because of a Stop hook", so a check Claude can't fix doesn't trap it in a loop), and prints `{"decision":"block","reason":...}` when the check fails. By hk's docs it always exits 0. `--timeout` is in seconds: hk stops the check at 570 and reports a block, and `hooks.json` gives Claude Code's side 600. The script relays hk's output and exit status unchanged.
 
 `--safe` refuses steps whose effect is unknown, so custom steps in `hk.pkl` need an `effect` (`read` or `write`) or Stop will block until they have one. See the `hk-creating-checks` skill.
 
-## MCP server
+## No MCP server
 
-The plugin declares hk's MCP server in `plugin.json` (named `hk`, which Claude Code shows as `plugin:hk:hk`), so the instructions' advice to ask the hk MCP server has something behind it. It gives Claude persistent runs, cancellation, paged logs, diagnostics and diffs.
-
-A plugin MCP server starts in every project where the plugin is enabled and can't be made conditional, and a command that fails shows up as a failed server. So the plugin starts `hooks/hk-mcp.sh`, which passes `${CLAUDE_PROJECT_DIR}` as the project root. In a project that passes the checks above it becomes `hk mcp --root <project>`. Anywhere else it serves an inert session: it answers the MCP handshake and `ping` (as server `hk`, version `inactive`), advertises no tools, and ignores everything else. Disable the server per project from `/mcp` if you don't want it.
+Earlier versions registered `hk mcp` as an MCP server. Claude Code starts a plugin's MCP servers once, in the directory the session started in, so the server could never follow a `cd` into an hk repo, and from a parent directory it sat inert. hk's instructions say to ask the MCP server first but also give the CLI fallback (`hk run check --format jsonl --safe`), which works from Bash in any repo. To get the MCP server back in one project, add `hk mcp` to that project's `.mcp.json`.
 
 ## Skills
 
