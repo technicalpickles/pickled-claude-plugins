@@ -29,7 +29,12 @@ you can't before moving on.
 
 ## Cannot reach the source
 
-Stop and say so. A note needs a page you loaded: no URL you didn't open, no title you inferred, no
+A WebFetch that comes back 403, empty, or as a bot-check page isn't the end of the ladder: the
+plugin's `webfetch-failed-ladder.py` hook adds the browser rungs to the result, in subagents too.
+Work through them, then the author's own site or a mirror for paywalled posts, then secondary
+sources labeled as such.
+
+When every rung fails, stop and say so. A note needs a page you loaded: no URL you didn't open, no title you inferred, no
 details from background knowledge.
 
 ## Batch and long sources
