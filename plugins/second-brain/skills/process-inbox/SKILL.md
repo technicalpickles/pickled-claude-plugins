@@ -111,6 +111,9 @@ If inbox is empty:
 Inbox is empty. Nothing to process.
 ```
 
+If more than about 20 notes are headed for routing, use
+[Large backlogs](#large-backlogs) for the rest of the run.
+
 ## Step 3: Process by Stage
 
 Work through notes in pipeline order. Each stage picks up notes at its expected input status.
@@ -177,6 +180,27 @@ Pipeline complete:
   {n} session notes held (sessions not on this machine)
   {n} empty notes deleted, {n} left
 ```
+
+## Large backlogs
+
+The per-note questions in Step 3 stop working past a couple dozen notes.
+Switch to this mode when the survey shows more than about 20 notes that
+would need a decision, or when the user asks to clear a big backlog:
+
+1. **Work in chunks of about 20 notes**, oldest first. Status is written
+   per note, so a run can stop after any chunk and the next run picks up
+   where it left off. Say how many are left after each chunk.
+2. **Route by cluster, not by note.** Group the chunk's routing candidates
+   by their top destination. Auto-route what clears the threshold as
+   usual, then ask once per cluster: "These 6 look like `67 Dev tools`:
+   {titles}. Route them all there?" with "route all", "pick some", and
+   "leave in inbox". A cluster answer that overrides the suggestion is one
+   correction in `.routing-memory.md`, not one per note.
+3. **Connect without asking per note.** Add confident links (same subject,
+   or named in the note) the way `capture` does, and list the weaker
+   candidates in the chunk summary instead of asking about each one.
+4. **Summarize each chunk** in a few lines: routed where, links added,
+   what is still pending. Ask only what blocks the next chunk.
 
 ## Constraints
 

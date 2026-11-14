@@ -321,7 +321,7 @@ If user picks (A), walk through each note's connections using the standard prese
 ## Constraints
 
 - **Best-effort** - Don't fail capture or routing if connection discovery fails
-- **User selects** - Never auto-connect, always present candidates for selection
+- **User selects** - Present candidates for selection. The exceptions are confident links (same subject, or named in the note) in `capture` and in `process-inbox`'s large-backlog mode
 - **Wiki-link format** - Use `[[filename]]` not `[text](path)`, no `.md` extension in links
 - **Descriptive links** - Always include a brief description of the relationship
 - **Respect existing structure** - Append to existing sections, don't reorganize notes
