@@ -13,6 +13,7 @@ Folding these into one request makes GitHub answer 502. Do not add per-PR `gh pr
 run it in the foreground.
 """
 import argparse, datetime, json, os, subprocess, sys
+from localtime import day_range, day_start, local_date, local_ymd
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ap = argparse.ArgumentParser()
@@ -54,8 +55,8 @@ DAY_KEYS = [f"d{i}" for i in range(DAYS + 1)]
 SEARCHES = {
     "org": (f"is:pr is:open user:{USER}", 100, PR),
     "mine": (f"is:pr is:open author:{USER} -user:{USER}", 100, PR),
-    "merged": (f"is:pr is:merged author:{USER} -user:{USER} merged:>={SINCE}", 100, LIGHT),
-    **{k: (f"is:pr is:merged user:{USER} merged:{datetime.date.today() - datetime.timedelta(days=i)}", 100, LIGHT) for i, k in enumerate(DAY_KEYS)},
+    "merged": (f"is:pr is:merged author:{USER} -user:{USER} merged:>={day_start(datetime.date.fromisoformat(SINCE))}", 100, LIGHT),
+    **{k: (f"is:pr is:merged user:{USER} merged:{day_range(datetime.date.today() - datetime.timedelta(days=i))}", 100, LIGHT) for i, k in enumerate(DAY_KEYS)},
 }
 def query(keys):
     return "query { " + " ".join(f'{k}: search(query: "{SEARCHES[k][0]}", type: ISSUE, first: {SEARCHES[k][1]}) {{ issueCount nodes {{ ... on PullRequest {{ {SEARCHES[k][2]} }} }} }}' for k in keys) + " }"
@@ -144,11 +145,11 @@ def paths_of(n): return PATHS.get((n["repository"]["nameWithOwner"], n["number"]
 
 prs = [{"repo": n["repository"]["nameWithOwner"], "short": n["repository"]["name"], "n": n["number"],
         "title": n["title"], "url": n["url"], "draft": n["isDraft"], "mergeable": n["mergeable"],
-        "updated": n["updatedAt"][:10], "branch": n["headRefName"],
+        "updated": local_date(n["updatedAt"]), "branch": n["headRefName"],
         "author": (n.get("author") or {}).get("login", ""), "ci": ci_of(n), "paths": paths_of(n)}
        for n in nodes("org", "mine")]
 merged = [{"repo": n["repository"]["nameWithOwner"], "short": n["repository"]["name"], "n": n["number"],
-           "title": n["title"], "url": n["url"], "date": (n.get("mergedAt") or n["updatedAt"])[:10], "paths": paths_of(n)}
+           "title": n["title"], "url": n["url"], "date": local_date(n.get("mergedAt") or n["updatedAt"]), "paths": paths_of(n)}
           for n in nodes("merged", *DAY_KEYS)]
 
 
@@ -162,7 +163,7 @@ for status, extra in (() if TASKS == "none" else (("pending", []), ("completed",
     for t in js(["task", *extra, f"status:{status}", "export"], []):
         tasks.append({"uuid": t["uuid"], "id8": t["uuid"][:8], "project": t.get("project", ""),
                       "tags": t.get("tags", []), "desc": t["description"], "status": t["status"],
-                      "end": (t.get("end", "") or "")[:8], "urgency": t.get("urgency", 0),
+                      "end": local_ymd(t.get("end", "")), "urgency": t.get("urgency", 0),
                       "annotations": [x["description"] for x in t.get("annotations", [])]})
 
 trees = []
