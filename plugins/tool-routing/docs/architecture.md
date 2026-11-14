@@ -207,17 +207,22 @@ Rationale:
 - No separate test discovery mechanism needed
 - Self-documenting routes (tests show intent)
 
-### Exit Code 2 for Blocked
+### JSON Decision for Blocked
 
-The `check` command uses exit code `2` (not `1`) for blocked calls:
+The `check` command blocks by printing a PreToolUse decision and exiting `0`:
 
 ```python
 if result.blocked:
-    print(result.message, file=sys.stderr)
-    return 2  # Not 1
+    print(json.dumps({"hookSpecificOutput": {
+        "hookEventName": "PreToolUse",
+        "permissionDecision": "deny",
+        "permissionDecisionReason": result.message,
+    }}))
+return 0
 ```
 
-Rationale: Claude Code hooks interpret exit code `2` as "block the tool call." Exit code `1` typically means "error" which would be handled differently.
+Rationale: every path exits `0`, so a config error or bad input fails open,
+and a block is an explicit, structured decision rather than an exit code.
 
 ## Adding New Tool Types
 
