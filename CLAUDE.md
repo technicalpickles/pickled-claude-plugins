@@ -11,11 +11,12 @@ plugins/
 
 ## Development vs Installation
 
-Installed plugins are copied to `~/.claude/plugins/cache/{marketplace}/{plugin}/{version}/`, so **changes to local source take effect only after a reinstall and a Claude Code restart**:
+Installed plugins are copied to `~/.claude/plugins/cache/{marketplace}/{plugin}/{version}/`, keyed by version. Once a change merges with a version bump, pick it up in place and restart Claude Code:
 ```bash
-/plugin uninstall {plugin}@pickled-claude-plugins
-/plugin install {plugin}@pickled-claude-plugins
+claude plugin marketplace update pickled-claude-plugins
+claude plugin update {plugin}@pickled-claude-plugins
 ```
+Reinstall (`/plugin uninstall` then `/plugin install {plugin}@pickled-claude-plugins`) only matters for local dev on an unbumped version, where the cached copy never refreshes.
 To run a hook against local source, set `CLAUDE_PLUGIN_ROOT="$PWD/plugins/{name}"` (Claude Code sets it automatically for installed plugins).
 
 If `installed_plugins.json` points at a path that doesn't exist (seen with directory-source marketplaces), `rm -rf ~/.claude/plugins/cache/pickled-claude-plugins/{plugin}/` and reinstall.
@@ -24,7 +25,7 @@ Changing a `routes.json` or `tool-routes.yaml`? Test it with the tool-routing CL
 
 ## Testing plugins
 
-Run local source without reinstalling: `claude -p --plugin-dir plugins/{name} ...`. The reinstall-and-restart rule above is for interactive sessions.
+Run local source without reinstalling: `claude -p --plugin-dir plugins/{name} ...`. The cache and restart rules above are for interactive sessions.
 
 Match the test to the layer. Shell and Python hooks get `bats`. Mods get `claude plugin test plugins/{name}` and `claude plugin validate plugins/{name}`, both run in CI. A mocked engine can't tell you what the real engine passes a hook (skill names, transcript shape, settings keys), so for anything that depends on that, probe once with a headless `claude -p` run and encode the answer in a test.
 
