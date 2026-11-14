@@ -14,9 +14,20 @@ Look in every location that applies, together: the vault (when the injected cont
 - **A path:** use it.
 - **A name or topic:** match filenames and first headings. One match, use it. Several close matches, list them and ask which.
 - **Nothing given:** the newest `Parked:` or `Checkpoint:` file whose Branch or Worktree is in the current repo, else the newest overall. Name it in the report.
-- **The user asked to see what exists:** list both locations grouped as active (`Parked:`, `Checkpoint:`) and wrapped, each labeled `[vault]` or `[.parkinglot]`, and stop.
+- **The user asked to see what exists:** list both locations grouped as active (`Parked:`, `Checkpoint:`) and wrapped, each labeled `[vault]` or `[.parkinglot]`, then run the sweep below and stop.
 
 The first heading decides the mode, not the filename. If they disagree, trust the heading.
+
+### Sweep (listing only)
+
+Flag an active handoff as stale when either holds:
+
+- its Branch is merged into the default branch (`git -C <repo> branch --merged <default>`; the default is `origin/HEAD`, else `main`, else `master`). The repo is the handoff's Worktree, else the current one.
+- it names task UUIDs and every one is done (`task <uuid> status`).
+
+A handoff with no such evidence, a branch that does not exist, or a repo you cannot reach is not flagged. Age alone never flags. `Wrapped:` files are never flagged.
+
+Mark each flagged line `stale: <reason>` in the listing. If any are flagged, ask once with `AskUserQuestion` (multi-select, one option per flagged file by name, plus "Keep all"; as plain text with a stop if the tool is missing). Delete exactly the files the answer selects, each by its absolute path, no globs. No answer means no delete. Say what was deleted, with paths. The vault is not a git repo, so only sync history can bring a file back. Nothing flagged: no question.
 
 ## 2. Go where the work is
 
@@ -79,4 +90,4 @@ A `Wrapped:` file is a record, not a handoff. Skip validation. Show the Outcome'
 
 ## Leave the handoff alone
 
-Don't edit, rename or delete the handoff while resuming.
+Don't edit, rename or delete the handoff while resuming. The listing sweep is the only place unpark deletes, and only files the user selected.

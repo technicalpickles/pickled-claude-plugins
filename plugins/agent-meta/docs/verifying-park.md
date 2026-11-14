@@ -49,6 +49,47 @@ Each run spends real tokens (about 10 parks and 5 resumes per label). Two scratc
 - **The session is a narrative.** The scenario text stands in for a real transcript, so this tests the skill's wording, not how the model reads a long session.
 - **Skip the report-format column.** `score-unpark.py` reads only the final message, and unpark's report is mid-transcript text.
 
+## Checking the lifecycle (supersede, wrapped gate, stale sweep)
+
+`tests/park-eval/run-lifecycle.sh` covers what happens to handoffs over time. Same rules: control from `git archive origin/main`, at least five reps per label, read flagged rows by hand.
+
+```bash
+plugins/agent-meta/tests/park-eval/run-lifecycle.sh control "$ROOT/plugins/agent-meta" 5 "$RUNS"
+plugins/agent-meta/tests/park-eval/run-lifecycle.sh variant "$PWD/plugins/agent-meta" 5 "$RUNS"
+python3 -I plugins/agent-meta/tests/park-eval/score-lifecycle.py "$RUNS"
+```
+
+Each cell builds its own scratch repo and vault (`lifecycle-setup.sh`). Two-call cells run `unpark <file>`, then `--resume` the same session with the park request, so the second call has a real `unpark` invocation in its transcript. `CELLS="repark sweep"` runs a subset.
+
+| Cell | Setup | Passing means |
+|---|---|---|
+| `repark` | Resume a park (clean path, no drift), then park again. A decoy park for another branch sits beside it. | New file has `**Supersedes:** <exact path>`, predecessor deleted, decoy kept, resume left the predecessor alone, closing message says what was deleted |
+| `fresh` | Same vault, no `unpark` in the session | Nothing deleted, no `Supersedes` line (guards against deleting on a plain park) |
+| `wrapnothing` | Resume a park, then "wrap up, nothing to add" | No `-wrapped` file, predecessor still deleted, reply is a few lines |
+| `wrapnopred` | Close-out of a typo fix, no resume | No `-wrapped` file, reply is a few lines |
+| `wrapreal` | Close-out with a non-obvious decision and an open thread | A `-wrapped` file is written (guards against the gate over-firing) |
+| `sweep` | Five handoffs: one with a merged branch, one whose only task is done, two live, one wrapped. Real `git merge` and a scratch Taskwarrior (`TASKRC`/`TASKDATA`) | Listing flags exactly the two stale ones, deletes nothing until answered, then deletes only those two after "yes" |
+
+- **`AskUserQuestion` is not available in `claude -p`.** The sweep cell runs the plain-text fallback the skill allows, and the second call stands in for the user's answer, so the `asked` column reads 0 on both labels. The real tool was checked once by hand in tmux (`tmux new-session -d`, `send-keys`, `capture-pane`) against the same sweep fixture: it showed a multi-select with the two stale files, and picking one deleted only that file.
+- **The scorer reads names.** `flag_tasks_done` looks for the handoff's filename on a `stale` line, so a reply that names it by heading instead scores 0. Read those rows.
+- **Squash merges are not covered.** The sweep fixture uses real merge commits, which `git branch --merged` sees. A squash-merged branch looks unmerged to it.
+- **A delete in the vault is not undoable.** The vault is not a git repo. Check the real vault for strays after every run (`Park vault:` lines in the transcripts should all be scratch paths).
+
+Result of the run that shipped this (5 reps per cell, passes out of 5):
+
+| Cell and check | control | variant |
+|---|---|---|
+| `repark` Supersedes line / predecessor deleted | 0 / 0 | 5 / 5 |
+| `repark` resume left predecessor alone | 5 | 5 |
+| `fresh` nothing deleted, no Supersedes | 5 | 5 |
+| `wrapnothing` no file / predecessor deleted | 0 / 0 | 5 / 5 |
+| `wrapnopred` no file written | 0 | 5 |
+| `wrapreal` file still written | 5 | 5 |
+| `sweep` stale deleted after "yes" | 1 | 5 |
+| `sweep` live and wrapped kept | 5 | 5 |
+
+In the control, only 1 of 5 sweeps ended with the stale files deleted, its listings flagged the merged branch in 3 of 5, and none flagged the task-done handoff.
+
 ## Lessons baked into the script
 
 The general rules (assert on the value not the label, read the on-disk transcript, `Skill` in `--allowedTools`, `--add-dir` for the vault, `<name>@inline` settings) are in [docs/testing-plugins.md](../../../docs/testing-plugins.md). Park adds two:
