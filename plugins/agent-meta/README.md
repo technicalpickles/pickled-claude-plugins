@@ -32,6 +32,8 @@ Invoke by asking naturally ("park this session", "wrap this up", "unpark docs/ha
 - **Continuation** (`Parked:` heading, `YYYYMMDDHHMM topic.md` filename): for handoffs to a new session. The Resume Prompt is the centerpiece: tight, specific, copy-paste ready.
 - **Close-out** (`Wrapped:` heading, `YYYYMMDDHHMM topic-wrapped.md` filename): for records of completed work. No Resume Prompt; an "Outcome" section in past tense and an optional "Open Threads" list.
 
+A close-out only writes a file when it holds a decision or open thread the commits do not show. A park made in a session resumed from another park records `**Supersedes:**` and deletes that predecessor, saying so. `unpark` in listing mode flags handoffs whose branch is merged or whose tasks are done and offers one batched delete.
+
 Mode is picked at park time from your phrasing ("park to continue" vs "wrap this up"), inferred from the work's state, or asked if ambiguous.
 
 ## Scripts
