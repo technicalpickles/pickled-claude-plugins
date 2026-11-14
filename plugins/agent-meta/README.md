@@ -82,5 +82,4 @@ Requires the [pickled-claude-plugins marketplace](../../README.md#installation).
 
 ## See Also
 
-- `stay-on-target` - Focused development mode with drift detection
 - `tool-routing` - Tool call suggestions and routing
