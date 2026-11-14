@@ -9,7 +9,7 @@ Plugin for working with [Woodpecker CI](https://woodpecker-ci.org): find out why
 
 ## Helper
 
-- **`woodpecker-snapshot`**: Python script (stdlib only) that drives `woodpecker-cli` to print one block: the pipeline's state, each step's state, and the first failed step's log tail. The first line is always `State: <state>`, one of passed, failed, running, queued, blocked, no pipeline, unreachable, unauthorized, not set up, or unknown. Invoked from the skill with `bash "${CLAUDE_PLUGIN_ROOT}/scripts/woodpecker-snapshot"`.
+- **`woodpecker-snapshot`**: Python script (stdlib only) that drives `woodpecker-cli` to print one block: the pipeline's state, each step's state, and the first failed step's log tail. The first line is always `State: <state>`, one of passed, failed, running, queued, blocked, no pipeline, unreachable, unauthorized, not set up, or unknown. It also lists other pipelines for the same commit (a push and a `pull_request` run share one), and for a pipeline that failed before any step, the errors the server recorded. Invoked from the skill with `bash "${CLAUDE_PLUGIN_ROOT}/scripts/woodpecker-snapshot"`.
 
 ## Tool routes
 
@@ -39,24 +39,26 @@ One-time per machine per Woodpecker server.
 
 The plugin keeps no config of its own. The server comes from the CLI's saved login, and the repo from the git remote.
 
-## Recommended CLAUDE.md pointer
+## Hooks
 
-Skills that wrap a tool Claude already half-knows can go unused on description alone. Add a line like this to a project that builds with Woodpecker:
+Skills that wrap a tool Claude already half-knows can go unused on description alone, so one hook script (`hooks/woodpecker-pointer.sh`) points Claude at both skills:
 
-```markdown
-CI is Woodpecker. To find out why a pipeline failed, use the woodpecker-investigating-pipelines skill.
-```
+- **SessionStart**, when the working directory or one above it has `.woodpecker.yml`, `.woodpecker.yaml` or `.woodpecker/`.
+- **PostToolUse**, once per session, the first time a `Bash`, `Read`, `Edit` or `Write` call's input or output mentions Woodpecker (`.woodpecker.yml`, `ci/woodpecker/...`, `woodpecker-cli`, or a `/repos/<id>/pipeline/<n>` URL). This catches sessions that work on a Woodpecker repo from another directory. It stays silent where SessionStart already pointed.
+
+Measurements are in [the evals README](skills/woodpecker-investigating-pipelines/evals/README.md).
 
 ## Tests
 
 ```bash
 cd plugins/woodpecker && uv run pytest
+bats hooks/tests/
 ```
 
-Tests run against synthetic fixtures with a fake CLI runner, so they need no server.
+The snapshot tests use synthetic fixtures with a fake CLI runner and the hook tests feed it hook payloads, so neither needs a server.
 
 ## Not covered
 
 - Triggering or restarting pipelines, managing secrets, and server operations
 - More than one Woodpecker server (the CLI has named contexts; selecting between them is untested)
-- Trigger-accuracy evals for the skill descriptions and behavior evals for the skill bodies (see the [design doc](../../docs/specs/2026-10-17-woodpecker-plugin-design.md))
+- Behavior evals for the skill bodies (see the [design doc](../../docs/specs/2026-10-17-woodpecker-plugin-design.md))
