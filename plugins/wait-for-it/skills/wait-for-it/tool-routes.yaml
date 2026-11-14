@@ -95,5 +95,5 @@ routes:
         input:
           tool_name: Bash
           tool_input:
-            command: "cat > notes.md <<'EOF'\nrun make deploy 2>&1 | tail -5\nEOF"
+            command: "tee notes.md <<'EOF'\nrun make deploy 2>&1 | tail -5\nEOF"
         expect: allow
