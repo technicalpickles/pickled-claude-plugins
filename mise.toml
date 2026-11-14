@@ -1,4 +1,3 @@
 [tools]
 python = "latest"
-"ubi:knights-analytics/hugot" = "latest"
 bats = "latest"
