@@ -1,0 +1,51 @@
+# Cross-route cases for `tool-routing overlap --corpus`.
+#
+# Per-route tests check one route in isolation. These check how the whole set
+# of routes in this repo behaves on one command, which is where substring
+# matching misfires and where two routes can claim the same input.
+#
+# expect: allow           no route may match
+# expect: block + routes  exactly these routes match, no more, no fewer
+cases:
+  # Mentions inside text, heredoc bodies and quoted args are not invocations.
+  - desc: "git commit -t named in printf args"
+    input: {tool_name: Bash, tool_input: {command: "printf 'a git commit -t b' | wc -c"}}
+    expect: allow
+  - desc: "git commit -t named in a tee heredoc body"
+    input: {tool_name: Bash, tool_input: {command: "tee notes.md <<'EOF'\ngit commit -t msg.txt\nEOF"}}
+    expect: allow
+  - desc: "piped build named inside an echoed string"
+    input: {tool_name: Bash, tool_input: {command: "echo \"cargo test 2>&1 | tail hides failures\""}}
+    expect: allow
+  - desc: "commit message built from a cat heredoc"
+    input: {tool_name: Bash, tool_input: {command: "git commit -m \"$(cat <<'EOF'\nfix: thing\nEOF\n)\""}}
+    expect: allow
+  - desc: "tee heredoc whose body has a piped build"
+    input: {tool_name: Bash, tool_input: {command: "tee notes.md <<'EOF'\nrun make deploy 2>&1 | tail -5\nEOF"}}
+    expect: allow
+
+  # Real invocations are claimed by exactly one route.
+  - desc: "cat heredoc to a file"
+    input: {tool_name: Bash, tool_input: {command: "cat > notes.md <<'EOF'\nhello\nEOF"}}
+    expect: block
+    routes: [bash-cat-heredoc]
+  - desc: "cat heredoc whose body has a piped build is not also a piped-build hit"
+    input: {tool_name: Bash, tool_input: {command: "cat > notes.md <<'EOF'\nmake build | tail -5\nEOF"}}
+    expect: block
+    routes: [bash-cat-heredoc]
+  - desc: "git commit with a template"
+    input: {tool_name: Bash, tool_input: {command: "git commit -t msg.txt"}}
+    expect: block
+    routes: [git-commit-template]
+  - desc: "build piped to tail"
+    input: {tool_name: Bash, tool_input: {command: "make build 2>&1 | tail -5"}}
+    expect: block
+    routes: [piped-build-exit-code]
+  - desc: "GitHub PR URL"
+    input: {tool_name: WebFetch, tool_input: {url: "https://github.com/o/r/pull/1"}}
+    expect: block
+    routes: [github-pr]
+  - desc: "Woodpecker pipeline URL"
+    input: {tool_name: WebFetch, tool_input: {url: "https://ci.example.com/repos/9/pipeline/3"}}
+    expect: block
+    routes: [woodpecker-pipeline]

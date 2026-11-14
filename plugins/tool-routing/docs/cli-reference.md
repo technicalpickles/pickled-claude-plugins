@@ -69,6 +69,25 @@ Use `gh pr view <number>` for GitHub PRs.
 ...
 ```
 
+### overlap
+
+Find routes that match the same command.
+
+```bash
+uv run tool-routing overlap --plugins-dir ../ --corpus tests/overlap-corpus.yaml
+```
+
+Replays every route's test inputs, and every case in the corpus file, against
+all loaded routes. An `allow` input matched by any route is an error. A
+`block` input also matched by another route is a warning. A corpus case whose
+matching routes differ from its `routes` list is an error. Exits 1 on errors.
+
+`--plugins-dir` loads routes from each plugin's `routes.json` under that
+directory, so the result covers exactly the plugins in a checkout and does not
+depend on what is installed. `tool-routing test` takes the same flag. The
+corpus in `tests/overlap-corpus.yaml` holds commands that mention a tool
+without invoking it, where substring matching tends to misfire.
+
 ### test
 
 Run all inline test fixtures from all route sources.
