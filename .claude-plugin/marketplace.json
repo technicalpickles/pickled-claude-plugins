@@ -141,8 +141,8 @@
     {
       "name": "hk",
       "source": "./plugins/hk",
-      "version": "0.1.0",
-      "description": "Auto-wire hk's coding-agent integration (Stop check, SessionStart instructions, MCP server) in projects that have an hk config"
+      "version": "0.2.0",
+      "description": "Auto-wire hk's coding-agent integration (Stop check, instructions on first tool use inside an hk repo) in projects that have an hk config"
     },
     {
       "name": "pickle-mode",
