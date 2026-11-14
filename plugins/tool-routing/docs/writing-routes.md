@@ -42,6 +42,24 @@ The plugin intercepts these tools and matches against specific input fields:
 
 Other tools pass through without checking.
 
+### What a Bash pattern sees
+
+A Bash pattern matches the command with its literal text removed, so a tool
+named inside a commit message, an echoed string or a heredoc body does not
+look like a call to that tool:
+
+- Quoted strings are emptied: `echo "cargo test | tail"` is matched as
+  `echo ""`. That includes `'...'`, `"..."`, `$'...'`, and any `$(...)`
+  inside double quotes.
+- Heredoc bodies and their closing line are dropped. The `<<` and the
+  delimiter stay, so `cat > f <<'EOF'\nbody\nEOF` is matched as
+  `cat > f <<'EOF'\n`.
+- `#` comments are dropped.
+- Unquoted `$(...)` and backticks stay, since they run.
+
+Don't add guards for heredocs or quotes to a pattern. A side effect is that
+`bash -c "..."` and `ssh host '...'` hide the inner command from routes.
+
 ## Pattern Syntax
 
 Patterns use Python regex syntax with `re.search()` and `re.IGNORECASE`:
