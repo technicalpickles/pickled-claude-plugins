@@ -28,6 +28,10 @@ from tool_routing.shell import strip_literals
         ("echo `make | tail` 'x'", "echo `make | tail` ''"),
         ("echo 'unterminated | tail", "echo ''"),
         ("echo a\\'b", "echo a\\'b"),
+        ("# don't hide it\nmake | tail", "\nmake | tail"),
+        ("cd repo  # it's here\nls", "cd repo  \nls"),
+        ("echo a#b $# ${#x}", "echo a#b $# ${#x}"),
+        ("let x=1<<2\nmake | tail", "let x=1<<2\nmake | tail"),
     ],
 )
 def test_strip_literals(command, expected):

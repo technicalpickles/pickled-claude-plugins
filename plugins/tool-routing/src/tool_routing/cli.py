@@ -83,7 +83,11 @@ def cmd_check(args: argparse.Namespace) -> int:
     except json.JSONDecodeError:
         return 0
 
-    result = check_tool_call(tool_call, routes)
+    try:
+        result = check_tool_call(tool_call, routes)
+    except Exception as e:
+        print(f"tool-routing check failed: {e!r}", file=sys.stderr)
+        return 0  # Fail open
 
     if result.blocked:
         if DEBUG:

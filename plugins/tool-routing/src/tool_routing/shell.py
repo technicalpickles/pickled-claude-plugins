@@ -11,12 +11,13 @@ _WORD_END = " \t\n;&|<>()"
 
 
 def strip_literals(command: str) -> str:
-    """Drop heredoc bodies and empty every quoted string.
+    """Drop heredoc bodies and comments, and empty every quoted string.
 
     Quotes stay as `''` or `""` so a route can still see that an argument was
     there. A heredoc keeps its `<<` and delimiter; only the body lines and the
     closing delimiter line go. Command substitutions inside double quotes are
     part of the string and go with it. Unterminated quotes run to the end.
+    `<<` before a number is read as a shift (`let x=1<<2`), not a heredoc.
     """
     text, _ = _scan(command, 0, closer=None)
     return text
@@ -58,6 +59,9 @@ def _scan(s: str, i: int, closer: str | None) -> tuple[str, int]:
             i += 3
         elif s.startswith("<<", i):
             i = _read_heredoc_op(s, i, out, heredocs)
+        elif c == "#" and (i == 0 or s[i - 1] in " \t\n;&|()"):
+            end = s.find("\n", i)
+            i = n if end == -1 else end
         elif c == "\n":
             out.append(c)
             i = _skip_heredoc_bodies(s, i + 1, heredocs)
@@ -120,7 +124,7 @@ def _read_heredoc_op(s: str, i: int, out: list[str], heredocs: list[tuple[str, b
         i += 1
     word = s[word_start:i]
     delimiter = word.replace("'", "").replace('"', "").replace("\\", "")
-    if delimiter:
+    if delimiter and not delimiter.isdigit():
         heredocs.append((delimiter, strip_tabs))
     out.append(s[start:i])
     return i

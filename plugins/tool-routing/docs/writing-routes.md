@@ -54,6 +54,7 @@ look like a call to that tool:
 - Heredoc bodies and their closing line are dropped. The `<<` and the
   delimiter stay, so `cat > f <<'EOF'\nbody\nEOF` is matched as
   `cat > f <<'EOF'\n`.
+- `#` comments are dropped.
 - Unquoted `$(...)` and backticks stay, since they run.
 
 Don't add guards for heredocs or quotes to a pattern. A side effect is that
