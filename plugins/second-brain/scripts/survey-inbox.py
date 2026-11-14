@@ -4,7 +4,7 @@
 Usage: survey-inbox.py [INBOX_DIR]
 
 With no argument, the inbox of sb's default vault is used. Prints one JSON
-object. Every note lands in exactly one bucket of `next`; `stale` and
+object. Notes are in filename order, which is capture order. Every note lands in exactly one bucket of `next`; `stale` and
 `near_duplicates` are cross-cutting flags on notes that are also bucketed.
 Session notes are left out of the duplicate check: two sessions on the same
 project read alike in title without repeating each other.
@@ -40,7 +40,7 @@ VAULT_STATUSES = {
 }
 BUCKETS = (
     "empty", "session-not-on-disk", "ingest", "enrich", "route",
-    "route-keep-status", "connect", "link-daily", "unknown-status",
+    "route-keep-status", "connect", "link-daily", "kept-record", "unknown-status",
 )
 STALE_DAYS = 14
 SESSION_KEYS = ("session-id", "session_id", "session")
@@ -73,13 +73,14 @@ def split_note(text):
             return meta, "\n".join(lines[i + 1:])
         m = re.match(r"^([A-Za-z0-9_-]+):\s*(.*)$", line)
         if m:
-            meta[m.group(1)] = m.group(2).strip().strip("'\"")
+            value = re.sub(r"\s+#.*$", "", m.group(2))
+            meta[m.group(1)] = value.strip().strip("'\"")
     return {}, text
 
 
 def has_content(body):
     return any(
-        line.strip() and not line.lstrip().startswith("#")
+        line.strip() and not re.match(r"^\s*#{1,6}(\s|$)", line)
         for line in body.splitlines()
     )
 
@@ -139,6 +140,10 @@ def classify(meta, body):
         if not session_notes:
             return "route-keep-status", {"status": None}
         status = "raw"
+    if status == "raw" and not session_notes:
+        return "unknown-status", {"status": status}
+    if status == "ingested" and session_notes:
+        return "kept-record", {}
     if status == "raw" and session_notes:
         named, session_id = session_ref(meta)
         if named and session_id is None:
@@ -159,27 +164,19 @@ def title_words(title):
 
 
 def near_duplicates(notes):
-    """Group notes where one title's words all appear in another's.
+    """Pairs of notes where one title's words all appear in the other's.
 
-    A shared source is not a signal: one source split into atomic notes is
-    the intended shape, not duplication.
+    Pairs, not groups: a short title like "Claude Code" is inside many longer
+    ones that aren't duplicates of each other. A shared source is not a
+    signal either: one source split into atomic notes is the intended shape.
     """
-    group = list(range(len(notes)))
-
-    def root(i):
-        while group[i] != i:
-            i = group[i]
-        return i
-
+    pairs = []
     for i, a in enumerate(notes):
-        for j in range(i + 1, len(notes)):
-            small, big = sorted((a["words"], notes[j]["words"]), key=len)
-            if len(small) >= 2 and small <= big:
-                group[root(j)] = root(i)
-    clusters = {}
-    for i, note in enumerate(notes):
-        clusters.setdefault(root(i), []).append(note["file"])
-    return [files for files in clusters.values() if len(files) > 1]
+        for b in notes[i + 1:]:
+            small, big = sorted((a["words"], b["words"]), key=len)
+            if small and (small == big or (len(small) >= 2 and small <= big)):
+                pairs.append([a["file"], b["file"]])
+    return pairs
 
 
 def survey(inbox, today):
@@ -188,7 +185,7 @@ def survey(inbox, today):
     for filename in sorted(os.listdir(inbox)):
         if not filename.endswith(".md"):
             continue
-        with open(os.path.join(inbox, filename), encoding="utf-8") as f:
+        with open(os.path.join(inbox, filename), encoding="utf-8", errors="replace") as f:
             meta, body = split_note(f.read())
         bucket, extra = classify(meta, body)
         report["total"] += 1
@@ -204,8 +201,12 @@ def survey(inbox, today):
 
 
 def main():
-    inbox = sys.argv[1] if len(sys.argv) > 1 else default_inbox()
-    print(json.dumps(survey(inbox, date.today()), indent=2))
+    try:
+        inbox = sys.argv[1] if len(sys.argv) > 1 else default_inbox()
+        report = survey(inbox, date.today())
+    except (OSError, subprocess.CalledProcessError) as e:
+        sys.exit(f"survey-inbox: {e}")
+    print(json.dumps(report, indent=2))
 
 
 if __name__ == "__main__":

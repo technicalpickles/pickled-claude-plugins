@@ -57,6 +57,27 @@ context() {
   [ -z "$output" ]
 }
 
+@test "a 404 adds nothing, since a browser would get the same page" {
+  run_hook '{"hook_event_name":"PostToolUse","tool_input":{"url":"https://example.com/gone"},"tool_response":{"bytes":120,"code":404,"result":"Not found"}}'
+  [ -z "$output" ]
+}
+
+@test "a 503 gets the fetch ladder" {
+  run_hook '{"hook_event_name":"PostToolUse","tool_input":{"url":"https://example.com/"},"tool_response":{"bytes":300,"code":503,"result":"Service unavailable"}}'
+  [[ "$(context)" == *"(HTTP 503)"* ]]
+}
+
+@test "a large page summarized into a short result that mentions captcha adds nothing" {
+  run_hook '{"hook_event_name":"PostToolUse","tool_input":{"url":"https://example.com/"},"tool_response":{"bytes":40000,"code":200,"result":"The article explains how reCAPTCHA v3 scores traffic."}}'
+  [ -z "$output" ]
+}
+
+@test "a JSON payload that is not an object fails open" {
+  run_hook '[]'
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
 @test "malformed stdin fails open" {
   run_hook 'not json'
   [ "$status" -eq 0 ]

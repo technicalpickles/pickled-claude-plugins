@@ -47,7 +47,8 @@ See "Status Values" in `../obsidian/references/pipeline.md`.
    - Score < threshold: set `status: pending-review`, return without moving
 
 4. Before moving, Glob the destination for a note on the same subject (its
-   title's words all in another title, or the reverse). If one is there,
+   title's words all in the other's, at least two words unless the titles
+   match exactly). If one is there,
    don't move: present it like a pending-review note, with "merge into
    {existing}" as the first option.
 

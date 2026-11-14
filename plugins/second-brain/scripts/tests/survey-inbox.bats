@@ -82,7 +82,7 @@ bucket_of() {
   [ "$(bucket_of s.md)" = "ingest" ]
 }
 
-@test "notes whose titles contain one another are grouped as possible duplicates" {
+@test "notes whose titles contain one another are paired as possible duplicates" {
   note "202610131258 rlm.md" $'---\nstatus: seedling\n---\n\n# Recursive Language Models\n\nBlog.'
   note "202610131259 rlm-paper.md" $'---\nstatus: seedling\n---\n\n# Recursive Language Models (paper)\n\nPaper.'
   note "202610131300 other.md" $'---\nstatus: seedling\n---\n\n# Language of birds\n\nBirds.'
@@ -108,4 +108,52 @@ bucket_of() {
   note "202001010000 old.md" $'---\nstatus: seedling\ncaptured: 2020-01-01T00:00:00Z\n---\n\n# Old\n\nBody.'
   run python3 "$SCRIPT" "$INBOX"
   [ "$(printf '%s' "$output" | jq -r '.stale[0]')" = "202001010000 old.md" ]
+}
+
+@test "a short title inside several longer ones does not chain them together" {
+  note "1.md" $'---\nstatus: seedling\n---\n\n# Claude Code\n\nA.'
+  note "2.md" $'---\nstatus: seedling\n---\n\n# Claude Code hooks\n\nB.'
+  note "3.md" $'---\nstatus: seedling\n---\n\n# Claude Code skills\n\nC.'
+  run python3 "$SCRIPT" "$INBOX"
+  [ "$(printf '%s' "$output" | jq -c '.near_duplicates')" = '[["1.md","2.md"],["1.md","3.md"]]' ]
+}
+
+@test "two notes with the same one-word title are duplicates" {
+  note "1.md" $'---\nstatus: seedling\n---\n\n# Kubernetes\n\nA.'
+  note "2.md" $'---\nstatus: seedling\n---\n\n# Kubernetes\n\nB.'
+  run python3 "$SCRIPT" "$INBOX"
+  [ "$(printf '%s' "$output" | jq -c '.near_duplicates')" = '[["1.md","2.md"]]' ]
+}
+
+@test "a note whose body is tag-led lines is not empty" {
+  note "t.md" $'---\nstatus: seedling\n---\n\n# TIL\n\n#til Python sorts are stable'
+  [ "$(bucket_of t.md)" = "route-keep-status" ]
+}
+
+@test "a split session original kept as a record is not sent to enrich" {
+  note "s.md" $'---\nstatus: ingested\ntype: session-notes\n---\n\n- a bullet'
+  [ "$(bucket_of s.md)" = "kept-record" ]
+}
+
+@test "a raw note that is not a session note is reported, not ingested" {
+  note "r.md" $'---\nstatus: raw\n---\n\n# R\n\nBody.'
+  [ "$(bucket_of r.md)" = "unknown-status" ]
+}
+
+@test "an inline comment after a status is ignored" {
+  note "c.md" $'---\nstatus: seedling # fresh\n---\n\n# C\n\nBody.'
+  [ "$(bucket_of c.md)" = "route-keep-status" ]
+}
+
+@test "a note that is not valid UTF-8 does not stop the survey" {
+  printf -- '---\nstatus: seedling\n---\n\n# Caf\xe9\n\nBody.\n' > "$INBOX/l.md"
+  run python3 "$SCRIPT" "$INBOX"
+  [ "$status" -eq 0 ]
+  [ "$(bucket_of l.md)" = "route-keep-status" ]
+}
+
+@test "a missing inbox fails with a one-line error" {
+  run python3 "$SCRIPT" "$BATS_TEST_TMPDIR/nope"
+  [ "$status" -ne 0 ]
+  [[ "$output" == "survey-inbox: "* ]]
 }

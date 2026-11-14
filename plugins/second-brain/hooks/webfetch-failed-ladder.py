@@ -27,8 +27,9 @@ BOT_CHECK_RE = re.compile(
     r"captcha|enable javascript and cookies|access denied|unusual traffic",
     re.IGNORECASE,
 )
+BLOCKED_CODES = {401, 403, 429, 451}
 BLOCKED_ERROR_RE = re.compile(
-    r"\b(401|403|429|451)\b|forbidden|too many requests|timed? ?out|econnreset",
+    r"\b(401|403|429|451|5\d\d)\b|forbidden|too many requests|timed? ?out|econnreset",
     re.IGNORECASE,
 )
 CONTENT_RE = re.compile(r"<fetched-web-content>(.*?)(?:</fetched-web-content>|$)", re.DOTALL)
@@ -50,7 +51,7 @@ LADDER = (
 
 def why_post_tool_use(response):
     code = response.get("code")
-    if isinstance(code, int) and code >= 400:
+    if isinstance(code, int) and (code in BLOCKED_CODES or code >= 500):
         return f"HTTP {code}"
     if response.get("bytes") == 0:
         return "the page came back empty"
@@ -59,7 +60,8 @@ def why_post_tool_use(response):
         return None
     match = CONTENT_RE.search(result)
     body = (match.group(1) if match else result).strip()
-    if len(body) < BOT_CHECK_MAX_CHARS and BOT_CHECK_RE.search(body):
+    small = response.get("bytes", 0) < BOT_CHECK_MAX_CHARS and len(body) < BOT_CHECK_MAX_CHARS
+    if small and BOT_CHECK_RE.search(body):
         return "it looks like a bot-check page"
     return None
 
@@ -74,6 +76,8 @@ def main():
     try:
         payload = json.load(sys.stdin)
     except json.JSONDecodeError:
+        return
+    if not isinstance(payload, dict):
         return
     event = payload.get("hook_event_name")
     if event == "PostToolUse":

@@ -60,7 +60,7 @@ Worth measuring before assuming those skills are unwanted rather than unreachabl
 
 ## Running them
 
-From this directory (`--plugin-src ../../..` is the plugin root relative to it):
+From the repo root (`--plugin-src ../../..` is the plugin root relative to the evals directory):
 
 ```bash
 cd plugins/second-brain/skills/capture/evals

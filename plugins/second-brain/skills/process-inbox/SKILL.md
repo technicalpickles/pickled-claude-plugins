@@ -64,13 +64,14 @@ is in exactly one bucket of `next`:
 | Bucket | Notes | What happens |
 |--------|-------|--------------|
 | `ingest`, `enrich`, `route`, `connect`, `link-daily` | Pipeline status (`raw` session notes, `ingested`, `enriched` or `pending-review`, `routed`, `connected`) | That stage in Step 3 |
+| `kept-record` | A session note `ingest` split up, kept as a record | Nothing |
 | `route-keep-status` | A vault status (`seedling`, `filed`, `active`, ...) or no status on a note that isn't a session note: a finished note sitting in the inbox | Step 3c, keeping its status |
 | `empty` | Title only, no body | Ask: delete or fill in. Never process |
 | `session-not-on-disk` | Raw session note naming a Claude Code session whose transcript isn't on this machine, or whose session id is malformed | Leave it untouched |
-| `unknown-status` | A status in none of the vocabularies | Ask, after checking the vault CLAUDE.md's status vocabulary |
+| `unknown-status` | A status in none of the vocabularies, or `raw` on a note that isn't a session note | Ask, after checking the vault CLAUDE.md's status vocabulary |
 
 `stale` lists notes captured more than 14 days ago. `near_duplicates` lists
-groups of notes whose titles contain one another.
+pairs of notes where one title's words all appear in the other's.
 
 Why the status buckets: `status` carries pipeline state, zettelkasten
 maturity and vault lifecycle in one key. See "Status Values" in
@@ -92,7 +93,7 @@ Inbox: {total} notes
 {If empty:}
   {n} empty notes: {filenames}. Delete, or leave for you to fill in?
 {If near_duplicates:}
-  Possible duplicates: {each group}. Compare before routing?
+  Possible duplicates: {each pair}. Compare before routing?
 {If unknown-status:}
   {n} notes with a status I don't recognize: {filename: status}.
 {If stale:}
@@ -111,7 +112,8 @@ If inbox is empty:
 Inbox is empty. Nothing to process.
 ```
 
-If more than about 20 notes are headed for routing, use
+If the `route` and `route-keep-status` buckets hold more than about 20
+notes between them, use
 [Large backlogs](#large-backlogs) for the rest of the run.
 
 ## Step 3: Process by Stage
@@ -184,12 +186,14 @@ Pipeline complete:
 ## Large backlogs
 
 The per-note questions in Step 3 stop working past a couple dozen notes.
-Switch to this mode when the survey shows more than about 20 notes that
-would need a decision, or when the user asks to clear a big backlog:
+Switch to this mode when the survey's `route` and `route-keep-status`
+buckets hold more than about 20 notes between them, or when the user asks
+to clear a big backlog:
 
-1. **Work in chunks of about 20 notes**, oldest first. Status is written
-   per note, so a run can stop after any chunk and the next run picks up
-   where it left off. Say how many are left after each chunk.
+1. **Work in chunks of about 20 notes**, in the survey's order (oldest
+   first). Status is written per note, so a run can stop after any chunk
+   and the next run picks up where it left off. Say how many are left
+   after each chunk.
 2. **Route by cluster, not by note.** Group the chunk's routing candidates
    by their top destination. Auto-route what clears the threshold as
    usual, then ask once per cluster: "These 6 look like `67 Dev tools`:
