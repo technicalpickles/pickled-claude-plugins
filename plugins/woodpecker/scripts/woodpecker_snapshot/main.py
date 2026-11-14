@@ -30,9 +30,10 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def _find_for_sha(pipelines: List[Pipeline], sha: str) -> Optional[Pipeline]:
+def _find_for_sha(pipelines: List[Pipeline], sha: str) -> List[Pipeline]:
+    """Pipelines for the commit, newest first. A push and a pull_request run share a commit."""
     matches = [p for p in pipelines if refs.sha_matches(p.commit, sha)]
-    return max(matches, key=lambda p: p.number) if matches else None
+    return sorted(matches, key=lambda p: p.number, reverse=True)
 
 
 def main(argv: Optional[Sequence[str]] = None, client: Optional[WoodpeckerCli] = None) -> int:
@@ -62,27 +63,32 @@ def main(argv: Optional[Sequence[str]] = None, client: Optional[WoodpeckerCli] =
             print("error: could not work out a commit; pass --sha or --pr", file=sys.stderr)
             return 2
 
+    others: List[Pipeline] = []
     try:
         pipelines = client.pipelines(repo, limit=LIST_LIMIT)
         if number is None:
             found = _find_for_sha(pipelines, sha)
-            if found is None:
+            if not found:
                 sys.stdout.write(formatter.format_no_pipeline(repo, sha, pipelines))
                 return 0
-            pipeline = found
+            pipeline, others = found[0], found[1:]
         else:
             pipeline = next((p for p in pipelines if p.number == number), Pipeline(number, "", "", "", ""))
 
         steps = client.steps(repo, pipeline.number)
         assessment = states.assess(pipeline.status, steps)
         log = None
-        if assessment.state == states.FAILED and assessment.first_failed is not None:
-            log = client.log(repo, pipeline.number, assessment.first_failed.name)
+        errors: List[str] = []
+        if assessment.state == states.FAILED:
+            if assessment.first_failed is not None:
+                log = client.log(repo, pipeline.number, assessment.first_failed.name)
+            else:
+                errors = client.errors(repo, pipeline.number)
     except WpError as err:
         sys.stdout.write(formatter.format_problem(err, repo))
         return 2
 
-    sys.stdout.write(formatter.format_pipeline(repo, pipeline, steps, assessment, log, args.tail))
+    sys.stdout.write(formatter.format_pipeline(repo, pipeline, steps, assessment, log, args.tail, others, errors))
     return 0
 
 

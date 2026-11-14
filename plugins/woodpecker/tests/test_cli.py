@@ -120,3 +120,14 @@ def test_find_binary_returns_bare_name_when_absent(monkeypatch, tmp_path):
     monkeypatch.setattr(cli.shutil, "which", lambda b: None)
     monkeypatch.setenv("MISE_DATA_DIR", str(tmp_path))
     assert cli.find_binary() == "woodpecker-cli"
+
+
+def test_errors_parse_messages_and_mark_warnings():
+    out = 'secret "t" is only allowed to be used by plugins\nwarning: consider adding a when block\n\n'
+    runner = FakeRunner([(route("pipeline", "show"), done(out))])
+    cli = WoodpeckerCli(runner=runner)
+    assert cli.errors("o/n", 98) == [
+        'secret "t" is only allowed to be used by plugins',
+        "warning: consider adding a when block",
+    ]
+    assert runner.calls[0][:4] == ["pipeline", "show", "o/n", "98"]
