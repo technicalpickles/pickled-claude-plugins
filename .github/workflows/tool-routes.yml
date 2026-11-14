@@ -1,0 +1,34 @@
+name: tool routes
+
+# Route files live in many plugins, and no plugin's own workflow covers them.
+# This checks every route's inline tests, and that routes across this repo's
+# plugins do not claim the same command.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'plugins/*/.claude-plugin/routes.json'
+      - 'plugins/**/tool-routes.yaml'
+      - 'plugins/tool-routing/**'
+      - '.github/workflows/tool-routes.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  routes:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugins/tool-routing
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v8.1.0
+
+      - name: Inline route tests
+        run: uv run tool-routing test --plugins-dir ..
+
+      - name: Route overlap
+        run: uv run tool-routing overlap --plugins-dir .. --corpus tests/overlap-corpus.yaml
