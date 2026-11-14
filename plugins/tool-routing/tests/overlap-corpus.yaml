@@ -25,6 +25,13 @@ cases:
     expect: allow
 
   # Real invocations are claimed by exactly one route.
+  - desc: "cat heredoc append"
+    input: {tool_name: Bash, tool_input: {command: "cat >> notes.md <<'EOF'\nmore\nEOF"}}
+    expect: allow
+  - desc: "cat heredoc chained after other work"
+    input: {tool_name: Bash, tool_input: {command: "mkdir -p out && cat > out/a.md <<'EOF'\nhi\nEOF"}}
+    expect: allow
+
   - desc: "cat heredoc to a file"
     input: {tool_name: Bash, tool_input: {command: "cat > notes.md <<'EOF'\nhello\nEOF"}}
     expect: block
