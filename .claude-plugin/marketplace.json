@@ -19,7 +19,7 @@
     {
       "name": "git",
       "source": "./plugins/git",
-      "version": "3.4.2"
+      "version": "3.4.3"
     },
     {
       "name": "ci-cd-tools",
@@ -29,12 +29,12 @@
     {
       "name": "dev-tools",
       "source": "./plugins/dev-tools",
-      "version": "1.4.2"
+      "version": "1.4.3"
     },
     {
       "name": "mcpproxy",
       "source": "./plugins/mcpproxy",
-      "version": "1.0.1"
+      "version": "1.0.2"
     },
     {
       "name": "second-brain",
@@ -44,7 +44,7 @@
     {
       "name": "tool-routing",
       "source": "./plugins/tool-routing",
-      "version": "1.2.4"
+      "version": "1.2.6"
     },
     {
       "name": "stay-on-target",
@@ -123,7 +123,7 @@
     {
       "name": "wait-for-it",
       "source": "./plugins/wait-for-it",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Turn \"tell me when X happens\" into a zero-token shell watch instead of a prompt loop"
     },
     {

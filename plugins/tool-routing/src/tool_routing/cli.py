@@ -121,7 +121,7 @@ def cmd_test(args: argparse.Namespace) -> int:
         print("No tests found in routes")
         return 0
 
-    results = run_route_tests(routes)
+    results = run_route_tests(routes, merged=args.merged)
 
     # Group results by source
     by_source = {}
@@ -244,6 +244,11 @@ def main() -> int:
     test_parser = subparsers.add_parser(
         "test",
         help="Run inline test fixtures",
+    )
+    test_parser.add_argument(
+        "--merged",
+        action="store_true",
+        help="Check each test against all routes, not only its own (finds overlaps)",
     )
     test_parser.set_defaults(func=cmd_test)
 

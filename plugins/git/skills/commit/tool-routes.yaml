@@ -1,8 +1,11 @@
 routes:
-  # git commit -t/--template aborts non-interactively
+  # git commit -t/--template aborts non-interactively.
+  # Only fires on a real `git commit` at the start of a command (after
+  # ; & | ( or, when there is no heredoc, a newline), so a mention inside
+  # printf args, quoted prose or a heredoc body does not block.
   git-commit-template:
     tool: Bash
-    pattern: "(?<!`)\\bgit\\s+(?:-C\\s+\\S+\\s+)?commit\\b[^|;&\\n]*\\s(?:-t|--template)(?:\\s|=)"
+    pattern: "(?:(?:^|[;&|(])|^(?!(?s:.*)<<)(?s:.*?)\\n)[ \\t]*(?:\\w+=\\S*[ \\t]+)*git[ \\t]+(?:-C[ \\t]+\\S+[ \\t]+)?commit\\b[^|;&\\n]*[ \\t](?:-t|--template)(?:[ \\t]|=)"
     message: |
       Use `git commit -F <file>`, not `-t`/`--template`.
 
@@ -56,3 +59,33 @@ routes:
           tool_input:
             command: "pt beans create 'x' -d 'why: `git commit -t <file>` aborts'"
         expect: allow
+      - desc: "mention inside printf args should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "printf 'a git commit -t b' | wc -c"
+        expect: allow
+      - desc: "mention inside a heredoc body should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "tee notes.md <<'EOF'\ngit commit -t msg.txt\nEOF"
+        expect: allow
+      - desc: "mention inside an echoed string should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "echo \"never run git commit --template=x\""
+        expect: allow
+      - desc: "commit --template after a semicolon should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "cd repo; git commit --template=msg.txt"
+        expect: block
+      - desc: "commit -t on a later line should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git add a.rb\ngit commit -t msg.txt"
+        expect: block
