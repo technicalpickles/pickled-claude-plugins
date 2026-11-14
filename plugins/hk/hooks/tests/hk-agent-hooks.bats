@@ -1,10 +1,9 @@
 #!/usr/bin/env bats
-# Tests for the hk SessionStart and Stop hooks. hk is stubbed on PATH, so these
+# Tests for the hk PostToolUse and Stop hooks. hk is stubbed on PATH, so these
 # cover the gating and the hand-off to `hk agent stop-hook`, not hk itself.
 
-START="$BATS_TEST_DIRNAME/../session-start-hk-instructions.sh"
+START="$BATS_TEST_DIRNAME/../post-tool-hk-instructions.sh"
 STOP="$BATS_TEST_DIRNAME/../stop-hk-check.sh"
-MCP="$BATS_TEST_DIRNAME/../hk-mcp.sh"
 
 setup() {
   PROJECT="$BATS_TEST_TMPDIR/project"
@@ -18,9 +17,6 @@ setup() {
 case "$1" in
   --version)
     [ -z "${HK_STUB_BROKEN:-}" ] && echo "hk ${HK_STUB_VERSION:-2.7.1}" || { echo "mise: no version set" >&2; exit 1; } ;;
-  mcp)
-    echo "args: $*" > "$HK_STUB_CALLS"
-    echo "stub hk mcp" ;;
   agent)
     case "$2" in
       stop-hook)
@@ -28,47 +24,52 @@ case "$1" in
         echo "stdin: $(cat)" >> "$HK_STUB_CALLS"
         echo "pwd: $PWD" >> "$HK_STUB_CALLS"
         echo "${HK_STUB_STOP_OUT:-}" ;;
-      instructions) echo "- stub hk instructions" ;;
+      instructions)
+        echo "instructions pwd: $PWD" >> "$HK_STUB_CALLS"
+        echo "- stub hk instructions" ;;
     esac ;;
 esac
 STUB
   chmod +x "$STUB_BIN/hk"
   export PATH="$STUB_BIN:$PATH"
   export HK_STUB_CALLS="$CALLS"
+  export TMPDIR="$BATS_TEST_TMPDIR/tmp"
+  mkdir -p "$TMPDIR"
 }
 
-payload() { # payload <cwd>
-  jq -nc --arg cwd "$1" '{cwd: $cwd, stop_hook_active: false}'
+payload() { # payload <cwd> [session_id]
+  jq -nc --arg cwd "$1" --arg sid "${2:-sess-1}" \
+    '{session_id: $sid, cwd: $cwd, tool_name: "Bash", stop_hook_active: false}'
 }
 
-@test "SessionStart injects hk instructions as additionalContext" {
+@test "PostToolUse injects hk instructions as additionalContext" {
   run bash "$START" <<< "$(payload "$PROJECT")"
 
   [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "SessionStart"'
+  echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUse"'
   [[ "$(echo "$output" | jq -r '.hookSpecificOutput.additionalContext')" == *"stub hk instructions"* ]]
 }
 
-@test "SessionStart finds hk.pkl above the working directory" {
+@test "PostToolUse finds hk.pkl above the working directory" {
   run bash "$START" <<< "$(payload "$PROJECT/sub/dir")"
 
   [ "$status" -eq 0 ]
   [[ "$output" == *"stub hk instructions"* ]]
 }
 
-@test "SessionStart accepts the other config locations hk reads" {
+@test "PostToolUse accepts the other config locations hk reads" {
   for cfg in hk.local.pkl .config/hk.pkl .config/hk.local.pkl; do
     rm -f "$PROJECT/hk.pkl" "$PROJECT/hk.local.pkl"; rm -rf "$PROJECT/.config"
     mkdir -p "$(dirname "$PROJECT/$cfg")"; touch "$PROJECT/$cfg"
 
-    run bash "$START" <<< "$(payload "$PROJECT")"
+    run bash "$START" <<< "$(payload "$PROJECT" "cfg-$cfg")"
 
     [ "$status" -eq 0 ]
     [[ "$output" == *"stub hk instructions"* ]]
   done
 }
 
-@test "SessionStart is silent without an hk config" {
+@test "PostToolUse is silent without an hk config" {
   rm "$PROJECT/hk.pkl"
 
   run bash "$START" <<< "$(payload "$PROJECT")"
@@ -77,21 +78,21 @@ payload() { # payload <cwd>
   [ -z "$output" ]
 }
 
-@test "SessionStart is silent when hk does not run (mise shim, no version set)" {
+@test "PostToolUse is silent when hk does not run (mise shim, no version set)" {
   HK_STUB_BROKEN=1 run bash "$START" <<< "$(payload "$PROJECT")"
 
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }
 
-@test "SessionStart is silent on hk 2.5" {
+@test "PostToolUse is silent on hk 2.5" {
   HK_STUB_VERSION=2.5.4 run bash "$START" <<< "$(payload "$PROJECT")"
 
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }
 
-@test "SessionStart is silent when hk is not installed" {
+@test "PostToolUse is silent when hk is not installed" {
   rm "$STUB_BIN/hk"
 
   PATH="$STUB_BIN:/usr/bin:/bin" run bash "$START" <<< "$(payload "$PROJECT")"
@@ -151,70 +152,56 @@ payload() { # payload <cwd>
   [ ! -e "$CALLS" ]
 }
 
-mcp_request() { # mcp_request <id> <method>
-  jq -nc --argjson id "$1" --arg method "$2" \
-    '{jsonrpc: "2.0", id: $id, method: $method, params: {protocolVersion: "2025-06-18"}}'
-}
+@test "PostToolUse injects once per session, not on every tool call" {
+  run bash "$START" <<< "$(payload "$PROJECT" sess-1)"
+  [[ "$output" == *"stub hk instructions"* ]]
 
-@test "MCP launcher becomes hk mcp for the project root in an hk project" {
-  run bash "$MCP" "$PROJECT" <<< "$(mcp_request 1 initialize)"
+  run bash "$START" <<< "$(payload "$PROJECT" sess-1)"
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *"stub hk mcp"* ]]
-  grep -q -- "args: mcp --root $PROJECT" "$CALLS"
+  [ -z "$output" ]
 }
 
-@test "MCP launcher serves an inert session when the project has no hk config" {
-  rm "$PROJECT/hk.pkl"
+@test "PostToolUse injects again for a different session" {
+  run bash "$START" <<< "$(payload "$PROJECT" sess-1)"
+  run bash "$START" <<< "$(payload "$PROJECT" sess-2)"
 
-  run bash "$MCP" "$PROJECT" <<< "$(mcp_request 1 initialize)"
+  [[ "$output" == *"stub hk instructions"* ]]
+}
 
+@test "PostToolUse waits for the first call inside an hk project, outside ones cost nothing" {
+  OUTSIDE="$BATS_TEST_TMPDIR/outside"
+  mkdir -p "$OUTSIDE"
+
+  run bash "$START" <<< "$(payload "$OUTSIDE" sess-1)"
   [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.id == 1 and .result.serverInfo.version == "inactive" and .result.capabilities == {}'
+  [ -z "$output" ]
   [ ! -e "$CALLS" ]
+
+  run bash "$START" <<< "$(payload "$PROJECT" sess-1)"
+  [[ "$output" == *"stub hk instructions"* ]]
 }
 
-@test "MCP launcher serves an inert session on hk 2.5" {
-  HK_STUB_VERSION=2.5.4 run bash "$MCP" "$PROJECT" <<< "$(mcp_request 1 initialize)"
+@test "PostToolUse runs hk from the directory the tool call ended in" {
+  run bash "$START" <<< "$(payload "$PROJECT/sub/dir")"
 
-  [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.result.serverInfo.version == "inactive"'
-  [ ! -e "$CALLS" ]
+  grep -q "instructions pwd: .*project/sub/dir" "$CALLS"
 }
 
-@test "MCP inert session echoes the client's protocol version, answers ping, ignores notifications" {
-  rm "$PROJECT/hk.pkl"
-  requests=$(printf '%s\n' \
-    "$(jq -nc '{jsonrpc: "2.0", id: 7, method: "initialize", params: {protocolVersion: "2024-11-05"}}')" \
-    '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
-    "$(mcp_request 8 ping)" \
-    "$(mcp_request 9 tools/list)")
-
-  run bash "$MCP" "$PROJECT" <<< "$requests"
+@test "PostToolUse stays silent when the payload has no session_id" {
+  run bash "$START" <<< "$(jq -nc --arg cwd "$PROJECT" '{cwd: $cwd}')"
 
   [ "$status" -eq 0 ]
-  [ "$(echo "$output" | wc -l | tr -d ' ')" -eq 3 ]
-  echo "$output" | sed -n 1p | jq -e '.result.protocolVersion == "2024-11-05"'
-  echo "$output" | sed -n 2p | jq -e '.id == 8 and .result == {}'
-  echo "$output" | sed -n 3p | jq -e '.id == 9 and .error.code == -32601'
-}
-
-@test "MCP launcher falls back when the project dir argument is not a directory" {
-  export CLAUDE_PROJECT_DIR="$PROJECT"
-
-  run bash "$MCP" '${CLAUDE_PROJECT_DIR}' <<< "$(mcp_request 1 initialize)"
-
-  [ "$status" -eq 0 ]
-  grep -q -- "args: mcp --root $PROJECT" "$CALLS"
+  [ -z "$output" ]
 }
 
 @test "version gate: 2.6.0 and later are ready, earlier or unparseable are not" {
   for v in 2.6.0 2.7.1 2.10.0 3.0.0; do
-    HK_STUB_VERSION=$v run bash "$START" <<< "$(payload "$PROJECT")"
+    HK_STUB_VERSION=$v run bash "$START" <<< "$(payload "$PROJECT" "v-$v")"
     [[ "$output" == *"stub hk instructions"* ]] || { echo "expected ready on $v"; return 1; }
   done
   for v in 2.5.9 2.0.0 1.55.0 1.40.0 garbage; do
-    HK_STUB_VERSION=$v run bash "$START" <<< "$(payload "$PROJECT")"
+    HK_STUB_VERSION=$v run bash "$START" <<< "$(payload "$PROJECT" "v-$v")"
     [ -z "$output" ] || { echo "expected silent on $v"; return 1; }
   done
 }

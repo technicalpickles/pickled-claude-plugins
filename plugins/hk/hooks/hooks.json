@@ -1,11 +1,12 @@
 {
   "hooks": {
-    "SessionStart": [
+    "PostToolUse": [
       {
+        "matcher": "Bash|Read|Edit|MultiEdit|Write",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-start-hk-instructions.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/post-tool-hk-instructions.sh"
           }
         ]
       }
