@@ -93,6 +93,7 @@ Key components:
 - `check_tool_call(tool_call, routes)` - Main matching function
 
 Matching behavior:
+- Matches a Bash command after `shell.strip_literals` drops heredoc bodies and empties quoted strings
 - Uses `re.search()` (not `re.match()`) - pattern can match anywhere
 - Uses `re.IGNORECASE` - case-insensitive matching
 - First match wins - returns immediately on match
