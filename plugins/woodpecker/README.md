@@ -43,8 +43,8 @@ The plugin keeps no config of its own. The server comes from the CLI's saved log
 
 Skills that wrap a tool Claude already half-knows can go unused on description alone, so one hook script (`hooks/woodpecker-pointer.sh`) points Claude at both skills:
 
-- **SessionStart**, when the working directory or one above it has `.woodpecker.yml`, `.woodpecker.yaml` or `.woodpecker/`.
-- **PostToolUse**, once per session, the first time a `Bash`, `Read`, `Edit` or `Write` call's input or output mentions Woodpecker (`.woodpecker.yml`, `ci/woodpecker/...`, `woodpecker-cli`, or a `/repos/<id>/pipeline/<n>` URL). This catches sessions that work on a Woodpecker repo from another directory. It stays silent where SessionStart already pointed.
+- **PostToolUse**, once per session, on the first `Bash`, `Read`, `Edit` or `Write` call made from a directory that has `.woodpecker.yml`, `.woodpecker.yaml` or `.woodpecker/` at or above it. The hook payload's working directory follows a `cd`, so this covers sessions that start in a parent directory and enter the repo later. There is no SessionStart hook for that reason: it only sees the startup directory.
+- The same hook also fires when a call's input or output mentions Woodpecker (`.woodpecker.yml`, `ci/woodpecker/...`, `woodpecker-cli`, or a `/repos/<id>/pipeline/<n>` URL), for work on another repo's pipeline without a `cd`.
 
 Measurements are in [the evals README](skills/woodpecker-investigating-pipelines/evals/README.md).
 

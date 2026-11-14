@@ -11,10 +11,6 @@ setup() {
   mkdir -p "$TMPDIR"
 }
 
-session_start() { # session_start <cwd>
-  jq -nc --arg cwd "$1" '{hook_event_name: "SessionStart", cwd: $cwd, session_id: "s1"}'
-}
-
 bash_call() { # bash_call <cwd> <session> <command> <stdout>
   jq -nc --arg cwd "$1" --arg s "$2" --arg c "$3" --arg o "$4" '{
     hook_event_name: "PostToolUse", cwd: $cwd, session_id: $s, tool_name: "Bash",
@@ -26,36 +22,47 @@ context() {
   echo "$output" | jq -r '.hookSpecificOutput.additionalContext'
 }
 
-@test "SessionStart points at both skills in a repo with .woodpecker.yml" {
-  run bash "$HOOK" <<< "$(session_start "$WP_REPO")"
+@test "PostToolUse in a Woodpecker repo points at both skills" {
+  run bash "$HOOK" <<< "$(bash_call "$WP_REPO" c1 "ls" "")"
 
   [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "SessionStart"'
+  echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUse"'
+  [[ "$(context)" == *"builds with Woodpecker CI"* ]]
   [[ "$(context)" == *"woodpecker:woodpecker-investigating-pipelines"* ]]
   [[ "$(context)" == *"woodpecker:woodpecker-authoring-pipelines"* ]]
 }
 
-@test "SessionStart finds the config above the working directory" {
-  run bash "$HOOK" <<< "$(session_start "$WP_REPO/sub/dir")"
+@test "PostToolUse finds the config above the working directory" {
+  run bash "$HOOK" <<< "$(bash_call "$WP_REPO/sub/dir" c2 "ls" "")"
 
-  [ "$status" -eq 0 ]
   [[ "$(context)" == *"builds with Woodpecker CI"* ]]
 }
 
-@test "SessionStart accepts .woodpecker.yaml and a .woodpecker/ directory" {
+@test "PostToolUse accepts .woodpecker.yaml and a .woodpecker/ directory" {
   rm "$WP_REPO/.woodpecker.yml"
   touch "$WP_REPO/.woodpecker.yaml"
-  run bash "$HOOK" <<< "$(session_start "$WP_REPO")"
+  run bash "$HOOK" <<< "$(bash_call "$WP_REPO" c3 "ls" "")"
   [[ "$(context)" == *"builds with Woodpecker CI"* ]]
 
   rm "$WP_REPO/.woodpecker.yaml"
   mkdir "$WP_REPO/.woodpecker"
-  run bash "$HOOK" <<< "$(session_start "$WP_REPO")"
+  run bash "$HOOK" <<< "$(bash_call "$WP_REPO" c4 "ls" "")"
   [[ "$(context)" == *"builds with Woodpecker CI"* ]]
 }
 
-@test "SessionStart is silent without a Woodpecker config" {
-  run bash "$HOOK" <<< "$(session_start "$OTHER")"
+@test "PostToolUse points once per session however many calls follow" {
+  run bash "$HOOK" <<< "$(bash_call "$WP_REPO" c5 "ls" "")"
+  [ -n "$output" ]
+
+  run bash "$HOOK" <<< "$(bash_call "$WP_REPO" c5 "ls" "")"
+  [ -z "$output" ]
+
+  run bash "$HOOK" <<< "$(bash_call "$OTHER" c5 "cat .woodpecker.yml" "")"
+  [ -z "$output" ]
+}
+
+@test "PostToolUse is silent outside a Woodpecker repo without a signal" {
+  run bash "$HOOK" <<< "$(bash_call "$OTHER" c6 "ls" "")"
 
   [ "$status" -eq 0 ]
   [ -z "$output" ]
@@ -95,13 +102,6 @@ context() {
 
 @test "PostToolUse ignores tool calls with no Woodpecker signal" {
   run bash "$HOOK" <<< "$(bash_call "$OTHER" s2 "gh pr checks 3" "build pass buildkite/pipeline")"
-
-  [ "$status" -eq 0 ]
-  [ -z "$output" ]
-}
-
-@test "PostToolUse stays silent in a Woodpecker repo, where SessionStart already pointed" {
-  run bash "$HOOK" <<< "$(bash_call "$WP_REPO" s3 "cat .woodpecker.yml" "")"
 
   [ "$status" -eq 0 ]
   [ -z "$output" ]
