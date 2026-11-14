@@ -11,6 +11,26 @@ Plugin for working with [Woodpecker CI](https://woodpecker-ci.org): find out why
 
 - **`woodpecker-snapshot`**: Python script (stdlib only) that drives `woodpecker-cli` to print one block: the pipeline's state, each step's state, and the first failed step's log tail. The first line is always `State: <state>`, one of passed, failed, running, queued, blocked, no pipeline, unreachable, unauthorized, not set up, or unknown. Invoked from the skill with `bash "${CLAUDE_PLUGIN_ROOT}/scripts/woodpecker-snapshot"`.
 
+## Tool routes
+
+A declarative route in `tool-routes.yaml` blocks `WebFetch` on Woodpecker pipeline URLs (`/repos/<id>/pipeline/<n>`, any host) and points at the investigating skill. Routes only fire if the [tool-routing](../tool-routing/README.md) plugin is installed.
+
+## Setup
+
+One-time per machine per Woodpecker server.
+
+1. **Install the CLI, matching the server's version** (`curl -s https://<server>/version`), by whatever method fits your machine: a package manager, a release binary from the Woodpecker releases page, or a version manager.
+
+2. **Log in** from your own terminal (it stores the token in the OS credential store where there is one, which a command sandbox can block):
+
+   ```bash
+   woodpecker-cli setup --server https://<your-server>
+   ```
+
+   The auth page hands the token back over `http://localhost:<port>`, which some browsers (Safari, for one) block as mixed content. Try another browser. Without a browser, create a personal access token in the web UI and pass it with `--token`; read it silently so it stays out of shell history (`read -rsp`, then `unset`).
+
+3. **If you run Claude Code's command sandbox,** allow the server's host in its network allowlist.
+
 ## Requirements
 
 - `woodpecker-cli`, logged in once with `woodpecker-cli setup`. See [the setup guide](skills/woodpecker-investigating-pipelines/references/setup.md).

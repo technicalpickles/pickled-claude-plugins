@@ -14,47 +14,47 @@
     {
       "name": "working-in-monorepos",
       "source": "./plugins/working-in-monorepos",
-      "version": "1.0.1"
+      "version": "1.0.4"
     },
     {
       "name": "git",
       "source": "./plugins/git",
-      "version": "3.4.0"
+      "version": "3.4.3"
     },
     {
       "name": "ci-cd-tools",
       "source": "./plugins/ci-cd-tools",
-      "version": "1.2.0"
+      "version": "1.2.2"
     },
     {
       "name": "dev-tools",
       "source": "./plugins/dev-tools",
-      "version": "1.2.0"
+      "version": "1.4.3"
     },
     {
       "name": "mcpproxy",
       "source": "./plugins/mcpproxy",
-      "version": "1.0.0"
+      "version": "1.0.2"
     },
     {
       "name": "second-brain",
       "source": "./plugins/second-brain",
-      "version": "1.19.0"
+      "version": "2.0.0"
     },
     {
       "name": "tool-routing",
       "source": "./plugins/tool-routing",
-      "version": "1.2.3"
+      "version": "1.3.1"
     },
     {
       "name": "agent-meta",
       "source": "./plugins/agent-meta",
-      "version": "2.8.0"
+      "version": "3.3.0"
     },
     {
       "name": "buildkite",
       "source": "./plugins/buildkite",
-      "version": "1.1.1"
+      "version": "1.1.4"
     },
     {
       "name": "cq",
@@ -107,7 +107,7 @@
     {
       "name": "stay-principled",
       "source": "./plugins/stay-principled",
-      "version": "0.1.0"
+      "version": "0.1.1"
     },
     {
       "name": "come-on",
@@ -118,20 +118,37 @@
     {
       "name": "wait-for-it",
       "source": "./plugins/wait-for-it",
-      "version": "0.1.0",
+      "version": "0.2.1",
       "description": "Turn \"tell me when X happens\" into a zero-token shell watch instead of a prompt loop"
     },
     {
       "name": "automic-vault",
       "source": "./plugins/automic-vault",
-      "version": "0.1.0",
+      "version": "0.3.0",
       "description": "Teach agents what Automic Vault (av) is and how to use it as the credential manager: inject secrets, read approval history, and diagnose sandbox, locked-Mac and refused-agent errors"
     },
     {
       "name": "woodpecker",
       "source": "./plugins/woodpecker",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "description": "Investigate failed Woodpecker CI pipelines through woodpecker-cli (state, step states, first failed step log tail) and author .woodpecker.yml"
+    },
+    {
+      "name": "hk",
+      "source": "./plugins/hk",
+      "version": "0.1.0",
+      "description": "Auto-wire hk's coding-agent integration (Stop check, SessionStart instructions, MCP server) in projects that have an hk config"
+    },
+    {
+      "name": "pickle-mode",
+      "source": "./plugins/pickle-mode",
+      "version": "0.2.1",
+      "description": "Josh's agent style layered on pstack's poteto-mode: personal principles, gates, and playbook overlays"
+    },
+    {
+      "name": "inflight-artifact",
+      "source": "./plugins/inflight-artifact",
+      "version": "0.4.0"
     }
   ]
 }

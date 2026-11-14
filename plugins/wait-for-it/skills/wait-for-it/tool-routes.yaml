@@ -1,0 +1,99 @@
+routes:
+  piped-build-exit-code:
+    tool: Bash
+    pattern: "^(?!(?s:.*)(?:pipefail|<<|python3?[ \\t]+-c|git[ \\t]+commit))(?s:.*?)(?:^|[;&|(]|\\n)[ \\t]*(?:\\w+=\\S*[ \\t]+)*(?:timeout[ \\t]+\\d+[ \\t]+)?(?:uv[ \\t]+run[ \\t]+(?:--\\S+[ \\t]+)*|(?:[\\w.~/-]*/))?(?:cargo\\s+(?:test|build|check|clippy|nextest)|(?:npm|pnpm|yarn)\\s+(?:--filter\\s+\\S+\\s+)?(?:test|run|exec|install|ci|build|publish)|go\\s+(?:test|build|vet)|make|just|mise\\s+run|bats|tsc|xcodebuild|docker\\s+(?:build|compose)|git\\s+push)\\b(?:[^|;&\\n]|2>&1)*\\|[ \\t]*(?:tail|head)\\b"
+    message: |
+      Piping a build, test or push into tail or head reports tail's exit
+      status, not the tool's. A failure looks like success.
+
+      Capture the status on the same line, then read the output:
+
+        cargo test > "$TMPDIR/test.out" 2>&1; echo "test rc=$?"
+        tail -15 "$TMPDIR/test.out"
+
+      Or run `set -o pipefail` in the same command. For a backgrounded run,
+      write `echo "rc=$?"` into the output file and ignore the completion
+      notice's exit code.
+
+      Details: wait-for-it, references/local.md, "Running a command and
+      trusting its result".
+    tests:
+      - desc: "cargo test piped to tail should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "cargo test 2>&1 | tail -15"
+        expect: block
+        contains: "echo \"test rc=$?\""
+      - desc: "clippy then test, each piped, should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "cargo clippy --all-targets -- -D warnings 2>&1 | tail -5 && cargo test bundle 2>&1 | tail -15"
+        expect: block
+      - desc: "git push piped to tail should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git push origin HEAD:main 2>&1 | tail -4"
+        expect: block
+      - desc: "just recipe piped to head should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "just dotenv 2>&1 | head -20"
+        expect: block
+      - desc: "redirect to file with captured status should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "cargo test > \"$TMPDIR/test.out\" 2>&1; echo \"test rc=$?\""
+        expect: allow
+      - desc: "pipefail in the same command should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "set -o pipefail; cargo test 2>&1 | tail -15"
+        expect: allow
+      - desc: "reading a file with tail should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "tail -15 \"$TMPDIR/test.out\""
+        expect: allow
+      - desc: "git log piped to head should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git log --oneline | head -5"
+        expect: allow
+      - desc: "npm view piped to head should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "npm view left-pad versions | head"
+        expect: allow
+      - desc: "uv run pytest piped to tail should allow (summary line shows the result)"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "cd /repo && uv run pytest -q 2>&1 | tail -15"
+        expect: allow
+      - desc: "pnpm with filter and exec piped to tail should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "pnpm --filter @bb/app exec ladle build -o /tmp/out 2>&1 | tail -5"
+        expect: block
+      - desc: "tool name inside a commit message should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit -m \"docs: explain why cargo test 2>&1 | tail hides failures\""
+        expect: allow
+      - desc: "tool name inside a heredoc should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "tee notes.md <<'EOF'\nrun make deploy 2>&1 | tail -5\nEOF"
+        expect: allow

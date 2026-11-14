@@ -1,5 +1,7 @@
 """Command-line interface for tool-routing."""
 
+from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -21,7 +23,7 @@ if TYPE_CHECKING:
 DEBUG = os.environ.get("TOOL_ROUTING_DEBUG", "").lower() in ("1", "true", "yes")
 
 
-def get_all_routes() -> tuple[dict[str, "Route"], list[str]]:
+def get_all_routes(plugins_dir: str | None = None) -> tuple[dict[str, "Route"], list[str]]:
     """Load routes from all sources using manifest-driven discovery.
 
     Returns:
@@ -36,7 +38,12 @@ def get_all_routes() -> tuple[dict[str, "Route"], list[str]]:
 
     # Check for explicit routes (testing mode)
     explicit_routes = os.environ.get("TOOL_ROUTING_ROUTES", "")
-    if explicit_routes:
+    if plugins_dir:
+        from tool_routing.discovery import discover_routes_from_manifests
+
+        plugins = [{"installPath": str(d)} for d in sorted(Path(plugins_dir).iterdir()) if d.is_dir()]
+        paths = discover_routes_from_manifests(plugins)
+    elif explicit_routes:
         paths = [Path(p.strip()) for p in explicit_routes.split(",") if p.strip()]
     else:
         project_root = os.environ.get("CLAUDE_PROJECT_ROOT", str(Path.cwd()))
@@ -107,7 +114,7 @@ def cmd_test(args: argparse.Namespace) -> int:
     from tool_routing.test_runner import format_results, run_route_tests
 
     try:
-        routes, sources = get_all_routes()
+        routes, sources = get_all_routes(args.plugins_dir)
     except RouteConflictError as e:
         print(f"Configuration error: {e}", file=sys.stderr)
         return 1
@@ -121,7 +128,7 @@ def cmd_test(args: argparse.Namespace) -> int:
         print("No tests found in routes")
         return 0
 
-    results = run_route_tests(routes)
+    results = run_route_tests(routes, merged=args.merged)
 
     # Group results by source
     by_source = {}
@@ -142,6 +149,33 @@ def cmd_test(args: argparse.Namespace) -> int:
     print(f"{passed} passed, {failed} failed")
 
     return 0 if failed == 0 else 1
+
+
+def cmd_overlap(args: argparse.Namespace) -> int:
+    """Report routes that match the same command."""
+    from tool_routing.overlap import find_overlaps, load_corpus
+
+    try:
+        routes, _ = get_all_routes(args.plugins_dir)
+    except RouteConflictError as e:
+        print(f"Configuration error: {e}", file=sys.stderr)
+        return 1
+
+    if not routes:
+        print("No routes found", file=sys.stderr)
+        return 1
+
+    corpus = load_corpus(args.corpus) if args.corpus else []
+    findings = find_overlaps(routes, corpus)
+
+    for f in findings:
+        print(f"{f.severity}: {f.source}: {f.desc}\n    {f.message}")
+
+    errors = sum(1 for f in findings if f.severity == "error")
+    warnings = len(findings) - errors
+    total = sum(len(r.tests) for r in routes.values()) + len(corpus)
+    print(f"{total} inputs checked, {errors} errors, {warnings} warnings")
+    return 1 if errors else 0
 
 
 def cmd_list(args: argparse.Namespace) -> int:
@@ -245,7 +279,31 @@ def main() -> int:
         "test",
         help="Run inline test fixtures",
     )
+    test_parser.add_argument(
+        "--merged",
+        action="store_true",
+        help="Check each test against all routes, not only its own (finds overlaps)",
+    )
+    test_parser.add_argument(
+        "--plugins-dir",
+        help="Load routes from every plugin's routes.json under this directory",
+    )
     test_parser.set_defaults(func=cmd_test)
+
+    # overlap subcommand
+    overlap_parser = subparsers.add_parser(
+        "overlap",
+        help="Find routes that match the same command",
+    )
+    overlap_parser.add_argument(
+        "--plugins-dir",
+        help="Load routes from every plugin's routes.json under this directory",
+    )
+    overlap_parser.add_argument(
+        "--corpus",
+        help="YAML file of hand-written cross-route cases",
+    )
+    overlap_parser.set_defaults(func=cmd_overlap)
 
     # list subcommand
     list_parser = subparsers.add_parser(

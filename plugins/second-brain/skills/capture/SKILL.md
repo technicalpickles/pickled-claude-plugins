@@ -1,6 +1,6 @@
 ---
 name: capture
-description: Use when the user asks to read a source and make a note for it, create or find an atomic note, or check whether a note already exists. Triggers on "read <url> and make a note", "make a note for", "create (or find) an atomic note", "do we have notes about X?", "check if we have a note for", "capture this", "put together a note", "distill this", and on a bare URL/PDF/tweet/thread handed over with intent to write it up. Use inside an Obsidian vault or anywhere a vault is configured. Do NOT use for draining an accumulated inbox backlog (that is process-inbox), for extracting insights from the current conversation (that is devlog), or for routing already-captured notes to their homes (that is route).
+description: Use when the user asks to read a source and make a note for it, create or find an atomic note, or check whether a note already exists or add to one that does. Triggers on "read <url> and make a note", "make a note for", "create (or find) an atomic note", "do we have notes about X?", "check if we have a note for", "capture this", "put together a note", "distill this", and on a bare URL/PDF/tweet/thread handed over with intent to write it up. Use inside an Obsidian vault or anywhere a vault is configured. Do NOT use for draining an accumulated inbox backlog (that is process-inbox), for extracting insights from the current conversation (that is devlog), or for routing already-captured notes to their homes (that is route).
 allowed-tools:
   - Read
   - Write(~/.claude/vaults/**/*.md)
@@ -30,6 +30,14 @@ Write a note into the vault from a source the user hands you. One arc, six steps
 fetch, ask why) -> read the primary source -> create through sb -> leave it in the inbox -> link
 connections -> fold in follow-ups.** "Read this and make a note" means all six; the connect step
 won't happen unless this skill runs it.
+
+Two requests take a different path through the same skill. Decide which one you have before Step 1:
+
+| The user wants | Path |
+|---|---|
+| A source written up as a new note | Steps 1-6 below |
+| To know what the vault already holds ("do we have notes on X", "find notes about X") | [Lookup only](#lookup-only-do-we-have-notes-on-x) |
+| Something added to a note that already exists ("add this to the X note", "pull up the note for X", or a "yes, extend it" to Step 1) | [Extend an existing note](#extend-an-existing-note) |
 
 Note shape: [references/note-format.md](references/note-format.md). sb commands:
 [../obsidian/references/sb-cli.md](../obsidian/references/sb-cli.md).
@@ -185,6 +193,49 @@ If right after capture the user asks about the thing the note covers ("is there 
 yet?"), answer and then **update the note** with the answer, rather than leaving it stale in chat.
 Say what you added in one line. This stops at a genuinely new note or source.
 
+## Lookup only: "do we have notes on X"
+
+The user wants to know what's in the vault, not to write anything. Run Step 0 and the Step 1
+search (qmd, today's inbox Glob), and skip the fetch and the why question, since there is no
+source.
+
+1. **Show the hits** in one message: path + snippet, and a few words on why each looks strong or
+   weak. qmd scores are only ranks, so don't quote them as relevance.
+2. **Then offer, one line:** "Extend <note>?" when a hit is on the subject, "Want me to start
+   one?" when nothing is. A miss follows [references/search-recovery.md](references/search-recovery.md)
+   first.
+3. **Stop.** Nothing is written, no breadcrumb, no closing proposals. Never suggest a new folder,
+   hub, or note beyond the one the user asked about.
+
+If they say yes, you're on the new-note arc (Steps 1-6, reusing these hits) or the extend path.
+
+## Extend an existing note
+
+The right move is often to edit a note that's already there (a stub, or a note on the same
+subject), not to mint a second one. Skip Steps 3 and 4; the rest of the arc applies.
+
+- **Read the existing note first, and the real source** (Step 2 still applies).
+- **Edit in place with Edit, not sb.** sb only creates. The note keeps its path and folder: don't
+  move it, don't rename it, don't touch `status` or its frontmatter beyond what the new content
+  needs.
+- **Put the content where it belongs.** Under an existing heading that fits, else a new `##`
+  section before `## Related`. Add only what the source says, with the same links and no-invention
+  rules as [references/note-format.md](references/note-format.md). Leave what's already there
+  alone, and don't add a second `**Why I saved this:**`.
+- **Confident links** follow Step 5: same subject or named in the source, under the note's
+  `## Related`, skipping any already there.
+- **Breadcrumb** as in Step 5, but with `updated` so the daily note doesn't read like a new note:
+
+  ```bash
+  npx @techpickles/sb daily append --section "Links" --content "- [[<note>]] - updated: <what you added>"
+  ```
+
+- **Closing proposals** use the same block as Step 5. "Merge with <note>?" and "Add this to <hub>"
+  don't apply to the note you just extended; a second existing note that also fits is a
+  proposal, not an edit.
+- **Several candidate notes?** Edit the strongest one and propose the rest, unless the user said
+  to cover them all.
+
 ## Capturing several sources at once
 
 For a batch of 3+ sources, dispatch one subagent per note, then do the cross-linking and closing
@@ -192,8 +243,8 @@ proposals yourself. How: [references/batch.md](references/batch.md).
 
 ## Constraints
 
-- **Only the new note changes without a yes.** Confident links go inside it and the breadcrumb is
-  automatic. Every other note edit and every new side note is a closing proposal, unless the
+- **Only the new note (or the one you were asked to extend) changes without a yes.** Confident
+  links go inside it and the breadcrumb is automatic. A lookup changes nothing. Every other note edit and every new side note is a closing proposal, unless the
   user's phrasing already covers the whole batch.
 - **Never fabricate.** No invented URLs, no unverified `[[links]]`, no filled-in details.
 - **One note, one idea.** If the source carries several distinct ideas, say so and offer to split.

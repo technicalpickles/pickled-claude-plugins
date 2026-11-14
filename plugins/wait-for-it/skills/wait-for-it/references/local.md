@@ -31,7 +31,39 @@ command that can actually fail instead of swallowing its exit code.
 Single notification, so this is a `Bash(run_in_background)` case, not a
 `watch-loop.sh` case:
 
-    until [ -f .test-done ]; do sleep 1; done; echo "tests finished"
+    until [ -f .test-done ]; do sleep 1; done; echo "tests finished rc=$(cat .test-done)"
+
+Have the run write its own exit code into the marker (`pytest; echo $? > .test-done`),
+so "finished" and "passed" stay separate facts. See the next section for why
+the run itself must not end in a pipe.
+
+## Running a command and trusting its result
+
+This applies whenever you run a build, test or push yourself and are about to
+call it green or red, with or without a watch.
+
+A pipeline exits with the status of its last stage. `cargo test 2>&1 | tail -15`
+exits 0 when the tests fail. A backgrounded run has the same trap. The harness's
+"completed (exit code 0)" notice reports the last command on the line, which can
+be a trailing `tail` or `echo >> log`.
+
+Observed: a compile failure reported as passing because `tail` ate the status,
+a `git push | tail` that never landed, and a CI log tail that showed one of
+five compile errors.
+
+Capture the status on the same line as the run, then read the output:
+
+    cargo test > "$TMPDIR/test.out" 2>&1; echo "test rc=$?"
+    tail -15 "$TMPDIR/test.out"
+
+- `set -o pipefail` in the same shell also works when you want the pipe.
+- In a `&&` chain, `a | tail && b | tail` gates on `tail`, not on `a`. Give each
+  tool its own redirect and status.
+- For a background run, write `echo "rc=$?"` into the output file and read that
+  line. Ignore the completion notice's code.
+- Filters such as `grep`, `2>/dev/null` and `|| true` hide the failure itself.
+  An empty result cannot tell "no match" from "the command errored", so look
+  at the status or the unfiltered file before you trust it.
 
 ## A subagent's own background/nested Agent-tool child finishing
 

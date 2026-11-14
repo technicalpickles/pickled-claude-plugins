@@ -98,3 +98,42 @@ def test_no_repo_resolvable_is_an_error(capsys, monkeypatch):
     cli, _ = cli_with()
     assert main_mod.main([], client=cli) == 2
     assert "--repo" in capsys.readouterr().err
+
+
+def _only(number, status):
+    return "%d\t%s\t%s\tmain\tpush\n" % (number, status, SHA_FAILED)
+
+
+@pytest.mark.parametrize(
+    "status,ps,state",
+    [
+        ("pending", "pipeline_ps_queued.tsv", "queued"),
+        ("blocked", "pipeline_ps_blocked.tsv", "blocked"),
+    ],
+)
+def test_waiting_pipelines_report_state_and_fetch_no_log(capsys, status, ps, state):
+    runner = FakeRunner(
+        [
+            (route("pipeline", "ls"), done(_only(20, status))),
+            (route("pipeline", "ps"), done(fixture(ps))),
+        ]
+    )
+    assert main_mod.main([], client=WoodpeckerCli(runner=runner)) == 0
+    out = capsys.readouterr().out
+    assert out.splitlines()[0] == "State: " + state
+    assert not any("log" in c for c in runner.calls)
+
+
+def test_canceled_mid_run_is_failed_but_flagged_as_stopped(capsys):
+    runner = FakeRunner(
+        [
+            (route("pipeline", "ls"), done(_only(21, "canceled"))),
+            (route("pipeline", "ps"), done(fixture("pipeline_ps_canceled.tsv"))),
+            (route("log", "show"), done(fixture("log_failed_ansi.txt"))),
+        ]
+    )
+    assert main_mod.main([], client=WoodpeckerCli(runner=runner)) == 0
+    out = capsys.readouterr().out
+    assert out.splitlines()[0] == "State: failed"
+    assert "stopped (status: canceled)" in out
+    assert "woodpecker/test: killed  <- first failure" in out

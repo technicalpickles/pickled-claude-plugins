@@ -16,8 +16,8 @@ allowed-tools:
 
 Find related notes via semantic search (qmd) and weave forward/backward links.
 
-See `references/pipeline.md` for stage definitions and status flow.
-See `references/connecting.md` for the connection discovery algorithm.
+See `../obsidian/references/pipeline.md` for stage definitions and status flow.
+See `../obsidian/references/connecting.md` for the connection discovery algorithm.
 
 ## Input
 
@@ -38,14 +38,14 @@ A routed note with `status: routed`.
    qmd query "{terms}" -c {collection} -n 15 --json
    ```
 
-4. Filter and rank per `references/connecting.md`:
+4. Filter and rank per `../obsidian/references/connecting.md`:
    - Remove self
    - Remove already-linked notes
    - Remove daily notes
-   - Remove low-relevance results (below 30%)
+   - Remove weak matches, judged from the snippet (qmd scores are ranks, not a relevance scale)
 
 5. If candidates found, present to human (when called by orchestrator):
-   - Show candidates with scores and snippets
+   - Show each candidate with its snippet and a few words on why it looks like a strong or weak match
    - Let user multi-select which to connect
 
 6. For selected connections:

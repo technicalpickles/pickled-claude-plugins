@@ -29,8 +29,10 @@ Invoke by asking naturally ("park this session", "wrap this up", "unpark docs/ha
 
 `park` produces two distinct artifacts:
 
-- **Continuation** (`Parked:` heading, `[topic].md` filename): for handoffs to a new session. The Resume Prompt is the centerpiece: tight, specific, copy-paste ready.
-- **Close-out** (`Wrapped:` heading, `[topic]-wrapped.md` filename): for records of completed work. No Resume Prompt; an "Outcome" section in past tense and an optional "Open Threads" list.
+- **Continuation** (`Parked:` heading, `YYYYMMDDHHMM topic.md` filename): for handoffs to a new session. The Resume Prompt is the centerpiece: tight, specific, copy-paste ready.
+- **Close-out** (`Wrapped:` heading, `YYYYMMDDHHMM topic-wrapped.md` filename): for records of completed work. No Resume Prompt; an "Outcome" section in past tense and an optional "Open Threads" list.
+
+A close-out only writes a file when it holds a decision or open thread the commits do not show. A park made in a session resumed from another park records `**Supersedes:**` and deletes that predecessor, saying so. `unpark` in listing mode flags handoffs whose branch is merged or whose tasks are done and offers one batched delete.
 
 Mode is picked at park time from your phrasing ("park to continue" vs "wrap this up"), inferred from the work's state, or asked if ambiguous.
 
@@ -59,27 +61,16 @@ Analysis tools for post-hoc session review:
 
 ## Configuration
 
-Configure handoff location in your CLAUDE.md (project or user level):
+Parks live in one place:
 
-```markdown
-## Parking
-Location: ~/Vaults/my-vault/handoffs/
-```
+1. The second-brain vault, when the `second-brain` plugin is configured and the vault's `CLAUDE.md` has a `## Parking` section with a `Location:` (relative to the vault).
+2. Otherwise `.parkinglot/` in the project root (gitignored).
 
-Default location: `.parkinglot/` in project root (gitignored).
+Filenames are the same in both: `YYYYMMDDHHMM topic.md`, with `-wrapped` or `-checkpoint` before the extension. `unpark` lists both locations together. Older files without a timestamp prefix still work. There are no park settings, and the `## Handoffs`/`## Parking` lookups in project and user `CLAUDE.md` files are gone. See the `second-brain` README for how the vault is chosen.
 
-Optionally, also send the parked file to an external destination (e.g. filing it into a second-brain vault) via env vars:
+The park `destination` and `destination_helper` settings, and the `AGENT_PARK_DESTINATION` and `AGENT_PARK_DESTINATION_HELPER` env vars, were removed. To file parks into a second brain, configure the `second-brain` plugin: parks go to its vault directly.
 
-```bash
-# Literal destination command template
-export AGENT_PARK_DESTINATION='npx @techpickles/sb note create --source auto --title "{title}" --content-file {file}'
-
-# Or: a no-arg command whose stdout produces the template dynamically. Wins over
-# AGENT_PARK_DESTINATION if both are set.
-export AGENT_PARK_DESTINATION_HELPER='~/.claude/bin/pick-park-destination.sh'
-```
-
-Both accept `{file}`, `{title}`, and `{mode}` (`continuation` or `close-out`) placeholders. Neither var set means park behaves exactly as it does without one — this is purely additive, never a replacement for the local file.
+See [docs/verifying-park.md](docs/verifying-park.md) for how park is tested, including the headless end-to-end script.
 
 ## Installation
 

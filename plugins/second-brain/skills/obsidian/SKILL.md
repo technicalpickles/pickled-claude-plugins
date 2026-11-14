@@ -83,7 +83,7 @@ Vaults should have a `CLAUDE.md` at root describing:
 - References to methodology (PARA, Zettelkasten)
 - **Disambiguation rules** for semantically similar areas
 
-See `templates/vault-claude-md.md` for template.
+See `../../templates/vault-claude-md.md` for template.
 
 ### Disambiguation Rules
 

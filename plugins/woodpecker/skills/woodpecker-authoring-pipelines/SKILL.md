@@ -13,16 +13,11 @@ woodpecker-cli lint .woodpecker.yml    # a file, or a .woodpecker/ directory
 
 Exit 0 prints `Config is valid`. Errors print one line each and exit 1. It needs no server and no login, so it works on any machine with the CLI. A warning like "consider adding a `when` block with an `event` filter" is advice, not an error: without one, a step runs on every event.
 
-`woodpecker-cli exec` runs a pipeline locally in Docker. It is documented upstream but untested here, so treat the first run as an experiment.
+`woodpecker-cli exec` runs a pipeline on the local machine. It defaults the event to `manual`, which skips any step filtered to `push`, so pass `--pipeline-event push`. What it mounts and how services behave depend on the backend and the machine; see [references/runtime-facts.md](references/runtime-facts.md#local-runs-with-exec).
 
 ## Where "works locally, fails in CI" comes from
 
-These are Woodpecker runtime facts, seen in real pipelines. Details in [references/runtime-facts.md](references/runtime-facts.md).
-
-- Step `commands` run under `sh` (dash on Debian images), not bash. Bashisms such as `[[ ]]` and `source` fail.
-- The clone is owned by root and steps run as root. Tests that check file permissions or refuse to run as root behave differently.
-- Services are reached by their service name (`postgres:5432`), not `localhost`.
-- A step with `failure: ignore` can fail while the pipeline shows green.
+The shell, the user a step runs as, how services are named and what the checkout looks like all depend on the pipeline's backend, image and settings, so don't assume them. Add a throwaway probe step that prints `id`, `ls -l /bin/sh` and `ls -ld .git`, read its log, and fix against what it shows. Probes and the documented behavior (`failure: ignore`, skipped steps, event filters) are in [references/runtime-facts.md](references/runtime-facts.md).
 
 ## Conventions
 

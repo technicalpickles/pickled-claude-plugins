@@ -71,7 +71,7 @@ qmd query "{query}" -c {collection} -n 10 --json
 
 Parse JSON output. Each result has:
 - `file`: `qmd://{collection}/{path}` - strip the `qmd://{collection}/` prefix
-- `score`: 0.0-1.0 - convert to percentage
+- `score`: orders the results; it is a rank, not a relevance scale, so don't quote it
 - `title`: document title from frontmatter or first heading
 - `snippet`: matching content with diff-like context markers (strip `@@ ... @@` lines)
 
@@ -80,17 +80,17 @@ Present results clearly:
 ```
 ## Search Results for "{query}"
 
-1. **{title}** (93%)
+1. **{title}**
    `{path relative to vault}`
    > {cleaned snippet preview, 2-3 lines max}
 
-2. **{title}** (51%)
+2. **{title}**
    ...
 ```
 
 Include:
 - Title from the result
-- Relevance score as percentage (score × 100)
+- A few words on why the hit looks strong or weak, judged from the snippet
 - File path relative to vault (strip `qmd://collection/` prefix)
 - Snippet preview (clean up diff markers, show meaningful content)
 
@@ -115,5 +115,5 @@ This returns the document content with optional line limit.
 
 - **Query required** - Don't search without a query
 - **Collection must exist** - Check before searching
-- **Show scores** - Help user understand relevance
+- **Explain each hit** - why it looks strong or weak, not a score
 - **Respect limits** - Default to 10 results, don't overwhelm

@@ -46,7 +46,7 @@ Carry constraints forward: if principle 3 established that 'agents propose, huma
 
 When two principles pull opposite ways on the same decision, surface the conflict explicitly. Do **not** recommend a resolution. These are exactly the kind of question that needs the user's judgment, not the agent's.
 
-Example conflicts the brineworks file already shows:
+Example conflicts (illustrative, from one project's principles file; yours will have its own numbers):
 - #5 "defer until concrete need" vs #4 "capture is frictionless": capture features get built before they're "needed".
 - #13 "design ceremony matches deployment model" vs any principle that imports multi-user discipline.
 

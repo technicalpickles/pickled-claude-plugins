@@ -9,9 +9,9 @@ Preferences and best practices for interacting with a git repository.
 
 ## git add
 
-ALWAYS use `git add` with specific files that have been updated. NEVER use `git add .` or `git add -A`.
+Stage the files you changed by path. `git add .` and `git add -A` sweep in whatever else is in the working tree, including files another session left there.
 
-IF adding files that look like they are agent configuration, or adding planning documentation, ALWAYS prompt the user to confirm if they should be included or not.
+Ask before staging files that look like agent configuration or planning docs.
 
 ## git commit
 
@@ -29,31 +29,17 @@ Path-limited commits take the working-tree version of those files, so skip `-- <
 
 ### signing
 
-We have git commit signing setup. If it fails due to a message like:
-
-    error: 1Password: failed to fill whole buffer
-
-    fatal: failed to write commit object
-
-... it is because the user was being prompted to authorize signing, and didn't see it or missed it. Do not try to fix or bypass it. Stop and prompt the user about either fixing it, or confirm bypassing it.
+Commit signing is set up. Never bypass it (`--no-gpg-sign`, `-c commit.gpgsign=false`, switching keys). If signing fails, read the actual error and report it to the user; on a Mac with Automic Vault, the `automic-vault:automic-vault-credentials` skill covers agent signing failures.
 
 ## hooks
 
 ### pre-commit failures
 
-When git precommit checks fail, analyze what the failures are, and try to autofix when possible, otherwise think through how to fix it. Ask the user how to proceed when it's unclear if how to fix.
+When pre-commit checks fail, read what failed and fix it. Ask the user when the right fix is unclear.
 
 DO NOT follow sorbet's autocorrection advice.
 DO NOT skip verification without confirmation from the user.
 
 ### prepare-commit-msg and post-commit
 
-If we see errors like:
-
-```
-git: 'duet-prepare-commit-msg' is not a git command. See 'git --help'.
-```
-
-it is because we previously were using git-duet. It uses a git template, with hooks that call `git duet-prepare-commit-msg`. We've sinced moved, but the files will still be present
-
-In this case, check .git/hooks/ for references to these. Remove files that call it.
+`git: 'duet-prepare-commit-msg' is not a git command` comes from leftover git-duet hooks in `.git/hooks/` (we no longer use git-duet). Remove the hook files that call it.

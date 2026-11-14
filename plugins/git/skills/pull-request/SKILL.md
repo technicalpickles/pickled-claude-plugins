@@ -5,7 +5,7 @@ description: Invoke this skill BEFORE running any gh pr create, gh pr edit, or g
 
 ## Overview
 
-Authoring PR communication that respects busy reviewers. All bodies and comments are drafted to `.scratch/pr-bodies/` first. For creation the draft is the audit record, written then used immediately; for updates and comments it's also a review checkpoint. Anti-patterns (metrics, diff-noise, H1 headings) are avoided. Manual edits are detected before overwriting.
+Authoring PR communication that respects busy reviewers. All bodies and comments are drafted to `.scratch/pr-bodies/` first. For creation the draft is the audit record, written then used immediately; for updates and comments it's also a review checkpoint. Manual edits are detected before overwriting.
 
 ## Operations
 
@@ -14,6 +14,8 @@ Authoring PR communication that respects busy reviewers. All bodies and comments
 | Create | "create/draft/open/file a PR", "push and PR it" | `gh pr create --body-file` |
 | Update body | "update the PR body", "rewrite the PR description" | `gh pr edit --body-file` |
 | Comment | "comment on the PR", "reply to review feedback" | `gh pr comment --body-file` |
+
+Always pass `--body-file`, never an inline `--body` (shell escaping, and no draft on disk).
 
 ## Routing ambiguous requests
 
@@ -50,50 +52,26 @@ Optional sections based on context: `## Breaking changes`, `## Migration notes`,
 
 If your instructions require an attribution footer on PR bodies (for example a "Generated with ..." line), append it as the last line of the body. It isn't a section; don't give it a heading.
 
-### PR title
-
-Imperative mood (Add, Fix, Update, Refactor), under 72 characters, capitalize first word, no trailing period. Derive from the branch name when semantic, otherwise from the first commit.
-
 ### Voice and style
 
-If a voice or writing-style skill is available for prose written under the user's name, load it and follow it for the body and comments. Its rules take precedence over the tone guidance here.
+If a voice or writing-style skill is available for prose written under the user's name, load it and follow it for the body and comments. No em-dashes in titles, bodies, or comments: outbound em-dash checks reject them at send time, so fix the draft before running `gh`.
 
-Use commas, colons, parentheses, or separate sentences instead of em-dashes (—) in titles, bodies, and comments. Check the draft for them before running `gh`.
+### What goes in the body
 
-### Do
-
-- Focus on material impact and why it matters
-- Include non-obvious testing steps
-- Stay warm and concise
-
-### Don't
-
-**Metrics** (unless the PR is about them): "Added 15 tests", "Modified 8 files", "Added 250 lines", "Coverage to 85%", "Runtime 2.5s to 1.2s".
-
-**Diff-visible details**: "Created new `Foo` class", "Refactored into smaller functions", "Used async/await", "Added error handling" (unless that is the PR's focus).
-
-**Over-explaining**: "After careful consideration of multiple approaches...", "significantly improves the developer experience by implementing a novel approach...".
-
-**Structural noise**: H1 heading (GitHub shows the title separately), listing technologies unless a new dependency, file structure changes unless architectural, "following best practices" (assumed), "easy to" / "simple to" (condescending).
-
-**The rule:** If a reviewer can see it in the diff or CI output, do not put it in the body unless it is the central focus.
-
-### Comment tone
-
-Three to five sentences, conversational, professional. Acknowledge reviewer input. Explain reasoning when non-obvious. A common opening pattern: "I've updated the PR to address the feedback: ..."
+Lead with material impact and why it matters. **If a reviewer can see it in the diff or CI output, leave it out unless it is the central focus**: metrics (test counts, files changed, coverage), implementation narration ("created a new `Foo` class", "added error handling"), technology lists, and "following best practices". No H1 (GitHub shows the title).
 
 ## Workflow: Create PR
 
-1. Check for existing PR: `gh pr view --json number 2>/dev/null`. If one exists, error or route to update.
+1. Check for existing PR: `gh pr list --head <branch> --state open`. If one exists, route to update; if more than one (rare), ask which.
 2. Gather: `git log <base>..HEAD`, PR template, `CONTRIBUTING.md`.
 3. Draft body to `.scratch/pr-bodies/drafts/<slug>.md`.
-4. Create: `gh pr create --title "..." --body-file <draft-path>` (add `--draft` if the user asked for a draft). No approval pause on the routine case: being asked to create a PR is itself the go-ahead; the draft file is the record, not a checkpoint. Do stop and confirm first if something's off the routine path: no commits ahead of base, an open PR already exists for this branch, or the title/scope is genuinely ambiguous.
+4. Create: `gh pr create --title "..." --body-file <draft-path>` (add `--draft` if the user asked for a draft). No approval pause on the routine case: being asked to create a PR is itself the go-ahead; the draft file is the record, not a checkpoint. Don't add a confirmation pause back in "to be safe": skipping that round-trip is the point. Do stop and confirm first if something's off the routine path: no commits ahead of base, an open PR already exists for this branch, or the title/scope is genuinely ambiguous.
 5. Archive: move the draft to `.scratch/pr-bodies/<number>/<timestamp>-body.md` and write `metadata.json` with the body hash.
 
 ## Workflow: Update body
 
 1. Load: `gh pr view --json number,body,title,state`. Load `metadata.json` if present. Warn if closed or merged.
-2. Detect manual edits: hash the current body (`shasum -a 256`) and compare to `last_generated_hash`. If different and the diff is more than whitespace, ask: overwrite, merge, or cancel.
+2. Detect manual edits: hash the current body (`shasum -a 256`) and compare to `last_generated_hash`. If different and the diff is more than whitespace, ask: overwrite, merge, or cancel. Never overwrite manual edits silently.
 3. Check for material change: re-analyze `<base>..HEAD`. If scope is unchanged from last generation, skip the update and say "description still accurate".
 4. Draft to `.scratch/pr-bodies/<number>/<timestamp>-body.md`. Show the diff (current vs proposed) and confirm.
 5. Update: `gh pr edit <number> --body-file <file>`. Update `metadata.json` (new hash, timestamp).
@@ -101,17 +79,11 @@ Three to five sentences, conversational, professional. Acknowledge reviewer inpu
 ## Workflow: Comment
 
 1. Load: `gh pr view --json number,title,reviews,comments`.
-2. Determine content. Analyze recent commits. Common scenarios: responding to review feedback, noting significant additions, summarizing a batch of changes.
+2. Determine content from recent commits: responding to review feedback, noting significant additions, or summarizing a batch of changes.
 3. Draft to `.scratch/pr-bodies/<number>/<timestamp>-comment.md`. Show the draft and confirm.
 4. Post: `gh pr comment <number> --body-file <file>`.
 
-## Safety checks
-
-Always: current branch is not `main`/`master`; `gh` is installed and authenticated.
-
-Create: branch has commits ahead of base. No approval gate for the routine case (see Workflow: Create PR above). Update: PR exists and is open; user has seen and approved the draft. Comment: comment is not empty; user has seen and approved the draft.
-
-If `gh` is missing, fall back with `brew install gh`. If not authenticated, `gh auth login`.
+Unlike create, update and comment always get the user's review first: they can overwrite manual edits or ping reviewers.
 
 ## Storage layout
 
@@ -140,30 +112,4 @@ If `gh` is missing, fall back with `brew install gh`. If not authenticated, `gh 
 }
 ```
 
-Timestamps use ISO 8601 with hyphens (`2025-11-07T10-30-00`). Slugs are lowercase with hyphens and special chars stripped.
-
-Keep: `metadata.json`, the last five timestamped files, any in-progress draft. Clean up after PR creation: the draft file. Optional: timestamped files older than 30 days.
-
-## Base branch detection
-
-```bash
-base=$(gh pr view --json baseRefName -q .baseRefName 2>/dev/null)
-if [ -z "$base" ]; then
-  git show-ref --verify --quiet refs/heads/main && base=main || base=master
-fi
-```
-
-## Multiple PRs for one branch
-
-`gh pr list --head <branch> --state open`. If exactly one open, use it. If zero, check `--state all` and offer to create new. If more than one (rare), ask which.
-
-## Common mistakes
-
-- Posting an update or comment without user review. Always confirm before running `gh pr edit`/`gh pr comment`. Unlike create, these can overwrite manual edits or ping reviewers unexpectedly.
-- Adding a confirmation pause back into the create path "to be safe." That's the exact round-trip this skill exists to skip; the draft file already gives an audit trail.
-- Overwriting manual edits silently. Always compare hashes and show the diff first.
-- Updating body when nothing material changed. Skip with "description still accurate".
-- Leaving em-dashes in the draft. Fix them before sending, not after the send is rejected.
-- Using raw `gh pr create` without `--body-file`. Shell-escaping issues and no draft review step.
-- Running create on `main`/`master`. Stop and ask the user to branch first.
-- Ignoring repeated open PRs on the same branch. Always check `gh pr list --head <branch>`.
+File timestamps use ISO 8601 with hyphens (`2025-11-07T10-30-00`). Keep `metadata.json`, the last five timestamped files, and any in-progress draft; delete the draft after creation.

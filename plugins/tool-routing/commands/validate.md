@@ -93,7 +93,7 @@ CLAUDE_CONFIG_DIR="$PWD/tmp/test-claude-config" \
 Bypasses discovery entirely - useful for testing specific route files:
 
 ```bash
-TOOL_ROUTING_ROUTES="plugins/tool-routing/hooks/tool-routes.yaml,plugins/git/skills/pull-request/tool-routes.yaml,plugins/ci-cd-tools/skills/working-with-buildkite-builds/tool-routes.yaml" \
+TOOL_ROUTING_ROUTES="plugins/tool-routing/hooks/tool-routes.yaml,plugins/git/skills/pull-request/tool-routes.yaml,plugins/buildkite/tool-routes.yaml" \
   uv run --directory plugins/tool-routing tool-routing test
 ```
 

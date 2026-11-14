@@ -12,11 +12,11 @@ mise is a polyglot tool version manager. Use this skill when:
 - Troubleshooting "command not found" when mise should have tools available
 - Deciding whether mise is the right choice for a dependency
 
-## The Iron Rules
+## Rules
 
-1. **Use `mise use` to add tools** - never manually edit config files
-2. **Detect existing config files first** - don't create new ones when one exists
-3. **Fix the shell, don't workaround** - if tools aren't on PATH, diagnose the activation issue rather than using `mise exec` as a permanent workaround
+1. **Add tools with `mise use`**, not by editing config by hand: it checks the tool exists, installs it, and writes valid syntax.
+2. **Use the config file the project already has**; don't create a second one.
+3. **Fix the shell when tools aren't on PATH**: diagnose activation instead of making `mise exec` the permanent workaround.
 
 ## When to Use mise vs Alternatives
 
@@ -63,12 +63,12 @@ Before adding tools, detect what config format the project uses:
 
 ```bash
 # Check for existing mise config
-ls -la mise.toml .mise.toml .mise.local.toml .tool-versions 2>/dev/null
+ls -la mise.toml .mise.toml mise.local.toml .mise.local.toml .tool-versions 2>/dev/null
 ```
 
 Config file precedence (mise uses the first it finds):
 - `mise.toml` or `.mise.toml` - standard mise config
-- `.mise.local.toml` - local overrides (usually gitignored)
+- `mise.local.toml` or `.mise.local.toml` - local overrides (usually gitignored)
 - `.tool-versions` - legacy asdf format
 
 **If a config file exists, use that format.** Don't create a new one.
@@ -106,6 +106,43 @@ node --version
 # Compare with mise's view
 mise which node
 ```
+
+## Conventions: Pins, Runtimes, and Local Overrides
+
+Defaults to follow unless the repo you're in says otherwise. Rationale and history: [dotfiles ADR 0067](https://github.com/technicalpickles/dotfiles/blob/main/doc/adr/0067-pin-global-mise-tools-and-leave-runtimes-to-projects.md).
+
+### Pin exact versions
+
+Prefer `mise use --pin tool@x.y.z`, which saves the resolved concrete version. `"latest"` and fuzzy versions can't be bumped by Renovate (nothing to compare against), and two machines can end up on different builds. If a pin is deliberate, say so in a comment beside it.
+
+### Renovate and mise
+
+- Renovate's mise manager reads `mise.toml`, `.mise.toml` and `.config/mise/` by default. Config kept elsewhere (a dotfiles `config/mise/`, say) needs `managerFilePatterns` on the `mise` manager.
+- It understands `github:` and `npm:` backends and core tools like `bun` and `go`. It skips `"latest"`, `lts` and `stable`.
+- mise strips the `v` from `github:` tags but Renovate writes the raw tag back. The `github>technicalpickles/renovate-config:mise` preset handles this. A hand-written rule needs `"extractVersion": "^v?(?<version>.+)$"` scoped with `"matchDepNames": ["github:**"]`; unscoped, it drops updates for core tools like `go` (see `dev-tools:adopting-renovate`).
+
+### Runtimes belong to the project
+
+`go`, `python`, `rust` and `ruby` go in the project's own `mise.toml`, not the global config. Global config is for tools you run everywhere (CLIs, `node` for `npm:` tools).
+
+### Local overrides for clones without mise config
+
+When you've cloned something with no mise config of its own, create `mise.local.toml` with the versions it needs (read them from `go.mod`, CI or `.ruby-version`), and keep it out of git:
+
+```bash
+# Per clone. In a bare-repo + worktrees layout the exclude lives in the common dir
+echo mise.local.toml >> "$(git rev-parse --git-common-dir)/info/exclude"
+```
+
+Or ignore `mise.local.toml` and `.mise.local.toml` in the global gitignore once, and skip the per-clone step.
+
+### Don't read go.mod as a version source
+
+`idiomatic_version_file_enable_tools = ["go"]` makes mise read the `go` directive in `go.mod`, but that is only a minimum version and mise removes the support in 2026.11.0. A `toolchain goX.Y.Z` line, `.go-version` or `mise.toml` still work.
+
+### npm: backend still needs node to run
+
+The `npm:` backend installs without node, but the installed bin shims run whichever `node` is first on `PATH`. Keep a node on `PATH` wherever an `npm:` tool is used.
 
 ## Troubleshooting "Command Not Found"
 
@@ -208,21 +245,6 @@ eval "$(mise activate zsh)"
 - Tools not being on PATH in your terminal (fix activation instead)
 - "It works with mise exec" as a permanent solution
 
-## Validation Commands
-
-After configuration changes, verify everything works:
-
-```bash
-# Full health check
-mise doctor
-
-# Verify specific tool
-mise which node && node --version
-
-# Verify PATH includes mise tools
-echo $PATH | tr ':' '\n' | grep mise
-```
-
 ## Available References
 
 - [references/cli/use-html.md](references/cli/use-html.md) - Full `mise use` documentation
@@ -231,11 +253,3 @@ echo $PATH | tr ':' '\n' | grep mise
 - [references/cli/which-html.md](references/cli/which-html.md) - Path resolution
 - [references/dev-tools/shims-html.md](references/dev-tools/shims-html.md) - Shims vs PATH activation
 - [references/guides/getting-started.md](references/guides/getting-started.md) - Setup guide
-
-## Red Flags - You're About to Violate
-
-- "Let me just add this to mise.toml manually" → Use `mise use` instead
-- "I'll use mise exec as a workaround" → Diagnose why activation isn't working
-- "Let me create a .mise.toml" → Check if config already exists first
-- Adding jq/gh/ripgrep to mise → Consider if version actually matters
-- Assuming mise is activated → Run `mise doctor` to verify

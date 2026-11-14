@@ -1,26 +1,26 @@
 ---
 name: park
-description: Save current work context for later resumption
+description: Use when the user asks to park, hand off, wrap up or checkpoint the current session, or an automated idle prompt invokes a park
 allowed-tools: Bash(scripts/get-session-id.sh)
 ---
 
 # Park
 
-Save the current work session. Park has three modes. Pick one, write that shape, do not mix.
+Write one file a fresh session can resume from without reading this one. Park has three modes. Pick one, write that shape, do not mix.
 
 ## Modes
 
 | Mode | Use when | Heading | Filename |
 |------|----------|---------|----------|
-| **Continuation** | Bouncing to a new session, work continues | `Parked:` | `[topic-slug].md` |
-| **Close-out** | Work is done, capturing a record before walking away | `Wrapped:` | `[topic-slug]-wrapped.md` |
-| **Idle checkpoint** | Automated park triggered by inactivity/cache-expiry, not a user request | `Checkpoint:` | `[topic-slug]-checkpoint.md` |
+| **Continuation** | Bouncing to a new session, work continues | `Parked:` | `YYYYMMDDHHMM [topic-slug].md` |
+| **Close-out** | Work is done, capturing a record before walking away | `Wrapped:` | `YYYYMMDDHHMM [topic-slug]-wrapped.md` |
+| **Idle checkpoint** | Automated park triggered by inactivity/cache-expiry, not a user request | `Checkpoint:` | `YYYYMMDDHHMM [topic-slug]-checkpoint.md` |
 
 ## Mode Detection
 
 Pick one mode by checking these signals in order. Stop at the first one that resolves.
 
-0. **Automated trigger.** If the invoking prompt explicitly identifies itself as an automated/idle-triggered park (e.g. names a watchdog, cron, or "idle-triggered" rather than a person asking) → idle checkpoint. Skip every other signal below — this must resolve without asking, since automated callers run headless and cannot answer a question.
+0. **Automated trigger.** If the invoking prompt explicitly identifies itself as an automated/idle-triggered park (e.g. names a watchdog, cron, or "idle-triggered" rather than a person asking) → idle checkpoint. Skip every other signal below. Automated callers run headless and cannot answer a question.
 1. **Explicit user hint.**
    - "park, I'm done" / "wrap this up" / "park to close it out" / "park as record" → close-out
    - "park, switching sessions" / "park to continue" / "park, picking back up later" → continuation
@@ -29,25 +29,25 @@ Pick one mode by checking these signals in order. Stop at the first one that res
    - Question: "Is this a close-out (work is done, archiving) or a continuation (planning to pick this up in a new session)?"
    - Options: "Close-out (record)" / "Continuation (handoff)"
 
-Signal 3 requires an interactive caller. Never reach it for a headless/automated invocation — signal 0 must have already resolved those.
+Signal 3 requires an interactive caller. A headless or automated invocation must already have resolved at signal 0.
 
 Pick once and commit. Do not switch modes mid-write.
 
 ## Before Writing
 
 1. Resolve session ID:
-   - **Preferred:** Look for a `Session ID:` line in the PostToolUse hook context that this plugin injects when `agent-meta:park` is invoked. Use that value. A `Transcript:` line may also be present.
-   - **Fallback:** Run [scripts/get-session-id.sh](scripts/get-session-id.sh) via Bash. If empty, use `unknown`.
-2. Gather git branch, worktree path, files touched.
+   - **Session ID:** `${CLAUDE_SESSION_ID}`
+   - Claude Code fills in the value above when it loads this skill. If it is a UUID, use it.
+   - **Fallback:** If the value above is not a UUID (another harness left it unfilled), run [scripts/get-session-id.sh](scripts/get-session-id.sh) via Bash. If that prints nothing, use `unknown`.
+2. Gather the git branch, the absolute worktree path, and the identifiers the next session will check: PR numbers, task UUIDs, commit SHAs.
 3. Resolve output location, in order:
-   1. Project `CLAUDE.md` → `## Handoffs` or `## Parking` → `Location:`
-   2. User `~/.claude/CLAUDE.md` → same lookup
-   3. Default: `.parkinglot/` in project root (verify it is gitignored)
-4. Check the injected context for a `Park destination:` line. This is separate from the CLAUDE.md location above and always optional — it names a command to also send the file to once it's written, e.g. filing it into a second brain vault. Not present unless the user configured `AGENT_PARK_DESTINATION` or `AGENT_PARK_DESTINATION_HELPER`. Note the template if present; it's used in "After Parking" below.
+   1. Injected context has a `Park vault:` line and `<vault>/CLAUDE.md` has a `## Parking` section with a `Location:` → that folder, relative to the vault. The section supplies only the location; filenames follow this skill.
+   2. Otherwise `.parkinglot/` in project root (verify it is gitignored). This also covers a vault with no `## Parking` section.
+4. Get the timestamp with `date +%Y%m%d%H%M`. Every filename starts with it, then a single space.
+5. Resolve the file's **absolute path**, whichever location it lands in. Every place this skill writes `[path]` takes that absolute path, because a relative path only resolves from one directory and a resumed session often starts elsewhere.
+6. Find the **predecessor**. When this session was resumed from a park, the transcript holds an `unpark <file>` invocation (a typed line or an `unpark` skill call with a path). The file it names is the predecessor, as an absolute path. With several, take the latest. With none, there is no predecessor: skip the `Supersedes` line and the whole Superseding section.
 
 ## Continuation Template
-
-Use when the user is bouncing to a new session and the work continues.
 
 ~~~markdown
 # Parked: [Topic]
@@ -55,149 +55,132 @@ Use when the user is bouncing to a new session and the work continues.
 **Parked:** [Date/time]
 **Session:** [session ID]
 **Branch:** [branch-name]
-**Worktree:** [path if applicable]
+**Worktree:** [absolute path, if applicable]
+**Supersedes:** [absolute path of the predecessor. Omit the line when there is none]
 
 ## Resume Prompt
 
 ```
 unpark [path]
 
-[Tight, specific next-action paragraph. Names files, names skill to invoke,
-names the open question to resolve. Copy-paste ready.]
+[Directives for the next session, at most three sentences. Omit when there are none.]
 ```
 
 ## Current State
-[What's done, what's in progress, what's blocked. Present tense.]
+- [One checkable fact per bullet, present tense]
 
 ## Key Decisions
-- [Decision + brief rationale]
+- [Decision + why]
 
 ## Relevant Files
-- path/to/file.ts (new|modified|read)
+- path/to/file.ts (new|modified)
 
 ## Next Steps
 1. [Concrete next action]
 2. [Concrete next action]
 
 ## Open Questions
-[Optional. Things the next session needs to resolve.]
+- [Question, and the step it blocks]
 ~~~
 
-**Resume Prompt is mandatory and must be specific.** Before writing the file, check the generated prompt: if it reads as filler ("if you want to resume...", "feel free to continue...", "you could pick this up..."), regenerate it with concrete file paths, named skills to invoke, and explicit next actions. Do not write the file with a filler prompt.
+What each section holds:
 
-**Name the skill, not the raw command, for steps that have a skill.** The resuming session tends to run whatever literal command the handoff spells out, and that skips the skill that would have handled it properly. So when a next step opens, edits, or comments on a PR, write "open the PR via the `git:pull-request` skill", not `gh pr create --title ... --body ...`. The same goes for commits (`git:commit`) and working through review feedback (`git:pull-feedback`). Keep the step's specifics (branch, what the PR body must cover, draft vs ready). Just don't hand over a copy-paste command that routes around the skill.
+- **Resume Prompt:** the `unpark` line, then directives: how the next session behaves, which skill or playbook it starts with, who is at the keyboard and what they want. The sections below carry state and actions, so the prompt carries neither. A rule that `CLAUDE.md` or a rules file already loads is not a directive. With no directives, the prompt is the `unpark` line alone.
+- **Current State:** facts the next session can verify, each naming its identifier: the branch head or the uncommitted files, a PR number, a task UUID (never an integer task id, which gets reused), the test result. Unpark checks these against reality.
+- **Key Decisions:** choices the diff and git history cannot show, each with its reason.
+- **Relevant Files:** files the next session will change or must reread, marked `new` or `modified`. A file that was only read is not listed.
+- **Next Steps:** the one place for actions, in the order to do them. The first is what the next session does first.
+- **Open Questions:** only questions that block a step. Name the step. Omit the section when there are none.
 
-Filename: `[topic-slug].md`
+**Name the skill, not the raw command, for steps that have a skill.** The resuming session tends to run whatever literal command the handoff spells out, and that skips the skill that would have handled it properly. So when a next step opens, edits, or comments on a PR, write "open the PR via the `git:pull-request` skill", not `gh pr create --title ... --body ...`. The same goes for commits (`git:commit`) and working through review feedback (`git:pull-feedback`). Keep the step's specifics (branch, what the PR body must cover, draft vs ready). Do not hand over a copy-paste command that routes around the skill.
+
+**Session ID is load-bearing.** Unpark takes its first 8 characters to find this session's devlog. Never drop the line.
 
 ## Close-out Template
 
 Use when the work is done and the user is walking away. There may be open threads, but no baton-pass.
 
-```markdown
+~~~markdown
 # Wrapped: [Topic]
 
 **Wrapped:** [Date/time]
 **Session:** [session ID]
 **Branch:** [branch-name]
-**Worktree:** [path if applicable]
+**Worktree:** [absolute path, if applicable]
+**Supersedes:** [absolute path of the predecessor. Omit the line when there is none]
 
 ## Outcome
 [What got done. Past tense. Reference commits where applicable.]
 
 ## Key Decisions
-- [Decision + brief rationale]
+- [Decision + why]
 
 ## Relevant Files
-- path/to/file.ts (new|modified|read)
+- path/to/file.ts (new|modified)
 
 ## Open Threads
 [Optional. Things noticed but not done. One line each.
-Surface candidates for beans, but DO NOT auto-create them.]
-```
+List follow-up candidates; don't file them in a tracker.]
+~~~
 
-Filename: `[topic-slug]-wrapped.md`
+**A Wrapped file has to earn its place.** Write one only when Key Decisions or Open Threads holds something the commits and PR do not show: a decision with its reason, a thread someone should pick up. List those two sections first. If both come out empty, or only restate the commit log, write no file. Say so in one line (`Nothing to record beyond the commits, so no file written.`) and stop, apart from Superseding below. Outcome alone is not a reason to write.
 
 Close-out has no Resume Prompt and no Next Steps. If you find yourself wanting to write either, the work is probably a continuation: re-check the mode.
 
 ## Idle Checkpoint Template
 
-Use when this park was triggered automatically because the session went idle (e.g. a watchdog parking a session near its prompt-cache expiry), not because a person asked. Same shape as continuation — the person may still be about to resume, in this session or a new one — but labeled so it reads as a machine-triggered snapshot rather than a deliberate handoff, and so the next `park` call in this same session doesn't get confused about what already happened here.
+Written when a watchdog parks a session near its prompt-cache expiry, not when a person asked. Same shape and section rules as the continuation template, with three changes:
 
-~~~markdown
-# Checkpoint: [Topic]
+- Heading `# Checkpoint: [Topic]`.
+- `**Checkpointed:**` replaces `**Parked:**`.
+- A `**Trigger:** automated (idle)` line after `**Worktree:**`.
+- The `**Supersedes:**` line, when there is a predecessor, goes after `**Trigger:**`.
 
-**Checkpointed:** [Date/time]
-**Session:** [session ID]
-**Branch:** [branch-name]
-**Worktree:** [path if applicable]
-**Trigger:** automated (idle)
+The labels tell a later `park` call in this same session what already happened here.
 
-## Resume Prompt
+## Superseding the predecessor
+
+Runs after the new file is written, and only when step 6 found a predecessor. A close-out that wrote no file still runs it.
+
+1. When a file was written, confirm it exists (`ls` its absolute path). If it is missing, stop and leave the predecessor. When the close-out wrote no file, there is nothing to confirm: go on.
+2. Read the predecessor's first heading. Delete it only if it is `Parked:` or `Checkpoint:`. A `Wrapped:` record is not a handoff, and a missing file needs nothing.
+3. Delete that one file by its exact absolute path (`rm "[predecessor path]"`). No glob, no directory, no other file, even a similar-looking sibling.
+4. Say so in the closing message with the path: `Deleted [predecessor path], the handoff this session resumed.` The vault is not a git repo, so only sync history can bring it back.
+
+The `Supersedes` line stays in the new file as the record of what it replaced.
+
+## After Writing
+
+Close with one fenced block so it copies cleanly. The path appears once: inside the `unpark` line, or alone when there is no `unpark` line (close-out). Use the absolute path, with no blockquote and no quotes.
+
+Continuation:
+
+~~~
+Parked. Resume in a new session:
 
 ```
 unpark [path]
-
-[Tight, specific next-action paragraph. Names files, names skill to invoke,
-names the open question to resolve. Copy-paste ready.]
 ```
-
-## Current State
-[What's done, what's in progress, what's blocked. Present tense.]
-
-## Key Decisions
-- [Decision + brief rationale]
-
-## Relevant Files
-- path/to/file.ts (new|modified|read)
-
-## Next Steps
-1. [Concrete next action]
-2. [Concrete next action]
-
-## Open Questions
-[Optional. Things the next session needs to resolve.]
 ~~~
 
-Same Resume Prompt requirement as continuation: mandatory, specific, no filler.
+Close-out:
 
-Filename: `[topic-slug]-checkpoint.md`
-
-## Sending to a Destination
-
-If step 4 above found a `Park destination:` template, run it now, after the file is written:
-
-1. Substitute placeholders in the template: `{file}` → the full path just written, `{title}` → the topic slug/heading, `{mode}` → `continuation`, `close-out`, or `idle-checkpoint`.
-2. Run the substituted command via Bash. This happens as a normal, visible tool call — never assume it succeeded without checking the result.
-3. Report the outcome to the user alongside the local path (see "After Parking" below). If the command fails, say so plainly and still report the local file as parked — the local write is the source of truth; the destination is a best-effort extra.
-
-If no `Park destination:` line was present, skip this section entirely — park behaves exactly as it does without one.
-
-## After Parking
-
-For continuation:
+~~~
+Wrapped to:
 
 ```
-Parked to `[path]`.
-
-To resume in a new session, ask Claude:
-> unpark [path]
+[path]
 ```
-
-For close-out:
-
-```
-Wrapped to `[path]`.
 
 This is a close-out record. To start fresh work that builds on it, reference the file in your next session.
+~~~
+
+Idle checkpoint:
+
+~~~
+Checkpointed (automated, this session went idle). If you're still working here, ignore this. To resume elsewhere:
+
 ```
-
-For idle checkpoint:
-
+unpark [path]
 ```
-Checkpointed to `[path]` (automated — this session went idle).
-
-If you're still working in this session, ignore this. To resume elsewhere:
-> unpark [path]
-```
-
-If a destination command ran, append one line noting the result either way, e.g. `Also sent to [destination]` or `Destination command failed: [short reason]`.
+~~~

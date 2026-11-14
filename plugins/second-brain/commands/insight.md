@@ -48,8 +48,8 @@ Read vault's `CLAUDE.md` for structure rules.
 
 Load skill references:
 - `second-brain:obsidian` for tool mechanics
-- `references/sb-cli.md` for sb invocation details
-- `references/zettelkasten.md` for naming
+- `../skills/obsidian/references/sb-cli.md` for sb invocation details
+- `../skills/obsidian/references/zettelkasten.md` for naming
 
 ## Step 2: Identify the Insight
 

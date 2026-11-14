@@ -28,7 +28,7 @@ hooks:
 
 Process accumulated inbox notes through the full pipeline: ingest, enrich, route, connect, link to daily note.
 
-See `references/pipeline.md` for stage definitions and status flow.
+See `../obsidian/references/pipeline.md` for stage definitions and status flow.
 
 ## Step 1: Load Configuration
 
@@ -44,12 +44,12 @@ Second brain not configured. Run /second-brain:setup first.
 
 Load skill references:
 - `second-brain:obsidian` for tool mechanics
-- `references/pipeline.md` for stage definitions
-- `references/routing-memory.md` for learning loop
-- `references/routing.md` for scoring algorithm
-- `references/connecting.md` for connection discovery
-- `references/daily-linking.md` for daily note linking
-- `references/sb-cli.md` for sb command reference
+- `../obsidian/references/pipeline.md` for stage definitions
+- `../obsidian/references/routing-memory.md` for learning loop
+- `../obsidian/references/routing.md` for scoring algorithm
+- `../obsidian/references/connecting.md` for connection discovery
+- `../obsidian/references/daily-linking.md` for daily note linking
+- `../obsidian/references/sb-cli.md` for sb command reference
 
 ## Step 2: Survey Inbox
 
@@ -107,7 +107,7 @@ For each note with `status: enriched`:
 - If pending-review: pause and present suggestions to user
   - Show the note title, top destinations with scores, and reasoning
   - Let user pick destination or leave in inbox
-  - If user overrides, capture correction per `references/routing-memory.md`
+  - If user overrides, capture correction per `../obsidian/references/routing-memory.md`
   - After user decides, continue to next note
 
 Also process any pre-existing `pending-review` notes from previous runs.

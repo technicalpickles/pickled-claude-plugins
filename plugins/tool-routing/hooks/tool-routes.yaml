@@ -3,24 +3,24 @@
 # Project-specific routes go in .claude/tool-routes.yaml.
 
 routes:
-  # cat heredoc - use Write tool instead
+  # cat heredoc overwriting a file - use Write tool instead.
+  # Deliberately narrow: only a standalone `cat > file <<EOF` (or
+  # `cat <<EOF > file`) at the start of the command. Appends (`>>`) stay
+  # allowed because Write cannot append, and so do commands that chain
+  # other work (`cd x && cat > f <<EOF`), which would otherwise need
+  # splitting into two calls. In ~57k Bash calls, 38% of cat heredocs were
+  # appends and most of the rest sat inside a compound command.
   bash-cat-heredoc:
     tool: Bash
-    pattern: "(?:^|[;&|]\\s*)cat\\s+.*<<[-]?\\s*['\"]?\\w+['\"]?(?!.*\\|)"
+    pattern: "^\\s*cat\\s+(?:>(?!>)\\s*(?:\"[^\"]*\"|'[^']*'|\\S+)\\s*<<-?\\s*['\"]?\\w+['\"]?|<<-?\\s*['\"]?\\w+['\"]?\\s*>(?!>)\\s*\\S)"
     message: |
-      Don't use cat with heredocs for file creation or display.
+      Don't use cat with a heredoc to overwrite a file.
 
-      For writing to files:
-        Use the Write tool instead of cat with redirection.
-        Example: Write(file_path="/path/to/file", content="...")
+      Use the Write tool instead:
+        Write(file_path="/path/to/file", content="...")
 
-      For displaying text to the user:
-        Output text directly in your response.
-        Don't use cat or echo - just write the text.
-
-      Valid heredoc use:
-        Only use cat <<EOF when piping to another command:
-        cat <<EOF | jq .
+      Appending (`cat >> file <<EOF`), chaining it after other commands, and
+      piping a heredoc to another command are all fine.
     tests:
       - desc: "cat heredoc to file should block"
         input:
@@ -28,6 +28,36 @@ routes:
           tool_input:
             command: "cat > file.txt << 'EOF'\nHello\nEOF"
         expect: block
+      - desc: "cat heredoc redirected after the delimiter should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "cat <<'EOF' > notes.md\nHello\nEOF"
+        expect: block
+      - desc: "cat heredoc to a quoted path with spaces should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "cat > \"my notes.md\" <<'EOF'\nHello\nEOF"
+        expect: block
+      - desc: "cat heredoc append should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "cat >> notes.md <<'EOF'\nmore\nEOF"
+        expect: allow
+      - desc: "cat heredoc after cd should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "cd /tmp/work && cat > notes.md <<'EOF'\nHello\nEOF"
+        expect: allow
+      - desc: "cat heredoc to display without a redirect should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "cat <<'EOF'\nHello\nEOF"
+        expect: allow
       - desc: "cat heredoc with pipe should allow"
         input:
           tool_name: Bash
@@ -45,115 +75,4 @@ routes:
           tool_name: Bash
           tool_input:
             command: "git commit -m \"$(cat <<'EOF'\nFix the bug\n\nCo-Authored-By: Claude\nEOF\n)\""
-        expect: allow
-
-  # chained echo - output directly instead
-  bash-echo-chained:
-    tool: Bash
-    pattern: "echo\\s+[\"'].*&&\\s+echo.*&&\\s+echo"
-    message: |
-      Don't use chained echo commands for multi-line output.
-
-      For displaying information to the user:
-        Output text directly in your response.
-        Don't use echo with && chains - just write the text.
-
-      The echo command should only be used for:
-        - Single simple outputs in legitimate shell operations
-        - Testing or debugging actual shell behavior
-    tests:
-      - desc: "triple echo chain should block"
-        input:
-          tool_name: Bash
-          tool_input:
-            command: "echo \"=== SUMMARY ===\" && echo \"\" && echo \"Done\""
-        expect: block
-      - desc: "single echo should allow"
-        input:
-          tool_name: Bash
-          tool_input:
-            command: "echo 'test'"
-        expect: allow
-
-  # echo redirect - use Write tool instead
-  bash-echo-redirect:
-    tool: Bash
-    pattern: "^echo\\s+[\\s\\S]*>\\s*/"
-    message: |
-      Don't use echo with file redirection to write files.
-
-      Use Write tool instead:
-        Write(file_path="/path/to/file", content="...")
-
-      Advantages:
-        - Clearer intent and better error handling
-        - No shell quoting issues
-        - Content is visible in tool call for review
-        - Consistent with other file operations
-
-      The echo command should only be used for:
-        - Displaying output to stdout in legitimate shell operations
-        - Testing or debugging actual shell behavior
-    tests:
-      - desc: "echo redirect to absolute path should block"
-        input:
-          tool_name: Bash
-          tool_input:
-            command: "echo 'content' > /tmp/file.txt"
-        expect: block
-      - desc: "echo to stdout should allow"
-        input:
-          tool_name: Bash
-          tool_input:
-            command: "echo 'hello'"
-        expect: allow
-
-  # tool-routing manual test - use proper test infrastructure
-  tool-routing-manual-test:
-    tool: Bash
-    pattern: "(?:echo|printf).*\\|.*tool-routing\\s+(?:check|test)"
-    message: |
-      Don't manually test tool-routing with piped JSON.
-
-      Use the proper testing infrastructure:
-        - `uv run tool-routing test` - Pattern tests
-        - `uv run tool-routing integration-test` - Runtime tests
-
-      These commands provide:
-        - Version-controlled test fixtures
-        - Clear pass/fail reporting
-        - Repeatable results
-        - No JSON escaping issues
-
-      See: docs/writing-routes.md
-    tests:
-      - desc: "echo JSON pipe to check should block"
-        input:
-          tool_name: Bash
-          tool_input:
-            command: 'echo ''{"tool_name": "Bash"}'' | uv run tool-routing check'
-        expect: block
-      - desc: "printf JSON pipe to check should block"
-        input:
-          tool_name: Bash
-          tool_input:
-            command: 'printf ''%s\n'' "$json" | uv run tool-routing check'
-        expect: block
-      - desc: "echo pipe to test command should block"
-        input:
-          tool_name: Bash
-          tool_input:
-            command: 'echo ''{"test": "data"}'' | uv run tool-routing test'
-        expect: block
-      - desc: "normal test command should allow"
-        input:
-          tool_name: Bash
-          tool_input:
-            command: "uv run tool-routing test"
-        expect: allow
-      - desc: "normal integration test should allow"
-        input:
-          tool_name: Bash
-          tool_input:
-            command: "uv run tool-routing integration-test"
         expect: allow
