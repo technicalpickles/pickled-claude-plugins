@@ -18,7 +18,7 @@ export const register: Register = on => {
       if (told.has(key)) return next(e)
       told.add(key)
 
-      await $.session.send({ to: { sessionId: handoff.sessionId }, text: buildMessage(path, handoff) })
+      await $.session.send({ to: { sessionId: handoff.sessionId }, text: buildMessage(path) })
     } catch {
       // a missing handoff or a refused send must never stop the resume
     }
