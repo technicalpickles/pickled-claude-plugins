@@ -59,7 +59,8 @@ Overlays use poteto-mode's project-playbook format (`extends`, `when`, and `**Af
 
 ### Reply voice
 
-- **Outbound prose follows the voice skill.** Anything published with the user's name on it (PR bodies and comments, issue bodies, chat messages, blog posts) follows the user's voice skill, `writing-voice` when installed, over poteto-mode's Writing the reply rules and `unslop`. Chat replies to the user follow poteto-mode.
+- **Outbound prose follows the voice skill.** Anything published with the user's name on it (PR bodies and comments, issue bodies, chat messages, blog posts) follows the user's voice skill, `writing-voice` when installed, over poteto-mode's Writing the reply rules and `unslop`.
+- **Steering replies follow poteto-mode.** While a task is running, replies to the user (questions, status, mid-run steering) follow poteto-mode's Writing the reply rules. This is a deliberate exception to Precedence 1: a casual-voice instruction in the user's CLAUDE.md governs chat outside the task, not inside it. Once the task is done and the user turns to something else, the casual voice applies again.
 - **State the goal once.** Restate the user's goal in your first message on a task, as poteto-mode says. Do not reopen every final report with it. Restate it again only when the user stepped away, or the work ran long enough that they need the frame back.
 - **Structure when it carries structure.** Headers, tables, and lists are fine in replies when the content has real structure, such as options to compare, per-item results, or parallel facts. Write prose otherwise. This replaces poteto-mode's "no section headers" rule.
 
