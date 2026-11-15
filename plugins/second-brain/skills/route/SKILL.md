@@ -14,14 +14,17 @@ allowed-tools:
 
 Analyze an enriched note against routing memory, vault rules, and generic signals. Move to destination or mark for review.
 
-See `references/pipeline.md` for stage definitions and status flow.
-See `references/routing.md` for the scoring algorithm.
-See `references/para.md` and `references/johnny-decimal.md` for the two folder systems a vault may use (often both, mid-migration).
-See `references/routing-memory.md` for the correction and learning loop.
+See `../obsidian/references/pipeline.md` for stage definitions and status flow.
+See `../obsidian/references/routing.md` for the scoring algorithm.
+See `../obsidian/references/para.md` and `../obsidian/references/johnny-decimal.md` for the two folder systems a vault may use (often both, mid-migration).
+See `../obsidian/references/routing-memory.md` for the correction and learning loop.
 
 ## Input
 
-An enriched note in the inbox with `status: enriched`.
+An enriched note in the inbox with `status: enriched`, or a finished note
+with a vault status (`seedling`, `filed`, ...) or none. For a finished note,
+skip every `status` write below: move it or leave it, and its status stays.
+See "Status Values" in `../obsidian/references/pipeline.md`.
 
 ## Process
 
@@ -35,21 +38,27 @@ An enriched note in the inbox with `status: enriched`.
    a. Check `.routing-memory.md` corrections for matching topics/keywords
    b. Check `.routing-memory.md` learned patterns
    c. Apply vault CLAUDE.md disambiguation rules
-   d. Apply generic signal scoring (per `references/routing.md`)
+   d. Apply generic signal scoring (per `../obsidian/references/routing.md`)
 
-   Each destination from `sb vault structure` carries a `type`. For Johnny Decimal destinations (`type: 'jd'`) also use `area` and `code` when scoring: match the note's topic to the `area`, and prefer an ID `code` (e.g. `67.01`) for a specific note or its parent category `code` (e.g. `67`) for a loose note. See `references/johnny-decimal.md`.
+   Each destination from `sb vault structure` carries a `type`. For Johnny Decimal destinations (`type: 'jd'`) also use `area` and `code` when scoring: match the note's topic to the `area`, and prefer an ID `code` (e.g. `67.01`) for a specific note or its parent category `code` (e.g. `67`) for a loose note. See `../obsidian/references/johnny-decimal.md`.
 
 3. Apply threshold:
    - Score >= `auto-route-threshold`: auto-route, move file, set `status: routed`
    - Score < threshold: set `status: pending-review`, return without moving
 
-4. If auto-routing, move the file:
+4. Before moving, Glob the destination for a note on the same subject (its
+   title's words all in the other's, at least two words unless the titles
+   match exactly). If one is there,
+   don't move: present it like a pending-review note, with "merge into
+   {existing}" as the first option.
+
+5. If auto-routing, move the file:
    ```bash
    npx @techpickles/sb note move --from "{note-path}" --to "{destination}/"
    ```
    Update frontmatter: `status: routed`
 
-5. If pending-review, present suggestions to human (when called by orchestrator):
+6. If pending-review, present suggestions to human (when called by orchestrator):
    - Show top 2-3 destinations with scores and reasoning
    - Include "Leave in inbox" option
    - If user overrides suggestion, capture correction to `.routing-memory.md`

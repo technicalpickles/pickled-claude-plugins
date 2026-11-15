@@ -1,0 +1,82 @@
+[
+  {
+    "query": "pr 214 on our infra repo has a red `ci/woodpecker/pr/woodpecker` check and i can't open the woodpecker UI from this machine. what actually failed?",
+    "should_trigger": true
+  },
+  {
+    "query": "https://ci.example.dev/repos/12/pipeline/388 is failing again, can you pull the log for whichever step died first",
+    "should_trigger": true
+  },
+  {
+    "query": "i pushed to main like 15 minutes ago and gh pr checks / the commit page shows nothing at all. we build with woodpecker. did CI even start?",
+    "should_trigger": true
+  },
+  {
+    "query": "ci went green but i swear the typecheck was complaining last time. can you look at what the steps in the latest main pipeline actually did, it's woodpecker",
+    "should_trigger": true
+  },
+  {
+    "query": "why did the woodpecker pipeline for my last commit fail? the repo is in ~/github.com/acme/billing",
+    "should_trigger": true
+  },
+  {
+    "query": "the build is stuck on 'blocked' in woodpecker and nobody's moving. is it waiting on something or did it break",
+    "should_trigger": true
+  },
+  {
+    "query": "flaky again. look at pipelines 401 through 410 for this repo in woodpecker and tell me which step keeps going red",
+    "should_trigger": true
+  },
+  {
+    "query": "ok so test-web fails in CI but passes on my laptop. woodpecker run for PR 87, find me the actual assertion error not the skipped-step noise",
+    "should_trigger": true
+  },
+  {
+    "query": "woodpecker-cli pipeline ls says success for the commit but the deploy never happened. what did that pipeline really run?",
+    "should_trigger": true
+  },
+  {
+    "query": "`gh pr checks` just says 'Pipeline failed' with a woodpecker link. what's the failure",
+    "should_trigger": true
+  },
+  {
+    "query": "why did github actions run 9981234 fail on my PR? the lint job exited 1",
+    "should_trigger": false
+  },
+  {
+    "query": "https://buildkite.com/acme/web/builds/5521 is red, which job broke it",
+    "should_trigger": false
+  },
+  {
+    "query": "my pytest suite fails locally on test_ingest.py::test_retry, can you take a look",
+    "should_trigger": false
+  },
+  {
+    "query": "write a .woodpecker.yml for this go service with build, test and a docker publish step",
+    "should_trigger": false
+  },
+  {
+    "query": "convert our .github/workflows/release.yml to woodpecker syntax",
+    "should_trigger": false
+  },
+  {
+    "query": "jenkins build #4412 has been hanging at 'Waiting for next available executor' for an hour, what do i check",
+    "should_trigger": false
+  },
+  {
+    "query": "set up woodpecker server behind caddy with the github oauth app, and register an agent on the second box",
+    "should_trigger": false
+  },
+  {
+    "query": "the drone pipeline on our old repo is failing at the docker push step, what's wrong with it",
+    "should_trigger": false
+  },
+  {
+    "query": "edit the woodpecker-snapshot script so --tail defaults to 60 and update its tests",
+    "should_trigger": false
+  },
+  {
+    "query": "circleci job 'build-and-test' keeps timing out at 10 minutes, how do i raise the limit",
+    "should_trigger": false
+  }
+]

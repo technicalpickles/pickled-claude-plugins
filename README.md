@@ -44,22 +44,27 @@ See individual plugin READMEs for details on what each plugin provides.
 |--------|-------------|--------|
 | [actually-lsp](plugins/actually-lsp) | Closes the LSP activation gap end-to-end (detection, setup, activation, failure diagnosis) for Rust, TypeScript, and Ruby projects | actually-lsp-doctor, actually-lsp-ignore |
 | [agent-meta](plugins/agent-meta) | Meta-development tools for agentic workflows | harness-binary-spelunking, park, snapshot, unpark |
+| [automic-vault](plugins/automic-vault) | Teach agents what Automic Vault (av) is and how to use it as the credential manager: inject secrets, read approval history, and diagnose sandbox, locked-Mac and refused-agent errors | automic-vault-credentials, automic-vault-upstream |
 | [buildkite](plugins/buildkite) | Buildkite CI tools: build investigation, pipeline development, and tool preference enforcement | developing-pipelines, investigating-builds |
 | [ci-cd-tools](plugins/ci-cd-tools) | CI/CD pipeline tools and integrations | fixing-ci |
+| [come-on](plugins/come-on) | Catch Claude stopping short: unchecked claims, giving up early, inherited conclusions, unresearched options, and replies that don't land | come-on |
 | [cq](https://github.com/technicalpickles/cq) | Query past Claude Code sessions via the cq CLI (SQL over session transcripts) | [see repo](https://github.com/technicalpickles/cq) |
-| [dev-tools](plugins/dev-tools) | Developer productivity tools and utilities | colima, designing-clis, finding-api-docs, hk, working-in-scratch-areas, working-with-mise, working-with-scope |
+| [dev-tools](plugins/dev-tools) | Developer productivity tools and utilities | adopting-renovate, colima, designing-clis, finding-api-docs, hk, working-in-scratch-areas, working-with-mise, working-with-scope |
 | [git](plugins/git) | Git workflow tools: commits, PRs, review inbox, checkout, and work triage | checkout, commit, inbox, pull-feedback, pull-request, push, triage, update |
 | [github-actions](plugins/github-actions) | GitHub Actions CI tools: investigate failing runs via gh + a structured snapshot helper | investigating-runs |
-| [gut-check](plugins/gut-check) | Ground before you act: catch decisions and factual claims made from a thin basis (memory, the handoff, an unexamined pick) | gut-check |
+| [hk](plugins/hk) | Auto-wire hk's coding-agent integration (Stop check, instructions on first tool use inside an hk repo) in projects that have an hk config | hk-creating-checks |
+| [inflight-artifact](plugins/inflight-artifact) | Generate and refresh a private 'in-flight work' page (open PRs with CI links, sessions, tasks, what shipped) as a Claude artifact, with sections you shape by prompting | inflight-artifact-design, inflight-artifact-refresh |
 | [mcpproxy](plugins/mcpproxy) | MCP server management and integration tools | working-with-mcp |
 | [petri-dish](https://github.com/technicalpickles/petri-dish) | Author Claude Code experiments (petri-dish cultures) with disciplined schema, baselines, and multi-run averaging | [see repo](https://github.com/technicalpickles/petri-dish) |
+| [pickle-mode](plugins/pickle-mode) | Josh's agent style layered on pstack's poteto-mode: personal principles, gates, and playbook overlays | pickle-mode |
 | [sandbox-advisor](plugins/sandbox-advisor) | Turns Claude Code sandbox EPERMs into crisp re-run-unsandboxed guidance | – |
 | [second-brain](plugins/second-brain) | Knowledge management for Obsidian vaults and structured markdown repositories | capture, connect, devlog, distill-rules, enrich, ingest, link-daily, obsidian, process-inbox, route |
-| [stay-on-target](plugins/stay-on-target) | Focused development mode - clarify, plan, verify, detect drift | – |
 | [stay-principled](plugins/stay-principled) | Anchor design conversations to project principles via depth-first grilling before brainstorming generates options. Reads docs/principles.md (or docs/agents/principles.md), surfaces relevant principles for the topic, asks one question at a time with recommended answers, and outputs a brief that downstream planning can consume. | grill, setup |
 | [tailscale](plugins/tailscale) | Tailscale CLI reference and safe patterns for exposing local services over a tailnet | tailscale-cli, tailscale-serve-patterns |
 | [taskwarrior](plugins/taskwarrior) | Token-dense recipes for taskwarrior CLI: dense listings, single-field lookups, batched exports, full-text search | taskwarrior |
 | [tool-routing](plugins/tool-routing) | Route tool calls to better alternatives (e.g., gh CLI instead of WebFetch for GitHub PRs) | – |
+| [wait-for-it](plugins/wait-for-it) | Turn "tell me when X happens" into a zero-token shell watch instead of a prompt loop | wait-for-it |
+| [woodpecker](plugins/woodpecker) | Investigate failed Woodpecker CI pipelines through woodpecker-cli (state, step states, first failed step log tail) and author .woodpecker.yml | woodpecker-authoring-pipelines, woodpecker-investigating-pipelines |
 | [working-in-monorepos](plugins/working-in-monorepos) | Navigate and execute commands in monorepo subprojects | working-in-monorepos |
 | [writing-tools](plugins/writing-tools) | Prose skills plus a send-time hook that keeps em-dashes out of content you author | checking-for-undisclosed-context, writing-for-scannability |
 <!-- END GENERATED PLUGINS -->

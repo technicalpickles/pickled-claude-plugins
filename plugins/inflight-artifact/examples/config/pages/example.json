@@ -1,0 +1,20 @@
+{
+  "id": "example",
+  "title": "In-Flight Review",
+  "artifact_url": "",
+  "exclude": "sandbox-|scratch-",
+  "lede": "One or two sentences on where things stand. The design skill rewrites this for you.",
+  "needs": [
+    {"text": "Review the open widgets PR.", "refs": ["pr:widgets#12"]}
+  ],
+  "threads": [
+    {"id": "platform", "title": "Platform work", "status": "shipping",
+     "lede": "Backend services and the infra they run on.",
+     "match": {"repos": ["widgets", "infra"], "pr_title": "deploy|migrat"},
+     "next": [{"text": "Land the migration PR", "pr": "infra#7"}]},
+    {"id": "old", "title": "Old, to look at later", "status": "ignoring", "ignore": true,
+     "lede": "Stale PRs kept in view so you can close, revive or forget them.",
+     "match": {"pr_refs": ["gadgets#3"]}}
+  ],
+  "history": []
+}

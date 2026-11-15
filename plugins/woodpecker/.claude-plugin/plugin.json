@@ -1,0 +1,10 @@
+{
+  "name": "woodpecker",
+  "description": "Woodpecker CI tools: investigate failed pipelines via woodpecker-cli + a structured snapshot helper, and author .woodpecker.yml",
+  "author": {
+    "name": "Josh Nichols",
+    "email": "josh@technicalpickles.com"
+  },
+  "repository": "https://github.com/technicalpickles/pickled-claude-plugins",
+  "license": "MIT"
+}

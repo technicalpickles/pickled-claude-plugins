@@ -1,0 +1,28 @@
+name: inflight-artifact plugin tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'plugins/inflight-artifact/**'
+      - '.github/workflows/inflight-artifact-plugin-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  unittest:
+    name: unittest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugins/inflight-artifact
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run tests
+        run: python3 -m unittest discover -s tests -v

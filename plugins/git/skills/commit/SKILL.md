@@ -9,41 +9,46 @@ Preferences and best practices for interacting with a git repository.
 
 ## git add
 
-ALWAYS use `git add` with specific files that have been updated. NEVER use `git add .` or `git add -A`.
+Stage the files you changed by path. `git add .` and `git add -A` sweep in whatever else is in the working tree, including files another session left there.
 
-IF adding files that look like they are agent configuration, or adding planning documentation, ALWAYS prompt the user to confirm if they should be included or not.
+Ask before staging files that look like agent configuration or planning docs.
 
 ## git commit
 
-PREFER writing out a commit message to the `scratch/` directory, and save it to a name reflecting what is being commited. Then use use `git commit -t scratch/path-to-message.txt`
+PREFER writing the commit message to a file under `$TMPDIR`, named for what is being committed, then commit with `git commit -F "$TMPDIR/path-to-message.txt"`.
+
+Use `-F` (`--file`), NEVER `-t` (`--template`). A template opens the message in an editor and git aborts if it comes back unchanged (`Aborting commit; you did not edit the message.`). Agent shells run with a no-op editor, so `-t` always aborts. The abort comes after pre-commit hooks run, so the failure looks like a hook problem. It isn't; don't reach for `--no-verify`.
+
+Put any trailers your instructions require (e.g. `Co-Authored-By:`) at the end of the message file. Writing the message to a file first makes these easy to forget.
+
+### taskwarrior trailers
+
+When the work tracks a taskwarrior task, end the message with a trailer naming the task by its full UUID (`task _get <id>.uuid`), never the integer ID, which gets reused:
+
+- `Closes <uuid>` when this commit finishes the task.
+- `Refs <uuid>` when it moves the task along without finishing it.
+
+A task reconciler reads these trailers to decide which tasks to close. Never run `task <id> done` yourself on the strength of a commit.
+
+### scope the commit to your paths
+
+PREFER `git commit -F <file> -- <path>...` over a bare `git commit`. A bare commit takes everything currently staged, including files another session or tool staged in the same working tree between your `git add` and your `git commit`. Naming the paths commits only what you meant to.
+
+Path-limited commits take the working-tree version of those files, so skip `-- <path>` when you deliberately staged only some hunks of a file.
 
 ### signing
 
-We have git commit signing setup. If it fails due to a message like:
-
-    error: 1Password: failed to fill whole buffer
-
-    fatal: failed to write commit object
-
-... it is because the user was being prompted to authorize signing, and didn't see it or missed it. Do not try to fix or bypass it. Stop and prompt the user about either fixing it, or confirm bypassing it.
+Commit signing is set up. Never bypass it (`--no-gpg-sign`, `-c commit.gpgsign=false`, switching keys). If signing fails, read the actual error and report it to the user; on a Mac with Automic Vault, the `automic-vault:automic-vault-credentials` skill covers agent signing failures.
 
 ## hooks
 
 ### pre-commit failures
 
-When git precommit checks fail, analyze what the failures are, and try to autofix when possible, otherwise think through how to fix it. Ask the user how to proceed when it's unclear if how to fix.
+When pre-commit checks fail, read what failed and fix it. Ask the user when the right fix is unclear.
 
 DO NOT follow sorbet's autocorrection advice.
 DO NOT skip verification without confirmation from the user.
 
 ### prepare-commit-msg and post-commit
 
-If we see errors like:
-
-```
-git: 'duet-prepare-commit-msg' is not a git command. See 'git --help'.
-```
-
-it is because we previously were using git-duet. It uses a git template, with hooks that call `git duet-prepare-commit-msg`. We've sinced moved, but the files will still be present
-
-In this case, check .git/hooks/ for references to these. Remove files that call it.
+`git: 'duet-prepare-commit-msg' is not a git command` comes from leftover git-duet hooks in `.git/hooks/` (we no longer use git-duet). Remove the hook files that call it.

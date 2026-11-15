@@ -1,0 +1,18 @@
+schema_version: "1.1"
+name: warm-quiet-02
+description: Late-session trigger check; replays a short coding session (add jitter, test, commit) before the prompt.
+tags: [trigger, warm]
+runs: 3
+execution:
+  max_turns: 3
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: 'write me a short PR description for this change'
+context:
+  history_file: history.jsonl
+graders:
+    - name: quiet
+      type: tool_used
+      tool: Skill
+      input_match: '"skill"\s*:\s*"(?:[\w-]+:)?wait-for-it"'
+      min: 0
+      max: 0

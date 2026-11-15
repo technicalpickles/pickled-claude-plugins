@@ -30,6 +30,12 @@ Requires the [pickled-claude-plugins marketplace](../../README.md#installation).
    feature, a bug fix, a gotcha worth remembering. Nothing to remember,
    nothing to invoke.
 
+## Parking in the vault
+
+With the `agent-meta` plugin installed, `park` and `unpark` keep handoffs in your vault instead of `.parkinglot/`. The vault is `SB_NOTE_VAULT` if set, otherwise the default vault from `second-brain.md` in your Claude config dir (`$CLAUDE_CONFIG_DIR`, a `:` or `,` separated list tried in order, else `~/.claude`). The first one that is an existing directory wins. The vault's `CLAUDE.md` `## Parking` section sets the folder (`Location:`); without that section parks go to `.parkinglot/`. This works for `/agent-meta:park` and plain "park" alike.
+
+There are no park settings. To keep parks out of the vault, don't configure second-brain. There is no per-project opt-out. Per-machine vault config means a work machine parks to its work vault.
+
 ## Commands
 
 | Command | Description | Works From |
@@ -71,6 +77,48 @@ Requires the [pickled-claude-plugins marketplace](../../README.md#installation).
 │  4. Suggest extractions to permanent notes                  │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+## Devlog sidechain (experimental)
+
+A Claude Code mod (`hooks/devlog-sidechain/register.ts`, loaded through the
+`modules` entry in `hooks/hooks.json`) that judges devlog-worthiness outside
+the turn. Off by default: the `devlog_mode` plugin setting picks who writes entries, so the two never double-log:
+
+| `devlog_mode` | SessionStart nudge | Sidechain mod |
+|---------------|--------------------|---------------|
+| `nudge` (default) | on | off |
+| `sidechain` | silent | on |
+| `both` | on | on (for comparing) |
+ After a long turn it forks the session transcript with
+`$.model.fork`, asks "did the assistant just finish something or hit a
+non-obvious gotcha?", and appends an entry if so. The main agent never spends
+a turn on it. The fork rides the session's prompt cache, so each check costs a
+cache read plus a few output tokens.
+
+It does not write to the vault yet. Entries land in
+`~/.local/state/devlog-sidechain/<session-id>.md`, and every check (including
+`none` outcomes) logs token usage to `<session-id>.usage.jsonl` beside it.
+
+| Knob | Default | Meaning |
+|------|---------|---------|
+| `DEVLOG_SIDECHAIN_EVERY` | `4` | Check after this many qualifying turns |
+| `DEVLOG_SIDECHAIN_MIN_MS` | `15000` | Turns shorter than this don't count |
+| `DEVLOG_SIDECHAIN_DIR` | `~/.local/state/devlog-sidechain` | Where entries and usage logs go |
+
+To switch modes, run `/plugin configure second-brain@pickled-claude-plugins` in
+Claude Code, or from a shell:
+
+```bash
+echo '{"devlog_mode":"sidechain"}' | claude plugin configure second-brain@pickled-claude-plugins --values-stdin
+```
+
+It's stored as `pluginConfigs["second-brain@pickled-claude-plugins"].options.devlog_mode`
+in settings, and takes effect on the next session start. Until it's set, the
+mode is `nudge`.
+
+`/devlog-check [turns]` forces a check now and reports the outcome and token
+counts. Needs a Claude Code build with mods (2.1.300+). Run the module's tests
+with `claude plugin test plugins/second-brain`.
 
 ## Configuration
 
@@ -128,6 +176,11 @@ gets silently skipped:
 3. **Create through `sb note create`**, which owns the inbox path, timestamp, and filename slug
 4. **Leave it in the inbox** — routing is offered, not performed
 5. **Offer connections** plus a daily-note breadcrumb
+
+When WebFetch comes back 403, empty, or as a bot-check page, a plugin-wide hook
+(`hooks/webfetch-failed-ladder.py`) adds the other ways to read the page to the result: lightpanda,
+a real browser, the author's own site, the PDF text layer, secondary sources. It fires in every
+session and subagent with the plugin installed, not only during capture, and never blocks.
 
 Also handles "do we have a note about X already?" lookups, including the recall fallbacks for when
 semantic search misses (basename search across the vault, checking both inbox folders).

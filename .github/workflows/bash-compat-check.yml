@@ -1,0 +1,19 @@
+name: Bash Compat Check Tests
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check-bash-compat:
+    name: Test the bash 3.2 compat check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test the check
+        run: ./tests/scenarios/test-bash-compat.sh

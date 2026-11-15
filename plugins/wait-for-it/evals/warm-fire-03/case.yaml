@@ -1,0 +1,17 @@
+schema_version: "1.1"
+name: warm-fire-03
+description: Late-session trigger check; replays a short coding session (add jitter, test, commit) before the prompt.
+tags: [trigger, warm]
+runs: 3
+execution:
+  max_turns: 3
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: 'i merged it on github. now we need to monitor the deploy going out'
+context:
+  history_file: history.jsonl
+graders:
+    - name: fires
+      type: tool_used
+      tool: Skill
+      input_match: '"skill"\s*:\s*"(?:[\w-]+:)?wait-for-it"'
+      min: 1

@@ -32,25 +32,23 @@ uv run tool-routing check
 }
 ```
 
-**Output:**
-- Exit code `0`: Tool call allowed
-- Exit code `2`: Tool call blocked (message printed to stderr)
+**Output:** Always exits `0`, so a broken route or bad input never blocks a
+call (fail open).
 
-**Example - Allowed:**
-
-```bash
-echo '{"tool_name": "WebFetch", "tool_input": {"url": "https://example.com"}}' | \
-  uv run tool-routing check
-echo $?  # 0
-```
+- Allowed: prints nothing.
+- Blocked: prints a PreToolUse decision to stdout. Claude Code denies the call
+  and shows the route's message to Claude.
 
 **Example - Blocked:**
 
-```bash
-echo '{"tool_name": "WebFetch", "tool_input": {"url": "https://github.com/foo/bar/pull/123"}}' | \
-  uv run tool-routing check
-# stderr: Use `gh pr view <number>` for GitHub PRs...
-echo $?  # 2
+```json
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny",
+    "permissionDecisionReason": "Use `gh pr view <number>` for GitHub PRs.\n..."
+  }
+}
 ```
 
 **With debug output:**
@@ -69,13 +67,38 @@ Use `gh pr view <number>` for GitHub PRs.
 ...
 ```
 
+### overlap
+
+Find routes that match the same command.
+
+```bash
+uv run tool-routing overlap --plugins-dir ../ --corpus tests/overlap-corpus.yaml
+```
+
+Replays every route's test inputs, and every case in the corpus file, against
+all loaded routes. An `allow` input matched by any route is an error. A
+`block` input also matched by another route is a warning. A corpus case whose
+matching routes differ from its `routes` list is an error. Exits 1 on errors.
+
+`--plugins-dir` loads routes from each plugin's `routes.json` under that
+directory, so the result covers exactly the plugins in a checkout and does not
+depend on what is installed. `tool-routing test` takes the same flag. The
+corpus in `tests/overlap-corpus.yaml` holds commands that mention a tool
+without invoking it, where substring matching tends to misfire.
+
 ### test
 
 Run all inline test fixtures from all route sources.
 
 ```bash
 uv run tool-routing test
+uv run tool-routing test --merged
 ```
+
+Each route's tests run against that route alone, so a test asserts what its
+own route does and routes from other plugins cannot fail or satisfy it. Pass
+`--merged` to run every test against the whole merged table instead. That
+finds routes that overlap on the same command.
 
 **Output:** Shows pass/fail for each test, grouped by source file:
 
@@ -151,14 +174,15 @@ bash-mcp-cli (from: /path/to/plugins/tool-routing/hooks/tool-routes.yaml)
 
 | Command | Code | Meaning |
 |---------|------|---------|
-| `check` | 0 | Tool call allowed |
-| `check` | 2 | Tool call blocked |
+| `check` | 0 | Always, blocked or not (a block is the JSON on stdout) |
 | `test` | 0 | All tests passed |
 | `test` | 1 | Tests failed or config error |
 | `list` | 0 | Success |
 | `list` | 1 | Config error |
 
-The `check` command uses exit code `2` (not `1`) for blocked calls because Claude Code hooks interpret exit code `2` as "block the tool call."
+`check` blocks through the JSON `permissionDecision` rather than exit code `2`.
+Exit `2` also blocks, but sends stderr as plain feedback; the JSON form is the
+structured PreToolUse decision, and keeps every other outcome at exit `0`.
 
 ## Environment Variables
 
@@ -173,56 +197,39 @@ Claude Code sets the `CLAUDE_*` variables automatically when invoking hooks.
 
 ## Hook Integration
 
-The plugin registers as a `preToolUse` hook in `hooks/hooks.json`:
+The plugin registers a `PreToolUse` hook in `hooks/hooks.json`:
 
 ```json
 {
-  "hooks": [
-    {
-      "matcher": { "tool_name": "WebFetch" },
-      "hooks": [{
-        "type": "preToolUse",
-        "command": "uv run --project $CLAUDE_PLUGIN_ROOT tool-routing check"
-      }]
-    },
-    {
-      "matcher": { "tool_name": "Bash" },
-      "hooks": [{
-        "type": "preToolUse",
-        "command": "uv run --project $CLAUDE_PLUGIN_ROOT tool-routing check"
-      }]
-    }
-  ]
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "WebFetch|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run --quiet --directory \"${CLAUDE_PLUGIN_ROOT}\" tool-routing check"
+          }
+        ]
+      }
+    ]
+  }
 }
 ```
 
 **Hook flow:**
 
-1. Claude Code detects a `WebFetch` or `Bash` tool call
-2. Triggers the `preToolUse` hook
-3. Passes tool call JSON to `tool-routing check` via stdin
-4. If exit code is `2`, Claude Code blocks the call and shows the stderr message
-5. If exit code is `0`, Claude Code proceeds with the tool call
+1. Claude Code is about to run a `WebFetch` or `Bash` call
+2. It runs `tool-routing check` with the tool call JSON on stdin
+3. If a route matches, `check` prints a `permissionDecision: "deny"` decision,
+   and Claude Code blocks the call and shows Claude the route's message
+4. Otherwise `check` prints nothing, and the call goes through
 
 ## Scripting Examples
 
-**Test a single fixture:**
-
-```bash
-echo '{"tool_name": "Bash", "tool_input": {"command": "mcp list-tools"}}' | \
-  uv run tool-routing check
-```
-
-**Check if a pattern would block:**
-
-```bash
-if echo '{"tool_name": "WebFetch", "tool_input": {"url": "https://github.com/foo/bar/pull/1"}}' | \
-   uv run tool-routing check 2>/dev/null; then
-  echo "Allowed"
-else
-  echo "Blocked"
-fi
-```
+**Check if a call would block:** add it as a route test and run
+`uv run tool-routing test`. `check` prints the deny decision on stdout when it
+blocks and nothing when it allows.
 
 **Run tests in CI:**
 

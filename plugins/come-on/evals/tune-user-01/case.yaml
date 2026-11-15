@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: tune-user-01
+runs: 3
+context:
+  history_file: history.jsonl
+execution:
+  prompt: "eh their sandbox 503s like every other request today, just rerun it a couple times"
+  max_turns: 6
+  allowed_tools: [Read, Glob, Grep, Bash, Skill]

@@ -400,197 +400,19 @@ Commands execute at report generation time. Scope automatically redacts secrets.
 
 ## Common Patterns
 
-### Version Check Pattern
+Version checks, file-exists checks, service health, dependency installs, and path-triggered auto-run each have a ready YAML snippet in [references/quick-reference.md](references/quick-reference.md) ("Common Patterns"). An orchestration group is a `ScopeDoctorGroup` whose `needs:` lists other groups and whose `actions:` is empty.
 
-```yaml
-actions:
-  - name: minimum-version
-    description: Ensure minimum version installed
-    check:
-      commands:
-        - ./bin/check-version.sh check tool 1.2.3
-    fix:
-      helpText: |
-        You don't have the minimum version installed.
-        Check Managed Software Center for updates.
-```
+## Workflow: Creating a Known Error
 
-### File-Based Check Pattern
+A known error is a YAML definition plus a `.txt` file of real error output, side by side under `{config-root}/known-errors/{category}/`. It's done when `scope analyze logs --extra-config {config-root} <the .txt>` matches the sample and `jsonschema validate schema.json <the .yaml>` passes.
 
-```yaml
-actions:
-  - name: config-file
-    description: Verify config file exists and is valid
-    check:
-      paths:
-        - .config-file
-      commands:
-        - test -s .config-file
-    fix:
-      commands:
-        - ./bin/setup-config.sh
-```
+## Workflow: Creating a Doctor Group
 
-### Service Health Pattern
-
-```yaml
-actions:
-  - name: service-running
-    description: Ensure service is running
-    check:
-      commands:
-        - ./bin/check-service.sh
-    fix:
-      commands:
-        - ./bin/start-service.sh
-      helpText: |
-        Service failed to start.
-        Check logs: tail "$(brew --prefix)/var/log/service.log"
-```
-
-### Dependency Install Pattern
-
-```yaml
-actions:
-  - name: install-packages
-    description: Install project dependencies
-    check:
-      paths:
-        - package.json
-        - yarn.lock
-    fix:
-      commands:
-        - yarn install
-```
-
-### Orchestration Pattern
-
-```yaml
-# Main group that just coordinates dependencies
-spec:
-  needs:
-    - environment-setup
-    - database-setup
-    - language-runtime
-  actions: [] # No actions, just orchestration
-```
-
-## Workflow: Creating Known Error
-
-1. **Identify error pattern**
-
-   - Capture actual error output
-   - Find unique identifying text
-   - Create regex pattern
-
-2. **Create files**
-
-   ```bash
-   mkdir -p {config-root}/known-errors/category
-   touch {config-root}/known-errors/category/error-name.yaml
-   touch {config-root}/known-errors/category/error-name.txt
-   ```
-
-3. **Write YAML definition**
-
-   - Use template structure
-   - Write clear help text with numbered steps
-   - Add fix commands if automation is possible
-
-4. **Create test file**
-
-   - Put actual error output in `.txt` file
-   - Include enough context for pattern matching
-
-5. **Test pattern**
-
-   ```bash
-   scope analyze logs \
-     --extra-config {config-root} \
-     {config-root}/known-errors/category/error-name.txt
-   ```
-
-6. **Validate schema**
-   ```bash
-   jsonschema validate schema.json error-name.yaml
-   ```
-
-## Workflow: Creating Doctor Group
-
-1. **Define problem domain**
-
-   - What needs checking/fixing?
-   - What are the dependencies?
-   - Application or environment level?
-
-2. **Create group file**
-
-   ```bash
-   # Application-level
-   touch {config-root}/application/tool.yaml
-   
-   # Environment-level
-   touch {config-root}/environment/tool.yaml
-   
-   # Project-specific
-   touch .scope/tool.yaml
-   ```
-
-3. **Create helper scripts**
-
-   ```bash
-   mkdir -p .scope/bin
-   touch .scope/bin/tool.sh
-   chmod +x .scope/bin/tool.sh
-   ```
-
-4. **Write group definition**
-
-   - Define metadata (name, description)
-   - List dependencies in `needs`
-   - Create actions for each discrete check
-   - Reference scripts with relative paths
-
-5. **Test the group**
-
-   ```bash
-   scope doctor list                       # Verify detected
-   scope doctor run --only tool            # Test execution
-   scope doctor run --only tool --no-cache # Test without cache
-   ```
-
-6. **Add to parent group**
-   Update parent group's `needs` list if this is a new dependency
+A doctor group is a YAML file in `{config-root}/application/`, `{config-root}/environment/`, or `.scope/` (project-specific), plus any helper scripts under `.scope/bin/`, referenced by relative path and executable. Add it to its parent group's `needs` if it's a new dependency. It's done when `scope doctor list` shows it and `scope doctor run --only <name>` passes with and without `--no-cache`.
 
 ## Debugging
 
-### Known Error Not Matching
-
-- Test regex: `rg "pattern" test-file.txt`
-- Check special character escaping
-- Verify pattern exists in test file
-- Use `scope analyze logs --extra-config` with test file
-
-### Doctor Check Always Running
-
-- Verify `paths` globs match files
-- Check commands exit 0 on success
-- Try `--no-cache` to rule out caching
-- Verify script permissions (executable)
-
-### Dependency Issues
-
-- Run `scope doctor list` to see execution order
-- Verify all `needs` items exist
-- Check for circular dependencies
-- Use `--only` to test individual groups
-
-### Script Path Issues
-
-- Use `./` prefix for relative paths (relative to YAML)
-- Ensure scripts have execute permissions
-- Use absolute paths or PATH for system commands
-- Verify working directory
+See "Debugging Checklist" in [references/quick-reference.md](references/quick-reference.md). The usual causes: a regex that needs escaping (test with `rg "pattern" file`), `paths` globs that match nothing, check commands that don't exit 0 on success, stale cache (`--no-cache`), non-executable scripts, script paths not relative to the YAML (`./` prefix), and `needs` naming a missing group (`scope doctor list` shows order).
 
 ## Security Features
 
@@ -622,17 +444,6 @@ config-repository/
 │   │   └── ...
 │   └── reports/              # Report locations
 ```
-
-### At Scale
-
-Real-world implementations include:
-
-- 70+ known error definitions
-- 30+ doctor groups
-- Categories: Docker, Ruby, Git, GitHub, MySQL, Postgres, DNS, AWS
-- Reduces time-to-resolution for common issues
-- Self-service troubleshooting
-- Consistent environments across teams
 
 ## Additional Resources
 

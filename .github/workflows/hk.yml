@@ -1,0 +1,24 @@
+name: hk
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: hk check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install hk
+        uses: jdx/mise-action@v2
+        with:
+          install_args: hk
+
+      - name: Run hk checks
+        run: hk check --all

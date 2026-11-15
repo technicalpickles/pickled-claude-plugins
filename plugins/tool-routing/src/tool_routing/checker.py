@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from tool_routing.config import Route
+from tool_routing.shell import strip_literals
 
 # Maps tool name to the field in tool_input to match against
 TOOL_INPUT_FIELDS = {
@@ -24,6 +25,40 @@ class CheckResult:
     pattern: Optional[str] = None
 
 
+def _target_value(tool_call: dict) -> tuple[str, str]:
+    """Return (tool_name, value to match), or (tool_name, "") if unmonitored.
+
+    A Bash command is matched without its heredoc bodies and quoted strings.
+    """
+    tool_name = tool_call.get("tool_name", "")
+    input_field = TOOL_INPUT_FIELDS.get(tool_name)
+    if not input_field:
+        return tool_name, ""
+    value = tool_call.get("tool_input", {}).get(input_field, "")
+    if tool_name == "Bash":
+        value = strip_literals(value)
+    return tool_name, value
+
+
+def matching_routes(tool_call: dict, routes: dict[str, Route]) -> list[str]:
+    """Names of every route that matches the tool call, in table order."""
+    tool_name, value = _target_value(tool_call)
+    if not value:
+        return []
+
+    names = []
+    for route_name, route in routes.items():
+        if route.tool != tool_name:
+            continue
+        try:
+            if re.search(route.pattern, value, re.IGNORECASE):
+                names.append(route_name)
+        except re.error:
+            # Invalid regex - skip this route (fail open)
+            continue
+    return names
+
+
 def check_tool_call(tool_call: dict, routes: dict[str, Route]) -> CheckResult:
     """Check a tool call against all routes.
 
@@ -32,38 +67,17 @@ def check_tool_call(tool_call: dict, routes: dict[str, Route]) -> CheckResult:
         routes: Dictionary of routes to check against
 
     Returns:
-        CheckResult indicating if blocked and why
+        CheckResult for the first matching route
     """
-    tool_name = tool_call.get("tool_name", "")
-    tool_input = tool_call.get("tool_input", {})
-
-    # Get the field to match for this tool type
-    input_field = TOOL_INPUT_FIELDS.get(tool_name)
-    if not input_field:
-        # Tool type not monitored
+    names = matching_routes(tool_call, routes)
+    if not names:
         return CheckResult(blocked=False)
 
-    value = tool_input.get(input_field, "")
-    if not value:
-        return CheckResult(blocked=False)
-
-    # Check against each route
-    for route_name, route in routes.items():
-        # Only check routes for this tool type
-        if route.tool != tool_name:
-            continue
-
-        try:
-            if re.search(route.pattern, value, re.IGNORECASE):
-                return CheckResult(
-                    blocked=True,
-                    route_name=route_name,
-                    message=route.message,
-                    matched_value=value,
-                    pattern=route.pattern,
-                )
-        except re.error:
-            # Invalid regex - skip this route (fail open)
-            continue
-
-    return CheckResult(blocked=False)
+    route = routes[names[0]]
+    return CheckResult(
+        blocked=True,
+        route_name=names[0],
+        message=route.message,
+        matched_value=_target_value(tool_call)[1],
+        pattern=route.pattern,
+    )

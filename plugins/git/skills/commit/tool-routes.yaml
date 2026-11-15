@@ -1,0 +1,97 @@
+routes:
+  # git commit -t/--template aborts non-interactively.
+  # Only fires on a real `git commit` at the start of a command (after
+  # ; & | ( or a newline). tool-routing drops quoted strings and heredoc
+  # bodies before matching, so a mention inside them does not block.
+  git-commit-template:
+    tool: Bash
+    pattern: "(?:^|[;&|(\\n])[ \\t]*(?:\\w+=\\S*[ \\t]+)*git[ \\t]+(?:-C[ \\t]+\\S+[ \\t]+)?commit\\b[^|;&\\n]*[ \\t](?:-t|--template)(?:[ \\t]|=)"
+    message: |
+      Use `git commit -F <file>`, not `-t`/`--template`.
+
+      A template opens the message in an editor and git aborts if it comes
+      back unchanged ("Aborting commit; you did not edit the message.").
+      Agent shells use a no-op editor, so `-t` always aborts, after
+      pre-commit hooks run, which makes it look like a hook failure.
+
+      See the git:commit skill.
+    tests:
+      - desc: "commit -t should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit -t scratch/msg.txt"
+        expect: block
+        contains: "git commit -F"
+      - desc: "commit --template= should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit --template=msg.txt -- a.rb"
+        expect: block
+      - desc: "commit -C dir with -t after add should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git add a.rb && git -C /repo commit --no-verify -t /tmp/msg.txt"
+        expect: block
+      - desc: "commit -F should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit -F \"$TMPDIR/msg.txt\" -- a.rb"
+        expect: allow
+      - desc: "-t in a later command should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit -F msg.txt && pt beans create 'x' -t task"
+        expect: allow
+      - desc: "-t inside a later line of a heredoc message should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git commit -m \"$(cat <<'EOF'\nfix: stop using -t for templates\nEOF\n)\""
+        expect: allow
+      - desc: "backtick-quoted mention in prose should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "pt beans create 'x' -d 'why: `git commit -t <file>` aborts'"
+        expect: allow
+      - desc: "mention inside printf args should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "printf 'a git commit -t b' | wc -c"
+        expect: allow
+      - desc: "mention inside a heredoc body should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "tee notes.md <<'EOF'\ngit commit -t msg.txt\nEOF"
+        expect: allow
+      - desc: "mention inside an echoed string should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "echo \"never run git commit --template=x\""
+        expect: allow
+      - desc: "commit --template after a semicolon should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "cd repo; git commit --template=msg.txt"
+        expect: block
+      - desc: "commit -t on a later line should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "git add a.rb\ngit commit -t msg.txt"
+        expect: block
+      - desc: "commit -t on a line after a heredoc should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "tee msg.txt <<'EOF'\nfix: thing\nEOF\ngit commit -t msg.txt"
+        expect: block

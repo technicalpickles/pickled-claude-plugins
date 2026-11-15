@@ -1,2 +1,2 @@
 #!/bin/sh
-echo "$CLAUDE_SESSION_ID"
+echo "${CLAUDE_CODE_SESSION_ID:-$CLAUDE_SESSION_ID}"

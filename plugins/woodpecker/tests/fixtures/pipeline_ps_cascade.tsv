@@ -1,0 +1,5 @@
+woodpecker	clone	success
+woodpecker	build	success
+woodpecker	test	failure
+woodpecker	package	skipped
+woodpecker	deploy	skipped

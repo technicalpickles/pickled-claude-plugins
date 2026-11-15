@@ -1,0 +1,10 @@
+{
+  "name": "automic-vault",
+  "description": "How agents use Automic Vault (av) as the credential manager: injecting secrets, reading approval history, and diagnosing sandbox, locked-Mac and refused-agent errors",
+  "author": {
+    "name": "Josh Nichols",
+    "email": "josh@technicalpickles.com"
+  },
+  "repository": "https://github.com/technicalpickles/pickled-claude-plugins",
+  "license": "MIT"
+}

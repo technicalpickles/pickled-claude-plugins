@@ -22,7 +22,7 @@ Three tool categories exist with different strengths and limitations:
 | **Retrieve job logs** | **✅** (steps/*/log.txt) | **❌**         | **✅ `buildkite:get_logs`**     | snapshot captures automatically |
 | Save to files         | ✅                  | ❌                  | ❌                              | For later analysis             |
 | List artifacts        | ❌                  | ❌                  | ✅ `buildkite:list_artifacts`   |                                |
-| Wait for build        | ❌                  | ❌                  | ✅ `buildkite:wait_for_build`   |                                |
+| Wait for build        | ❌                  | ✅ `build --watch`  | ✅ `buildkite:wait_for_build`   | `--watch` exits 0 passed, 1 failed |
 | Unblock jobs          | ❌                  | ❌                  | ✅ `buildkite:unblock_job`      |                                |
 | **Create a build**    | ❌                  | **✅** `build create` | ❌                            | Auto-detects pipeline/commit/branch from git |
 | **Rebuild a build**   | ❌                  | **✅** `build rebuild` | ❌                           | Re-runs with original params   |
@@ -149,6 +149,8 @@ Both `build create` and `build rebuild` accept `--watch` to poll the new build u
 
 #### `find-commit-builds.js`
 
+Broken as of 2026-10-28 (see technicalpickles/pickled-claude-plugins#171); use `npx bktide@latest build <org>/<pipeline>#<n> --format json` (`.commit`) instead.
+
 Find builds matching a specific commit SHA.
 
 Usage:
@@ -160,6 +162,8 @@ Usage:
 Returns: JSON array of matching builds
 
 #### `wait-for-build.js`
+
+Broken as of 2026-10-28 (see technicalpickles/pickled-claude-plugins#171); use `npx bktide@latest build <org>/<pipeline>#<n> --watch` instead.
 
 Monitor build until completion (background-friendly).
 

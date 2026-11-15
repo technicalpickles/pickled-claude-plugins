@@ -8,6 +8,7 @@ allowed-tools:
   - Edit(~/.claude/vaults/**/*.md)
   - Bash(npx @techpickles/sb:*)
   - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/diagnose-sb.sh)
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/resolve-vault.sh:*)
 hooks:
   PreToolUse:
     - matcher: "Bash"
@@ -51,8 +52,9 @@ step gets skipped.
 - Reading an external source and writing it up — that's
   `second-brain:capture`
 - Trivially obvious or one-off details you'd never reach for again
-- Project-specific context (a config value, a repo convention) — that
-  belongs in Claude Code's own memory system, not the vault
+- A bare project-specific fact (a config value, a repo convention) with
+  no story behind it — that belongs in Claude Code's own memory system
+  alone, not the vault
 
 ## Step 1: Load Configuration
 
@@ -64,6 +66,20 @@ npx @techpickles/sb config default && npx @techpickles/sb config vaults
 
 If this fails, run `${CLAUDE_PLUGIN_ROOT}/scripts/diagnose-sb.sh` and follow
 its guidance rather than re-deriving the checks by hand.
+
+Then pick the vault for this session's note:
+
+```bash
+${CLAUDE_PLUGIN_ROOT}/scripts/resolve-vault.sh
+```
+
+It prints a vault name, or nothing. Use that name as `--vault <name>` on every
+`sb` call below that takes it (`note create`, `vault obsidian`, `inbox list`).
+When it prints nothing, omit `--vault` and let sb use its default. The name comes
+from `SB_NOTE_VAULT` if set (a per-project override), else from whichever
+registered vault contains the working directory. Never write a session's note
+to a different vault than the one the session is working in or for: a vault can
+have rules about what may be written to it.
 
 If no default vault is configured:
 ```
@@ -77,11 +93,31 @@ second devlog note for a session that already has one.
 
 1. Collect session context:
    - Current repo and branch, if in a worktree
-   - Current bean ID, if applicable
+   - Current work item, if any (see [Work items](#work-items) below)
    - Short session id (first 8 characters of the session UUID)
-   - Source string format: `claude-code session {short-id} ({repo}, branch {branch}, bean {id})`
-     (omit fields that don't apply, matching the format the retired
-     `distill-conversation` command used)
+   - Source string format: `claude-code session {short-id} ({repo}, branch {branch}, {tracker} {id})`
+     (omit fields that don't apply)
+
+### Work items
+
+This plugin doesn't know or assume an issue tracker. If your context names
+a tracked work item for this session (a ticket, issue, or task ID), record
+it; otherwise leave it out. It can arrive two ways:
+
+- **Your instructions** (CLAUDE.md, the user's own words) say what tracker
+  they use and which item is current.
+- **A hook** injects candidates when this skill loads, in this shape:
+  ```
+  Work items this session ({tracker}):
+  - {id} ({status}): {title}
+  ```
+  A `PreToolUse` hook on the `Skill` tool can emit this as
+  `additionalContext` for `second-brain:devlog`.
+
+If there are several candidates, pick the one(s) this entry is actually
+about. A follow-up item filed during the session is usually not what the
+session was about. If none fit, or nothing names a work item, omit it.
+Don't guess one from the branch name.
 
 2. **Check your own memory first.** If you already created or appended to
    this session's devlog note earlier in this same conversation, you
@@ -98,7 +134,7 @@ second devlog note for a session that already has one.
 4. **Fallback, only if you've genuinely lost track of the note's path**
    (e.g. a context compaction wiped your memory of this session) —
    resolve a real path instead of guessing:
-   - `npx @techpickles/sb vault obsidian` — parse the JSON for the
+   - `npx @techpickles/sb vault obsidian` (add `--vault <name>` when step 1 picked one) — parse the JSON for the
      top-level `inbox` field (the inbox subfolder name, e.g. `📫 Inbox`).
      This is the precomputed field `sb note create` itself resolves the
      inbox folder from — don't parse `app.newFileFolderPath` directly,
@@ -123,28 +159,31 @@ below) using the Edit tool. Don't touch its frontmatter.
 
 ### Step 2b: Create the note
 
-Staged and written in one unsandboxed Bash call:
+Staged and written in one Bash call:
 
 ```bash
+VAULT={vault name from resolve-vault.sh, or empty}
 STAGE=$(mktemp)
 cat > "$STAGE" <<'EOF'
 - {HH:MM} {entry}
 EOF
 npx @techpickles/sb note create \
+  ${VAULT:+--vault "$VAULT"} \
   --title "Session: {topic}" \
-  --source "claude-code session {short-id} ({repo}, branch {branch}, bean {id})" \
+  --source "claude-code session {short-id} ({repo}, branch {branch}, {tracker} {id})" \
   --content "$(cat "$STAGE")"
 rm -f "$STAGE"
 ```
 
-Run this with the Bash tool's `dangerouslyDisableSandbox: true` set from
-the start, not as a retry. Two reasons, same as the retired
-distill-conversation flow documented: vault paths symlink outside the
-sandbox's writable allowlist (a sandboxed attempt always EPERMs), and
-`$TMPDIR` resolves to a *different path* under
-`dangerouslyDisableSandbox: true` than under the normal sandbox — staging
-and reading have to happen in the same call under the same mode or the
-read can miss the file. The staged file must be a fresh `mktemp` path,
+Run it sandboxed first. It works sandboxed when the vault's real path is in
+the sandbox's `allowWrite` (for example `~/Vaults/<vault>/**/*.md`). Name
+the real directory, not a symlink to it: the sandbox matches the resolved
+path. If the call fails with `Operation not permitted` on the vault path,
+the vault isn't allowlisted. Re-run the *whole* call with the Bash tool's
+`dangerouslyDisableSandbox: true`, not just the `sb` line: `$TMPDIR`
+resolves to a *different path* unsandboxed, so staging and reading have to
+happen in the same call under the same mode or the read can miss the file.
+Either way, the staged file must be a fresh `mktemp` path,
 not a fixed filename: `$TMPDIR` is shared across every Claude Code
 session on the machine, and a fixed-name file can be overwritten or read
 by a stale write from a different session.
@@ -166,7 +205,9 @@ exact frontmatter sb wrote, then Edit it:
   git context if available) — don't add a second `repo:` line
 - replace the `branch: none` line sb wrote with `branch: {branch-name}`
   (from git context if available) — don't add a second `branch:` line
-- add `bean: {bean-id}` (from git context if available)
+- add `issue: {id}` if there's a current work item (see
+  [Work items](#work-items)); a YAML list if the entry covers several.
+  Omit the line entirely otherwise
 - keep `source` as sb wrote it — the `claude-code session ...` string
   already covers provenance for devlog's format
 - keep `captured` as sb wrote it
@@ -188,6 +229,26 @@ One bullet per entry, each with a wall-clock timestamp:
 
 Prose, not a title. Write it like a short journal line, not a commit
 message.
+
+### Also saved somewhere else?
+
+A record somewhere else doesn't replace the devlog entry. Claude Code's
+memory is what future sessions act on, an issue or ticket is the tracked
+work, and the devlog is the vault's record of what happened. When the
+discovery was also saved to one of those, write the entry anyway and say
+where it went:
+
+```markdown
+- 14:05 The VM's guest DNS drifts off its DHCP lease after the host
+  sleeps, so image pulls time out until it's reset. Saved as a memory
+  (`~/.claude/projects/<project>/memory/reference_vm_dns_drift.md`).
+```
+
+Point at it, don't paste it: one or two sentences of what happened,
+then the pointer. The other record holds the details. Which trackers
+count beyond memory (and how to cite them) is up to your own
+instructions or the hook that nudged you here; this skill doesn't
+assume any.
 
 ## Constraints
 

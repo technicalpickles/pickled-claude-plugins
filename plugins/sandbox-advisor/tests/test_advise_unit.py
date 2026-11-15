@@ -283,8 +283,8 @@ class TestDecideAdvice:
             )
         )
         assert reason is not None
-        assert "dangerouslyDisableSandbox" in reason
-        assert "https" in reason.lower()
+        assert "relay" in reason.lower()
+        assert "set-url" not in reason
 
     def test_gh_pr_checkout_ssh_block_advises(self):
         reason = advise.decide_advice(
@@ -297,7 +297,7 @@ class TestDecideAdvice:
             )
         )
         assert reason is not None
-        assert "ssh-agent" in reason.lower()
+        assert "relay" in reason.lower()
 
     def test_gh_unrelated_failure_stays_silent(self):
         # gh classifies broadly as git-ssh, but a validation error shares no

@@ -1,0 +1,194 @@
+{
+  "summary": {
+    "label": "baseline",
+    "accuracy": 0.7,
+    "recall_on_should_trigger": 0.5,
+    "specificity_on_should_not": 1.0,
+    "passed": 14,
+    "total": 20,
+    "timeouts": 0
+  },
+  "results": [
+    {
+      "query": "i updated the branch from github, which should trigger CI. monitor it",
+      "should_trigger": true,
+      "trigger_rate": 1.0,
+      "triggers": 3,
+      "runs": 3,
+      "timeouts": 0,
+      "pass": true
+    },
+    {
+      "query": "i've merged it, let's monitor CI/release on main",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "timeouts": 0,
+      "pass": false
+    },
+    {
+      "query": "i think technically the vuln moves to resolved, not closed. monitor the PR",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "timeouts": 0,
+      "pass": false
+    },
+    {
+      "query": "i got the approval, and merged. we need to monitor it through deploys",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "timeouts": 0,
+      "pass": false
+    },
+    {
+      "query": "i replied on it. work on fixing /retrying CI, and monitoring the fixes when done",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "timeouts": 0,
+      "pass": false
+    },
+    {
+      "query": "push. then monitor for PR reviews",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "timeouts": 0,
+      "pass": false
+    },
+    {
+      "query": "we are focused on the api service now. see if you can monitor the deploys going out",
+      "should_trigger": true,
+      "trigger_rate": 1.0,
+      "triggers": 3,
+      "runs": 3,
+      "timeouts": 0,
+      "pass": true
+    },
+    {
+      "query": "i've requested an automated review of this from the review bot. monitor for that, and consider how to apply it",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "timeouts": 0,
+      "pass": false
+    },
+    {
+      "query": "ping me as soon as we get our first GraphQL hits for the checkout-v2 flag that was just ramped to 5%",
+      "should_trigger": true,
+      "trigger_rate": 1.0,
+      "triggers": 3,
+      "runs": 3,
+      "timeouts": 0,
+      "pass": true
+    },
+    {
+      "query": "notify when https://buildkite.com/acme/web/builds/111 reaches a terminal state",
+      "should_trigger": true,
+      "trigger_rate": 1.0,
+      "triggers": 3,
+      "runs": 3,
+      "timeouts": 0,
+      "pass": true
+    },
+    {
+      "query": "watch acme/web PR #3100's checks until they all settle. i just pushed an empty commit to retrigger CI",
+      "should_trigger": true,
+      "trigger_rate": 1.0,
+      "triggers": 3,
+      "runs": 3,
+      "timeouts": 0,
+      "pass": true
+    },
+    {
+      "query": "let me know when the dev server stops logging errors",
+      "should_trigger": true,
+      "trigger_rate": 1.0,
+      "triggers": 3,
+      "runs": 3,
+      "timeouts": 0,
+      "pass": true
+    },
+    {
+      "query": "what's the status of CI on PR #3100?",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "timeouts": 0,
+      "pass": true
+    },
+    {
+      "query": "why did https://buildkite.com/acme/web/builds/111 fail?",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "timeouts": 0,
+      "pass": true
+    },
+    {
+      "query": "fix CI on this branch and keep pushing until it's green",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "timeouts": 0,
+      "pass": true
+    },
+    {
+      "query": "set up a datadog monitor that pages the team if the error rate goes over 5%",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "timeouts": 0,
+      "pass": true
+    },
+    {
+      "query": "every weekday at 9am, summarize my open PRs",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "timeouts": 0,
+      "pass": true
+    },
+    {
+      "query": "did the deploy go out yet?",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "timeouts": 0,
+      "pass": true
+    },
+    {
+      "query": "add a --watch flag to our CLI that reruns tests when files change",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "timeouts": 0,
+      "pass": true
+    },
+    {
+      "query": "run the test suite and tell me what fails",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "timeouts": 0,
+      "pass": true
+    }
+  ],
+  "description": "(from SKILL.md)"
+}

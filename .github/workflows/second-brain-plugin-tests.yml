@@ -7,6 +7,7 @@ on:
       - 'plugins/second-brain/bin/**'
       - 'plugins/second-brain/scripts/**'
       - 'plugins/second-brain/hooks/**'
+      - 'plugins/second-brain/.claude-plugin/**'
       - '.github/workflows/second-brain-plugin-tests.yml'
 
 permissions:
@@ -22,11 +23,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install bats
-        run: sudo apt-get update && sudo apt-get install -y bats
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Install bats and Claude Code
+        run: |
+          sudo apt-get update && sudo apt-get install -y bats
+          npm install -g @anthropic-ai/claude-code
 
       - name: Run bats
         run: bats bin/tests/ scripts/tests/ hooks/tests/
 
       - name: Run Python tests
         run: python3 -m unittest discover -s bin/tests -p 'test_*.py'
+
+      - name: Test and validate the plugin's mods
+        run: |
+          claude plugin test .
+          claude plugin validate .

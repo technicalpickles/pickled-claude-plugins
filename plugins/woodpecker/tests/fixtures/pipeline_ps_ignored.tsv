@@ -1,0 +1,4 @@
+woodpecker	clone	success
+woodpecker	lint	success
+woodpecker	typecheck	failure
+woodpecker	test	success

@@ -1,6 +1,6 @@
 ---
 name: capture
-description: Use when the user asks to read a source and make a note for it, create or find an atomic note, or check whether a note already exists. Triggers on "read <url> and make a note", "make a note for", "create (or find) an atomic note", "do we have notes about X?", "check if we have a note for", "capture this", "put together a note", "distill this", and on a bare URL/PDF/tweet/thread handed over with intent to write it up. Covers the whole loop as one arc - search the vault first, read the primary source, write the note through the sb CLI, then offer connections. Use inside an Obsidian vault or anywhere a vault is configured. Do NOT use for draining an accumulated inbox backlog (that is process-inbox), for extracting insights from the current conversation (that is devlog), or for routing already-captured notes to their homes (that is route).
+description: Use when the user asks to read a source and make a note for it, create or find an atomic note, or check whether a note already exists or add to one that does. Triggers on "read <url> and make a note", "make a note for", "create (or find) an atomic note", "do we have notes about X?", "check if we have a note for", "capture this", "put together a note", "distill this", and on a bare URL/PDF/tweet/thread handed over with intent to write it up. Use inside an Obsidian vault or anywhere a vault is configured. Do NOT use for draining an accumulated inbox backlog (that is process-inbox), for extracting insights from the current conversation (that is devlog), or for routing already-captured notes to their homes (that is route).
 allowed-tools:
   - Read
   - Write(~/.claude/vaults/**/*.md)
@@ -21,19 +21,29 @@ hooks:
       hooks:
         - type: command
           command: "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/check-sb-before-call.py"
+    - matcher: "WebFetch"
+      hooks:
+        - type: command
+          command: "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/webfetch-prefer-lightpanda.py"
 ---
 
 # Capture
 
-Write a note into the vault from a source the user hands you. One arc, five steps:
-**search → read the primary source → create through sb → leave it in the inbox → offer connections.**
+Write a note into the vault from a source the user hands you. One arc, six steps: **open (search,
+fetch, ask why) -> read the primary source -> create through sb -> leave it in the inbox -> link
+connections -> fold in follow-ups.** "Read this and make a note" means all six; the connect step
+won't happen unless this skill runs it.
 
-This is the dominant vault interaction. Do not decompose it into separate asks; the user saying
-"read this and make a note" means all five steps, and the connect step in particular will not
-happen unless this skill runs it.
+Two requests take a different path through the same skill. Decide which one you have before Step 1:
 
-See [references/note-format.md](references/note-format.md) for frontmatter and body shape.
-See [../obsidian/references/sb-cli.md](../obsidian/references/sb-cli.md) for the full sb command surface.
+| The user wants | Path |
+|---|---|
+| A source written up as a new note | Steps 1-6 below |
+| To know what the vault already holds ("do we have notes on X", "find notes about X") | [Lookup only](#lookup-only-do-we-have-notes-on-x) |
+| Something added to a note that already exists ("add this to the X note", "pull up the note for X", or a "yes, extend it" to Step 1) | [Extend an existing note](#extend-an-existing-note) |
+
+Note shape: [references/note-format.md](references/note-format.md). sb commands:
+[../obsidian/references/sb-cli.md](../obsidian/references/sb-cli.md).
 
 ## Step 0: Locate the vault
 
@@ -42,165 +52,214 @@ npx @techpickles/sb vault info
 npx @techpickles/sb config qmd-collection
 ```
 
-Read the vault's own `CLAUDE.md` if you haven't this session. Vault-specific policy (destinations,
-status vocabulary, disambiguation rules) overrides the defaults here.
+Read the vault's own `CLAUDE.md` if you haven't this session. Its policy (destinations, status
+vocabulary, disambiguation) overrides the defaults here.
 
-## Step 1: Search before creating - never skip this
+## Step 1: Open - search, start the fetch, ask why
 
-Run a `lex` + `vec` pair through the **qmd MCP tools**, not the shell. (`mcp__qmd__query` is the
-working path; shelling out to `qmd` hits Metal-init failures under the sandbox.)
+Do these in order, then end the turn. Nothing is written yet.
 
-```
-mcp__qmd__query
-  searches: [{type: 'lex', query: '<topic terms>'},
-             {type: 'vec', query: '<what the note would say>'}]
-  collection: <from sb config qmd-collection>
-  intent: '<why you are searching>'
-  rerank: false        # CPU-only box, reranking is not worth the latency here
-```
+1. **Start reading the source in the background** (Bash with `run_in_background`), using the first
+   rung of [references/fetch-ladder.md](references/fetch-ladder.md). Step 2 collects the result.
+2. **Search the vault while it runs,** through the qmd MCP tools (shelling out to `qmd` hits
+   Metal-init failures under the sandbox):
 
-Show the user what already exists - **path + score + snippet** - before anything gets written.
-Often the right move is extending a note, not minting one. If a result is a strong match, say so
-and ask which way to go instead of quietly creating a duplicate.
+   ```
+   mcp__qmd__query
+     searches: [{type: 'lex', query: '<one distinctive term>'},
+                {type: 'lex', query: '<another term>'},
+                {type: 'vec', query: '<what the note would say>'}]
+     collections: [<from sb config qmd-collection>]
+     intent: '<why you are searching>'
+     rerank: false
+   ```
 
-### When search comes up empty
+   Each `lex` is one or two terms, because lex ANDs its terms. Also Glob today's inbox captures
+   (`*/11 Inbox*/<YYYYMMDD>*.md`), since the qmd index lags same-day notes.
+3. **Send one message** with: the hits (path + snippet + why each looks strong or weak; qmd scores
+   are only ranks), the question "what made you grab this?", and on a strong match "extend <note>
+   or start a new one?".
+4. **End the turn.**
 
-A miss is not proof the note is absent. In order:
+Then, keyed to what you observe:
 
-1. **Basename is the stable identity.** Notes get routed between folders constantly. Search the
-   basename across the whole vault (`Glob`/`Grep`) before concluding anything is missing.
-2. **Check both inboxes.** `10-19 System & Capture/11 Inbox & triage/` and
-   `10-19 System & Capture/11 Inbox/` are separate folders with the same JD code. `sb inbox list`
-   only reads the first.
-3. **The note may genuinely not exist.** Say that plainly and offer to start one.
-
-### When the user says "that isn't the one"
-
-Do **not** re-run the same query with different phrasing, and do not widen `-n` and hope. Ask for
-one distinguishing detail (who made it, where they saw it, what it sits next to) and search on
-*that* instead. Re-running near-identical searches has burned entire sessions, including the same
-lookup failing twice across two separate sessions.
+- **The request already states a reason:** skip the why question and carry on.
+- **The fetch has failed when you send the message:** say so there, in one line, and ask the same
+  questions. The why question and the hits don't wait on the fetch.
+- **The fetch finishes before a reply:** write with `**Why I saved this:** TODO`.
+- **A strong-match question is open:** wait for the reply, then write.
+- **qmd tools aren't loaded yet:** use Grep, say it was keyword-only, and run qmd before writing.
+- **A qmd path starts with `second-brain/`:** strip that prefix to get the path on disk.
+- **The thing's name is unfamiliar:** let the fetch land before the `vec` query.
+- **A search misses, or the user says "that isn't the one":**
+  [references/search-recovery.md](references/search-recovery.md).
 
 ## Step 2: Read the actual primary source
 
-**Never write a note from search snippets.** Fetch the real thing.
+Never write from search snippets. If Josh names a fetch method, use it or say why you can't.
 
-Match the source, then follow its playbook. For a URL, match on the host:
+A few sites have their own playbook. Match the host; anything else goes down the ladder in
+[references/fetch-ladder.md](references/fetch-ladder.md) (lightpanda first, WebFetch last):
 
-| Source | Playbook / tool |
-|--------|-----------------|
+| Source | Playbook |
+|--------|----------|
 | `x.com`, `twitter.com` | [references/sites/x.md](references/sites/x.md) |
 | `youtube.com`, `youtu.be` | [references/sites/youtube.md](references/sites/youtube.md) |
 | `reddit.com`, `redd.it` | [references/sites/reddit.md](references/sites/reddit.md) |
-| Any other URL | [references/sites/web.md](references/sites/web.md) |
-| PDF or local file | `Read` |
-| Notion page | `mcp__notiongusto__notion-fetch` |
-| Slack thread | the `slack` skill |
+| Any other URL, PDF, connector source | [references/sites/web.md](references/sites/web.md), which points at the ladder |
 
 Each playbook also names frontmatter fields to add beside `source` in Step 3; carry them into the
 note. New site: add `references/sites/<site>.md` and one row here.
 
 **If you cannot reach the source, or cannot find the thing the user described, stop and say so.**
-Do not write a note containing a URL you did not load, a title you inferred, or details you filled
-in from background knowledge. Reporting "I couldn't find anything matching this" is the correct
-outcome and is more useful than a plausible note that is wrong.
+No URL you did not load, no title you inferred, no details from background knowledge. "I couldn't
+find anything matching this" beats a plausible note that is wrong.
 
 ## Step 3: Create the note through sb
 
 ```bash
-npx @techpickles/sb note create --source auto --title "<title>" --dry-run   # check the path first
-npx @techpickles/sb note create --source auto --title "<title>"            # returns JSON with path
+npx @techpickles/sb note create --source auto --title "<title>"   # returns JSON with the path
 ```
 
-Then write the body at the returned path with `Write`/`Edit`.
-Add any site fields from the playbook to the frontmatter (see
-[references/note-format.md](references/note-format.md#site-fields)).
+Then replace the whole file at that path with this skeleton, filled in. Keep `captured` from sb's
+scaffold; everything else in the scaffold goes. Add any site fields from the playbook to the
+frontmatter beside `source` (see [references/note-format.md](references/note-format.md#site-fields)).
 
-**Do not hand-roll the destination path.** sb resolves the inbox, the zettelkasten timestamp, and
-the filename slug (`202608141249 note-title.md` - space after the timestamp, hyphens inside the
-slug). Hand-rolled `Write` calls are how captures end up in the inbox the pipeline never reads:
-as of 2026-08-14 that had orphaned 46 notes, and untangling it took a single 211-message session.
+```markdown
+---
+status: seedling
+tags: [topic-tag, another-tag]
+created: YYYY-MM-DD
+captured: <from sb's scaffold>
+source: <the URL or file path you read>
+---
 
-For a title, prefer the source's own framing over a topic label. `# Glide browser` beats
-`# Notes on a keyboard-driven browser`.
+# <Title, in the source's own framing>
 
-## Step 4: Leave it in the inbox for `process-inbox` to route
+<What it is, in a sentence or two, with an inline link to the source.>
 
-The note stays where sb put it. Routing is `process-inbox`'s job, not capture's —
-don't ask, don't route it, and don't mention that it still needs routing.
+**Why I saved this:** <the user's reason, in their words - or TODO>
 
-This overrides the vault's general "capture: file rough, move on / a wrong-but-close
-home beats the global inbox" guidance, which governs notes *the user* files by hand.
-Notes *the agent* writes on request stay in the inbox until `process-inbox` picks them
-up. Both rules coexist in the vault CLAUDE.md; the scope of the override has
-historically been read as ambiguous — first producing a roughly 50/50 split between
-inbox and direct-to-area filing, later a per-note routing question duplicating
-process-inbox's own batch routing. It is not ambiguous: **agent-written note on
-request → inbox, no offer, no mention.**
+<The content: 3+ parallel items become bullets with a bold lead-in; every named tool, project,
+paper, or doc gets its link from the source; every sentence restates the source.>
 
-The exception is an explicit destination named in the same conversation ("put it in
-66"). Resolve it the way `route` would rather than hand-rolling a path: run
-`sb vault structure`, match the user's phrase against a real destination (JD `area`/
-`code` or PARA folder), then `sb note move --from "{note-path}" --to "{destination}/"`.
-Never construct the destination path from the user's words alone.
+## Related
 
-## Step 5: Offer connections, append the daily breadcrumb
+- [[<note a search returned>]] - <why it relates>
+```
 
-Connection discovery does not fire on its own, and the user should not have to notice it was
-skipped. **Offer it every time**, using the step 1 results plus a fresh search from the finished
-note's content.
+Each slot's rules, with a worked example: [references/note-format.md](references/note-format.md).
+**sb owns the path** (inbox, timestamp, slug); hand-rolled `Write` paths once orphaned 46 notes.
 
-- Only link notes **confirmed to exist** by an actual search hit. Never emit a `[[link]]` to a note
-  you have not verified, and never create side notes on your own initiative. Surface those as
-  suggestions ("want me to make a note for X too?") and let the user decide.
-- Add links under `## Related` with a few words on *why* each one relates. A bare link list decays.
+## Step 4: Leave it in the inbox for `process-inbox`
 
-Then append the daily-note breadcrumb yourself - this is no longer a yes/no:
+The note stays where sb put it: don't ask about routing, don't route it, don't mention that it
+needs routing. This overrides the vault's "file rough, move on" guidance, which governs notes the
+user files by hand. **Agent-written note on request -> inbox.**
 
-1. **Append:**
-   ```bash
-   npx @techpickles/sb daily append --section "Notes" --content "- [[<note>]] - <one-line why>"
-   ```
-   One command does the whole job. `sb` creates today's daily note from the vault's configured
-   Obsidian daily template when it doesn't exist yet, and matches the existing `## Notes` heading
-   when it does. Keep the breadcrumb to links unless asked for more, and do not restructure or
-   rewrite the daily note.
+The exception is a destination the user named in the conversation ("put it in 66"). Resolve it as
+`route` does: `sb vault structure`, match the phrase to a real destination, then
+`sb note move --from "{note-path}" --to "{destination}/"`. Never build the path from the user's
+words alone.
 
-   Do not pre-check the note's existence, hand-copy the template, or verify where the line landed.
-   Those steps existed to paper over CLI bugs that are fixed; re-adding them is how a one-command
-   step turns back into four.
+## Step 5: Link connections, append the daily breadcrumb
 
-   If the append does fail, say so out loud. A dropped breadcrumb must never be silent now that no
-   one is asked before it happens.
-2. **Report it in one line**, e.g. `Added breadcrumb to today's daily note.` No ceremony - just
-   enough for Josh to see it and undo or adjust. When the response includes `"created": true`, the
-   note was seeded from the template verbatim, so any `{{date}}` or placeholder links in it are
-   still literal. Leave them alone - that is the template's business, not the breadcrumb's.
+Connection discovery doesn't fire on its own. **Run it every time**, using the Step 1 results plus
+a fresh search from the finished note's content. Only the note you just created changes on its own:
 
-For deeper backlink weaving, hand off to the `connect` skill rather than reimplementing it.
+- **Confident - add it to the new note, don't ask.** The existing note is the **same subject**
+  (same tool/person/project/event, not a shared theme) or is **named in the source**. Add it under
+  `## Related` with a few words on *why*, check the target's basename exists first, and say
+  `Linked to <note>.` in your summary.
+- **Everything else is a proposal,** never an action. If you can't write the "why" without the
+  words "theme" or "similar", it's a proposal.
+
+Then append the daily breadcrumb yourself, with no yes/no:
+
+```bash
+npx @techpickles/sb daily append --section "Links" --content "- [[<note>]] - <one-line why>"
+```
+
+`sb` creates today's daily note from the vault's template when needed and matches the existing
+`## Links` heading. Keep it to the link line, and don't pre-check, hand-copy the template,
+restructure the daily note, or verify where the line landed. Report it in one line
+(`Added breadcrumb to today's daily note.`); if the append fails, say so. A `"created": true`
+response means the note was seeded verbatim from the template, so leave any placeholder in it
+alone.
+
+### Closing proposals
+
+End the summary with one line per proposal, in exactly this shape:
+
+```
+- [high|medium|low] <action in plain words> - <reason> (<path of the existing note>)
+```
+
+Actions: `Add a link to this note from <note>`, `Make a note for <thing the source cites>`,
+`Add this to <hub or list note>`, `Merge with <note>?`, `Link <note> too?`.
+
+Confidence is how sure you are Josh would say yes, with the reason as proof. Every target is a
+note a search found, named by path. Skip the block when there is nothing to propose. For deeper
+backlink weaving, hand off to the `connect` skill.
+
+## Step 6: Fold in follow-up research on the note you just wrote
+
+If right after capture the user asks about the thing the note covers ("is there a release date
+yet?"), answer and then **update the note** with the answer, rather than leaving it stale in chat.
+Say what you added in one line. This stops at a genuinely new note or source.
+
+## Lookup only: "do we have notes on X"
+
+The user wants to know what's in the vault, not to write anything. Run Step 0 and the Step 1
+search (qmd, today's inbox Glob), and skip the fetch and the why question, since there is no
+source.
+
+1. **Show the hits** in one message: path + snippet, and a few words on why each looks strong or
+   weak. qmd scores are only ranks, so don't quote them as relevance.
+2. **Then offer, one line:** "Extend <note>?" when a hit is on the subject, "Want me to start
+   one?" when nothing is. A miss follows [references/search-recovery.md](references/search-recovery.md)
+   first.
+3. **Stop.** Nothing is written, no breadcrumb, no closing proposals. Never suggest a new folder,
+   hub, or note beyond the one the user asked about.
+
+If they say yes, you're on the new-note arc (Steps 1-6, reusing these hits) or the extend path.
+
+## Extend an existing note
+
+The right move is often to edit a note that's already there (a stub, or a note on the same
+subject), not to mint a second one. Skip Steps 3 and 4; the rest of the arc applies.
+
+- **Read the existing note first, and the real source** (Step 2 still applies).
+- **Edit in place with Edit, not sb.** sb only creates. The note keeps its path and folder: don't
+  move it, don't rename it, don't touch `status` or its frontmatter beyond what the new content
+  needs.
+- **Put the content where it belongs.** Under an existing heading that fits, else a new `##`
+  section before `## Related`. Add only what the source says, with the same links and no-invention
+  rules as [references/note-format.md](references/note-format.md). Leave what's already there
+  alone, and don't add a second `**Why I saved this:**`.
+- **Confident links** follow Step 5: same subject or named in the source, under the note's
+  `## Related`, skipping any already there.
+- **Breadcrumb** as in Step 5, but with `updated` so the daily note doesn't read like a new note:
+
+  ```bash
+  npx @techpickles/sb daily append --section "Links" --content "- [[<note>]] - updated: <what you added>"
+  ```
+
+- **Closing proposals** use the same block as Step 5. "Merge with <note>?" and "Add this to <hub>"
+  don't apply to the note you just extended; a second existing note that also fits is a
+  proposal, not an edit.
+- **Several candidate notes?** Edit the strongest one and propose the rest, unless the user said
+  to cover them all.
 
 ## Capturing several sources at once
 
-When the user hands over a batch ("make notes for each of these", "write them up"), dispatch **one
-subagent per note** so each reads its source in isolation and cannot cross-contaminate. This is a
-pattern the user asks for explicitly; default to it for 3+ sources.
-
-Each subagent: read the primary source, write one note via sb, and report back **path, title,
-verified wiki-links used, and anything it could not confirm**. Then do the cross-linking pass
-yourself once all notes exist, since connections need the whole set in view.
+For a batch of 3+ sources, dispatch one subagent per note, then do the cross-linking and closing
+proposals yourself. How: [references/batch.md](references/batch.md).
 
 ## Constraints
 
-- **Search first, always.** No note gets written before the user has seen what already exists.
-- **Primary sources only.** No note written from a snippet, a memory, or a guess.
-- **Never fabricate.** No invented URLs, no unverified `[[links]]`, no filled-in details. Stop and
-  report the gap instead.
-- **sb owns paths.** No hand-rolled destinations.
-- **Inbox by default.** Routing is `process-inbox`'s job — capture never asks or
-  routes, except an explicit user-named destination, resolved via `sb vault
-  structure` like `route` does, never hand-rolled.
-- **Connecting is offered; the breadcrumb is not.** Suggest related links and let the user decide,
-  but the daily-note breadcrumb append happens automatically every time - it no longer waits for a
-  yes.
-- **One note, one idea.** If the source carries several distinct ideas, say so and offer to split
-  rather than writing one sprawling note.
+- **Only the new note (or the one you were asked to extend) changes without a yes.** Confident
+  links go inside it and the breadcrumb is automatic. A lookup changes nothing. Every other note edit and every new side note is a closing proposal, unless the
+  user's phrasing already covers the whole batch.
+- **Never fabricate.** No invented URLs, no unverified `[[links]]`, no filled-in details.
+- **One note, one idea.** If the source carries several distinct ideas, say so and offer to split.

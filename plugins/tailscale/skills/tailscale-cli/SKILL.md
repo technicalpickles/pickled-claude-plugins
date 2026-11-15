@@ -41,6 +41,20 @@ If a node has more than one node-level mapping, or you're not sure whether it do
 
 There's no local `tailscale acl` command — the policy file only lives in the admin console or the API. A node can join the tailnet fine while silently losing a requested tag it wasn't authorized for (`tagOwners`), which then breaks something downstream (a grant, an app-level check) without any Tailscale-level error. Recognizing this pattern, tagOwners vs. grants, legacy `acls` vs. current `grants`, and reading the live policy via the API: [references/acls.md](references/acls.md).
 
+## Reviewing or validating a policy
+
+Checking a candidate policy with the validate endpoint (it returns 200 on failure), measuring exposure before changing anything, Services as separate grant targets, containers borrowing the host's identity, the Tailscale SSH lockout, auto-approver semantics, and a repeatable audit checklist: [references/policy-review.md](references/policy-review.md).
+
+## Node key expiry
+
+A peer that used to work and now looks unreachable may just have an expired node key. The symptom is generic (`Network unreachable` from `ssh` or `ncat`, nothing useful from `ssh -G` or a proxy config), so check before blaming the network, a firewall, or a sandbox:
+
+```bash
+tailscale status --json | jq '.Peer[] | {HostName, Expired, KeyExpiry}'
+```
+
+`Expired: true` means the key is dead; re-auth the node. To stop it recurring, use **Disable key expiry** on the machine in the admin console. Tagging does not clear expiry: a node that joined with a bare `tailscale up` and was tagged afterwards in the console keeps its key expiry until you disable it separately. When bringing up a long-lived node, pass `--advertise-tags` on the first `up` and then disable key expiry.
+
 ## Setting up a brand-new Service
 
 Has a specific required order (define in admin console → `serve --service=` → restart `tailscaled` → approve → validate from a different node) that's easy to get wrong on a first deploy: [references/new-service-setup.md](references/new-service-setup.md).
@@ -57,7 +71,8 @@ Has a specific required order (define in admin console → `serve --service=` �
 4. Are you testing with `ping` against a Service VIP? Use `curl` against the hostname instead.
 5. Are you testing from the same host that's serving the proxy? Test from a different node.
 6. **Is a Service that was previously working now timing out for everyone, while SSH/ping/`tailscale status`/container health on the host all look fine?** Check whether the host node itself still has its ACL tag (`tailscale status --self --json | jq '.Self.Tags'`, or the Machine detail page in the admin console) before going further — a tag can silently drop from an already-tagged node (e.g. during recovery from an unrelated key-expiry incident), and `serve --service=` on an untagged host fails with `service hosts must be tagged nodes`. See `references/acls.md` and `references/services.md`.
-7. Only after 1-6 are ruled out: check `tailscaled` itself (`systemctl status tailscaled`, `tailscale status`, node's `BackendState`).
+7. Is a peer that used to work suddenly unreachable with only a generic `Network unreachable`? Check `tailscale status --json` for `Expired` / `KeyExpiry` on that peer (see Node key expiry above).
+8. Only after 1-7 are ruled out: check `tailscaled` itself (`systemctl status tailscaled`, `tailscale status`, node's `BackendState`).
 
 **Restarting `tailscaled` on a shared host is a real action, not a diagnostic one** — it affects connectivity for every service that host proxies. Don't do it reflexively while chasing a status-display confusion on an *already-working* Service; confirm with whoever owns the host first, and reach for it only after ruling out the gotchas above. (Standing up a *new* Service is different — there the restart is an expected, required step: [references/new-service-setup.md](references/new-service-setup.md).)
 

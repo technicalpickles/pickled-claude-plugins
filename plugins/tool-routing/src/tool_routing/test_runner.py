@@ -19,11 +19,17 @@ class TestResult:
     contains_error: Optional[str] = None  # If contains check failed
 
 
-def run_route_tests(routes: dict[str, Route]) -> list[TestResult]:
+def run_route_tests(routes: dict[str, Route], merged: bool = False) -> list[TestResult]:
     """Run all inline tests for routes.
+
+    Each route's tests run against that route alone, so a test asserts what its
+    own route does and cannot be failed or satisfied by a route from another
+    plugin. Pass merged=True to run every test against the whole table instead,
+    which surfaces overlaps between routes.
 
     Args:
         routes: Dictionary of routes with inline tests
+        merged: Check each test against all routes rather than only its own
 
     Returns:
         List of test results
@@ -33,7 +39,8 @@ def run_route_tests(routes: dict[str, Route]) -> list[TestResult]:
     for route_name, route in routes.items():
         for test in route.tests:
             # Run the check
-            check_result = check_tool_call(test.input, routes)
+            table = routes if merged else {route_name: route}
+            check_result = check_tool_call(test.input, table)
 
             # Determine actual result
             actual = "block" if check_result.blocked else "allow"

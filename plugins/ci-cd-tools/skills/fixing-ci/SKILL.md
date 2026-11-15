@@ -35,7 +35,10 @@ The skill needs to know what to fix. Any one of these inputs is sufficient:
 
 If the caller provides one of the above, use it directly. Otherwise:
 
-1. **From cwd**: read the current git branch (`git branch --show-current`), look for an open PR (`gh pr view --json number,headRefName`), find its latest failing build via the `buildkite:investigating-builds` skill's "Checking Current Branch/PR Status" workflow.
+1. **From cwd**: read the current git branch (`git branch --show-current`) and look for an open PR (`gh pr view --json number,headRefName`). Then find the branch's latest failing build:
+   - Work out the pipeline slug. It usually matches the repo name; a monorepo may name it after the main repo.
+   - List the branch's builds with MCP `buildkite:list_builds` (`branch: <branch>`, `detail_level: "summary"`), or `npx bktide@latest builds --format json --branch <branch> <org>/<pipeline>`. Without `--branch`, `bktide builds` lists every branch, so filter on `branch` yourself.
+   - On the newest build, check in order: overall state, job summary (passed/failed/broken), annotations, then logs for the failed jobs.
 2. **If cwd doesn't resolve cleanly** (no branch, no open PR, no failing build): the caller (slash-command wrapper or workflow agent) is responsible for either asking the user or failing with a clear message. This skill assumes resolution is done before its loop starts.
 
 ## Step 1: Capture Initial State
@@ -131,7 +134,18 @@ After local verification passes:
    git push
    ```
 
-3. **Monitor the new build** using the `buildkite:investigating-builds` skill's "Post-Push Monitoring" workflow.
+3. **Monitor the new build.** The branch's newest build can still be the previous one right after the push, and watching an old failed build exits 1 at once, which reads as a failed fix. Confirm the build is for HEAD before watching; run the whole block in the background:
+   ```bash
+   sha=$(git rev-parse HEAD); build=
+   for _ in $(seq 20); do  # about 5 minutes for the build to appear
+     n=$(npx bktide@latest builds <org>/<pipeline> --branch <branch> --count 1 --format json --no-cache | jq -r '.builds[0].number // empty')
+     if [ -n "$n" ] && [ "$(npx bktide@latest build "<org>/<pipeline>#$n" --format json --no-cache | jq -r .commit)" = "$sha" ]; then build=$n; break; fi
+     sleep 15
+   done
+   if [ -n "$build" ]; then npx bktide@latest build "<org>/<pipeline>#$build" --watch; else echo "no build for $sha" >&2; (exit 2); fi
+   ```
+
+   Exit 0 means passed, 1 means anything else (failed, canceled, or `--timeout <minutes>` reached, default 30; the timeout prints `Timeout reached`), 2 means no build for HEAD appeared. MCP `buildkite:wait_for_build` (`timeout: 1800, poll_interval: 30`) also works where a Buildkite MCP server is connected. Don't poll in the foreground.
 
 4. On completion: pass → summarize and exit. Fail → go to Step 7.
 

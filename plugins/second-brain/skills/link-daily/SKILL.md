@@ -12,8 +12,8 @@ allowed-tools:
 
 Add an entry for the processed note to today's daily note.
 
-See `references/pipeline.md` for stage definitions and status flow.
-See `references/daily-linking.md` for linking mechanics.
+See `../obsidian/references/pipeline.md` for stage definitions and status flow.
+See `../obsidian/references/daily-linking.md` for linking mechanics.
 
 ## Input
 

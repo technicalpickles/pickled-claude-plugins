@@ -10,14 +10,16 @@ allowed-tools:
   - Bash(qmd:collection list)
   - Bash(qmd:get *)
   - Bash(qmd:status)
+  - mcp__qmd__query
+  - mcp__qmd__get
 ---
 
 # Connect Stage
 
 Find related notes via semantic search (qmd) and weave forward/backward links.
 
-See `references/pipeline.md` for stage definitions and status flow.
-See `references/connecting.md` for the connection discovery algorithm.
+See `../obsidian/references/pipeline.md` for stage definitions and status flow.
+See `../obsidian/references/connecting.md` for the connection discovery algorithm.
 
 ## Input
 
@@ -25,27 +27,26 @@ A routed note with `status: routed`.
 
 ## Process
 
-1. Check qmd availability:
-   ```bash
-   which qmd
-   ```
-   If not available, log "Skipped connections: qmd not available", set `status: connected`, and return.
+1. Check qmd availability: the `mcp__qmd__query` tool if it is loaded, else `which qmd`. If
+   neither is available, log "Skipped connections: qmd not available", set `status: connected`,
+   and return.
 
 2. Extract query terms from the note's title and body
 
-3. Run semantic search:
+3. Run semantic search with reranking off, through `mcp__qmd__query` (`collections`,
+   `limit: 15`, `rerank: false`) or the CLI:
    ```bash
-   qmd query "{terms}" -c {collection} -n 15 --json
+   qmd query "{terms}" -c {collection} -n 15 --json --no-rerank
    ```
 
-4. Filter and rank per `references/connecting.md`:
+4. Filter and rank per `../obsidian/references/connecting.md`:
    - Remove self
    - Remove already-linked notes
    - Remove daily notes
-   - Remove low-relevance results (below 30%)
+   - Remove weak matches, judged from the snippet (qmd scores are ranks, not a relevance scale)
 
 5. If candidates found, present to human (when called by orchestrator):
-   - Show candidates with scores and snippets
+   - Show each candidate with its snippet and a few words on why it looks like a strong or weak match
    - Let user multi-select which to connect
 
 6. For selected connections:

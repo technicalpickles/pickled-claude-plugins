@@ -6,5 +6,18 @@
     "email": "josh@technicalpickles.com"
   },
   "repository": "https://github.com/technicalpickles/pickled-claude-plugins",
-  "license": "MIT"
+  "license": "MIT",
+  "userConfig": {
+    "devlog_mode": {
+      "type": "string",
+      "title": "Devlog mode",
+      "description": "Who writes devlog entries: 'nudge' asks the main agent at session start (default), 'sidechain' judges turns from a background fork of the transcript, 'both' runs both (for comparing).",
+      "default": "nudge",
+      "options": [
+        "nudge",
+        "sidechain",
+        "both"
+      ]
+    }
+  }
 }

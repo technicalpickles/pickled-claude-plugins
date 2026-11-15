@@ -41,9 +41,9 @@ Use the symlink path `~/.claude/vaults/{name}` to Read vault files (e.g., `~/.cl
 
 Load skill references:
 - `second-brain:obsidian` for tool mechanics
-- `references/routing.md` for routing algorithm
-- `references/sb-cli.md` for sb command reference
-- `references/routing-memory.md` for routing correction format
+- `../skills/obsidian/references/routing.md` for routing algorithm
+- `../skills/obsidian/references/sb-cli.md` for sb command reference
+- `../skills/obsidian/references/routing-memory.md` for routing correction format
 
 ## Step 2: Identify Notes to Route
 
@@ -144,7 +144,7 @@ Store this context for Step 5 scoring.
 
 ## Step 5: Analyze and Score
 
-For each selected note, follow `references/routing.md` algorithm:
+For each selected note, follow `../skills/obsidian/references/routing.md` algorithm:
 
 1. **Extract signals** using sb:
 

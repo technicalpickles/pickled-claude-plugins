@@ -1,0 +1,23 @@
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.0[39m
+
+ [32m✓[39m tests/cart.test.tsx [2m(12 tests)[22m
+ [31m❯[39m tests/widget-list.test.tsx [2m(3 tests | 1 failed)[22m
+   [31m×[39m lists widgets and reports the count
+
+[31m⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m tests/widget-list.test.tsx > lists widgets and reports the count
+[31m[1mAssertionError[22m: expected 2 to be 0[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m-   2,[39m
+[31m+   0,[39m
+
+ [36m ❯[39m tests/widget-list.test.tsx:[2m25:25[22m
+    [90m 25| [39m  expect(onCountChange).toHaveBeenLastCalledWith(2);
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m1 passed[39m[22m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m14 passed[39m[22m
+

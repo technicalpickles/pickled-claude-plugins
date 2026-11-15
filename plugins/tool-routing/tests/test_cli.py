@@ -4,7 +4,7 @@ import sys
 
 
 def test_cli_check_blocks_matching_route(tmp_path, cli_env):
-    """CLI check exits 2 and prints message for matching route."""
+    """CLI check denies a matching route through the PreToolUse decision JSON."""
     # Create routes file
     hooks_dir = tmp_path / "hooks"
     hooks_dir.mkdir()
@@ -29,8 +29,10 @@ routes:
         env=cli_env,
     )
 
-    assert result.returncode == 2
-    assert "Don't fetch blocked.com" in result.stderr
+    assert result.returncode == 0
+    output = json.loads(result.stdout)["hookSpecificOutput"]
+    assert output["permissionDecision"] == "deny"
+    assert output["permissionDecisionReason"] == "Don't fetch blocked.com"
 
 
 def test_cli_check_allows_non_matching(tmp_path, cli_env):

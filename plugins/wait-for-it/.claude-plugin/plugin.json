@@ -1,0 +1,10 @@
+{
+  "name": "wait-for-it",
+  "description": "Turn \"tell me when X happens\" into a zero-token shell watch (Monitor / background Bash) instead of a prompt loop that burns a model turn per tick",
+  "author": {
+    "name": "Josh Nichols",
+    "email": "josh@technicalpickles.com"
+  },
+  "repository": "https://github.com/technicalpickles/pickled-claude-plugins",
+  "license": "MIT"
+}

@@ -21,19 +21,11 @@ This document explains how plugin versions are managed in this marketplace.
 
 **Conventional commits drive bumps:** The commit message format determines what version changes are needed.
 
-**Bump in your PR before merging.** Run `./scripts/bump-version.sh --auto` and commit the result as `chore(plugin): bump version to X.Y.Z`. The Version Check workflow fails if pending bumps aren't applied, so you can't merge without doing this.
+**Bump in your PR before merging.** Run `./scripts/bump-version.sh --auto` and commit the result as `chore(<plugin>): bump version to X.Y.Z`. The Version Check workflow fails if pending bumps aren't applied, so you can't merge without doing this.
 
 ## Commit Format
 
-All commits must follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-<type>(<scope>): <description>
-
-[optional body]
-
-[optional footer]
-```
+All commits use [Conventional Commits](https://www.conventionalcommits.org/). The type decides the bump:
 
 ### Types
 
@@ -56,9 +48,7 @@ All commits must follow [Conventional Commits](https://www.conventionalcommits.o
 
 **Optional for:** `chore`, `docs`, `ci`, `style`, `test`, `refactor`, `build`
 
-**Valid scopes:**
-- Plugin names: `git`, `ci-cd-tools`, `tool-routing`, `dev-tools`, `mcpproxy`, `second-brain`, `stay-on-target`, `working-in-monorepos`
-- Repo-wide: `repo`
+**Valid scopes:** any plugin `name` in `.claude-plugin/marketplace.json` (`scripts/check-commit-scope.sh` reads the list from there), or `repo` for repo-wide changes.
 
 ### Breaking Changes
 
@@ -70,36 +60,9 @@ feat(git)!: change commit message format
 BREAKING CHANGE: The --message flag now requires quotes.
 ```
 
-### Examples
-
-```bash
-# Minor bump to git plugin
-feat(git): add stash list command
-
-# Patch bump to ci-cd-tools
-fix(ci-cd-tools): handle build timeout gracefully
-
-# No version bump (docs only)
-docs(git): update README with examples
-
-# No version bump (repo-wide maintenance)
-chore: update dependencies
-
-# Major bump (breaking change)
-feat(tool-routing)!: change route configuration format
-```
-
 ## PR Workflow
 
-1. **Create branch** from main
-2. **Make commits** using conventional format
-3. **Apply version bumps:** Run `./scripts/bump-version.sh --auto` and commit as `chore(plugin): bump version to X.Y.Z`
-4. **Push and create PR**
-5. **CI validates:**
-   - Commit format is correct
-   - Scopes are valid plugin names
-   - Pending bumps have been applied (fails otherwise — blocks merge)
-6. **Get PR approved and merge**
+Branch from main, commit in conventional format, run `./scripts/bump-version.sh --auto` and commit the bump, then open the PR. CI checks commit format, that scopes are plugin names, and that pending bumps are applied (blocks merge otherwise).
 
 ## Local Validation
 
@@ -166,27 +129,9 @@ Validates commit message scopes (called by hk commit-msg hook).
 
 ## Troubleshooting
 
-### "Commit type 'feat' requires a scope"
+### "Commit type 'feat' requires a scope" / "Invalid scope 'foo'"
 
-Add a scope to your commit message:
-```bash
-# Wrong
-git commit -m "feat: add new feature"
-
-# Right
-git commit -m "feat(git): add new feature"
-```
-
-### "Invalid scope 'foo'"
-
-Use a valid plugin name or `repo`:
-```bash
-# Valid scopes
-feat(git): ...
-feat(ci-cd-tools): ...
-feat(repo): ...  # for repo-wide features
-chore: ...       # scope optional for chore
-```
+`feat`, `fix`, and `perf` need a scope that is a plugin name or `repo` (see Scopes above).
 
 ### Version not bumping
 

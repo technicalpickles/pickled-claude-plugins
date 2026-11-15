@@ -14,52 +14,47 @@
     {
       "name": "working-in-monorepos",
       "source": "./plugins/working-in-monorepos",
-      "version": "1.0.0"
+      "version": "1.0.4"
     },
     {
       "name": "git",
       "source": "./plugins/git",
-      "version": "3.2.2"
+      "version": "3.5.1"
     },
     {
       "name": "ci-cd-tools",
       "source": "./plugins/ci-cd-tools",
-      "version": "1.2.0"
+      "version": "1.2.2"
     },
     {
       "name": "dev-tools",
       "source": "./plugins/dev-tools",
-      "version": "1.2.0"
+      "version": "1.5.0"
     },
     {
       "name": "mcpproxy",
       "source": "./plugins/mcpproxy",
-      "version": "1.0.0"
+      "version": "1.0.2"
     },
     {
       "name": "second-brain",
       "source": "./plugins/second-brain",
-      "version": "1.15.0"
+      "version": "2.2.0"
     },
     {
       "name": "tool-routing",
       "source": "./plugins/tool-routing",
-      "version": "1.2.3"
-    },
-    {
-      "name": "stay-on-target",
-      "source": "./plugins/stay-on-target",
-      "version": "1.0.0"
+      "version": "1.4.0"
     },
     {
       "name": "agent-meta",
       "source": "./plugins/agent-meta",
-      "version": "2.6.0"
+      "version": "3.4.0"
     },
     {
       "name": "buildkite",
       "source": "./plugins/buildkite",
-      "version": "1.1.1"
+      "version": "1.1.4"
     },
     {
       "name": "cq",
@@ -101,24 +96,59 @@
     {
       "name": "sandbox-advisor",
       "source": "./plugins/sandbox-advisor",
-      "version": "0.2.0"
-    },
-    {
-      "name": "gut-check",
-      "source": "./plugins/gut-check",
-      "version": "0.1.0",
-      "description": "Ground before you act: catch decisions and factual claims made from a thin basis (memory, the handoff, an unexamined pick)"
+      "version": "0.3.0"
     },
     {
       "name": "tailscale",
       "source": "./plugins/tailscale",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "description": "Tailscale CLI reference and safe patterns for exposing local services over a tailnet"
     },
     {
       "name": "stay-principled",
       "source": "./plugins/stay-principled",
-      "version": "0.1.0"
+      "version": "0.1.1"
+    },
+    {
+      "name": "come-on",
+      "source": "./plugins/come-on",
+      "version": "0.2.1",
+      "description": "Catch Claude stopping short: unchecked claims, giving up early, inherited conclusions, unresearched options, and replies that don't land"
+    },
+    {
+      "name": "wait-for-it",
+      "source": "./plugins/wait-for-it",
+      "version": "0.2.2",
+      "description": "Turn \"tell me when X happens\" into a zero-token shell watch instead of a prompt loop"
+    },
+    {
+      "name": "automic-vault",
+      "source": "./plugins/automic-vault",
+      "version": "0.3.0",
+      "description": "Teach agents what Automic Vault (av) is and how to use it as the credential manager: inject secrets, read approval history, and diagnose sandbox, locked-Mac and refused-agent errors"
+    },
+    {
+      "name": "woodpecker",
+      "source": "./plugins/woodpecker",
+      "version": "0.3.0",
+      "description": "Investigate failed Woodpecker CI pipelines through woodpecker-cli (state, step states, first failed step log tail) and author .woodpecker.yml"
+    },
+    {
+      "name": "hk",
+      "source": "./plugins/hk",
+      "version": "0.2.0",
+      "description": "Auto-wire hk's coding-agent integration (Stop check, instructions on first tool use inside an hk repo) in projects that have an hk config"
+    },
+    {
+      "name": "pickle-mode",
+      "source": "./plugins/pickle-mode",
+      "version": "0.2.2",
+      "description": "Josh's agent style layered on pstack's poteto-mode: personal principles, gates, and playbook overlays"
+    },
+    {
+      "name": "inflight-artifact",
+      "source": "./plugins/inflight-artifact",
+      "version": "0.4.1"
     }
   ]
 }

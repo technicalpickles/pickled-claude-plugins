@@ -1,6 +1,7 @@
 ---
 name: pull-feedback
-description: Use when the user has authored a GitHub pull request and wants to work through review feedback on it. Triggers on phrases like "pull down the review on #N", "address the feedback", "what did @reviewer say on my PR", "let's work through the comments", or any request to triage, respond to, or systematically handle review threads on the user's own PR. Do NOT use for reviewing someone else's PR, authoring PR content or replies, or checking which PRs are waiting on the user for review.
+description: >-
+  Use when the user has authored a GitHub pull request and wants to work through review feedback on it. Triggers on phrases like "pull down the review on #N", "address the feedback", "what did @reviewer say on my PR", "let's work through the comments", or any request to triage, respond to, or systematically handle review threads on the user's own PR. Do NOT use for reviewing someone else's PR, authoring PR content or replies, or checking which PRs are waiting on the user for review.
 ---
 
 # Git Pull Feedback

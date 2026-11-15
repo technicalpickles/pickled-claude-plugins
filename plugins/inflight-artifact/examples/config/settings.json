@@ -1,0 +1,5 @@
+{
+  "github_user": "your-login",
+  "repo_roots": ["~/code"],
+  "task_backend": "none"
+}
