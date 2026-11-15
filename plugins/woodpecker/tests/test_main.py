@@ -51,8 +51,8 @@ def test_unmatched_sha_is_no_pipeline_not_a_pass(capsys):
     assert "#12" in out
 
 
-def test_latest_pipeline_wins_when_a_sha_has_several(capsys):
-    rows = "14\tsuccess\t%s\tmain\tpush\n13\tfailure\t%s\tmain\tpush\n" % (SHA_FAILED, SHA_FAILED)
+def test_latest_pipeline_wins_and_the_others_for_the_sha_are_listed(capsys):
+    rows = "14\tsuccess\t%s\tmain\tpush\n13\tfailure\t%s\tmain\tpull_request\n" % (SHA_FAILED, SHA_FAILED)
     runner = FakeRunner(
         [
             (route("pipeline", "ls"), done(rows)),
@@ -63,6 +63,7 @@ def test_latest_pipeline_wins_when_a_sha_has_several(capsys):
     out = capsys.readouterr().out
     assert "Pipeline: #14" in out
     assert out.splitlines()[0] == "State: passed"
+    assert "Also for this commit: #13 (status failure on pull_request)" in out
 
 
 def test_numeric_ref_is_a_pipeline_number(capsys):
@@ -137,3 +138,19 @@ def test_canceled_mid_run_is_failed_but_flagged_as_stopped(capsys):
     assert out.splitlines()[0] == "State: failed"
     assert "stopped (status: canceled)" in out
     assert "woodpecker/test: killed  <- first failure" in out
+
+
+def test_failure_before_any_step_prints_the_pipeline_errors(capsys):
+    rows = "98\terror\t%s\tmain\tpull_request\n" % SHA_FAILED
+    message = 'secret "t" is only allowed to be used by plugins (a filter has been set on the secret)'
+    runner = FakeRunner(
+        [
+            (route("pipeline", "ls"), done(rows)),
+            (route("pipeline", "ps"), done("")),
+            (route("pipeline", "show"), done(message + "\n")),
+        ]
+    )
+    assert main_mod.main([], client=WoodpeckerCli(runner=runner)) == 0
+    out = capsys.readouterr().out
+    assert out.splitlines()[0] == "State: failed"
+    assert "Pipeline errors:\n  " + message in out
