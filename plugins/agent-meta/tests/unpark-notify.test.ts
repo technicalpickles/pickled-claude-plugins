@@ -43,14 +43,14 @@ describe('unpark tells the session a handoff came from', () => {
     return { sent, result }
   }
 
-  test('a Parked handoff sends one FYI naming the file and first step', async ($, on) => {
+  test('a Parked handoff sends one FYI naming the file, never its next steps', async ($, on) => {
     const { sent, result } = await run($, on, { file: handoff('Parked') })
 
     expect(sent).toHaveLength(1)
     expect(String(sent[0].to)).toContain(ORIGIN)
     expect(sent[0].text).toContain('no reply needed')
     expect(sent[0].text).toContain(PATH)
-    expect(sent[0].text).toContain('Starting with: Run the dashboard check')
+    expect(sent[0].text).not.toContain('Run the dashboard check')
     expect(result.text).toContain('ARGUMENTS:')
   })
 
