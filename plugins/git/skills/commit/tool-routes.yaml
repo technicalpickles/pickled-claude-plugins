@@ -1,11 +1,11 @@
 routes:
   # git commit -t/--template aborts non-interactively.
   # Only fires on a real `git commit` at the start of a command (after
-  # ; & | ( or, when there is no heredoc, a newline), so a mention inside
-  # printf args, quoted prose or a heredoc body does not block.
+  # ; & | ( or a newline). tool-routing drops quoted strings and heredoc
+  # bodies before matching, so a mention inside them does not block.
   git-commit-template:
     tool: Bash
-    pattern: "(?:(?:^|[;&|(])|^(?!(?s:.*)<<)(?s:.*?)\\n)[ \\t]*(?:\\w+=\\S*[ \\t]+)*git[ \\t]+(?:-C[ \\t]+\\S+[ \\t]+)?commit\\b[^|;&\\n]*[ \\t](?:-t|--template)(?:[ \\t]|=)"
+    pattern: "(?:^|[;&|(\\n])[ \\t]*(?:\\w+=\\S*[ \\t]+)*git[ \\t]+(?:-C[ \\t]+\\S+[ \\t]+)?commit\\b[^|;&\\n]*[ \\t](?:-t|--template)(?:[ \\t]|=)"
     message: |
       Use `git commit -F <file>`, not `-t`/`--template`.
 
@@ -88,4 +88,10 @@ routes:
           tool_name: Bash
           tool_input:
             command: "git add a.rb\ngit commit -t msg.txt"
+        expect: block
+      - desc: "commit -t on a line after a heredoc should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "tee msg.txt <<'EOF'\nfix: thing\nEOF\ngit commit -t msg.txt"
         expect: block

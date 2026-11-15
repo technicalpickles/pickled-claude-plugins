@@ -177,6 +177,11 @@ gets silently skipped:
 4. **Leave it in the inbox** — routing is offered, not performed
 5. **Offer connections** plus a daily-note breadcrumb
 
+When WebFetch comes back 403, empty, or as a bot-check page, a plugin-wide hook
+(`hooks/webfetch-failed-ladder.py`) adds the other ways to read the page to the result: lightpanda,
+a real browser, the author's own site, the PDF text layer, secondary sources. It fires in every
+session and subagent with the plugin installed, not only during capture, and never blocks.
+
 Also handles "do we have a note about X already?" lookups, including the recall fallbacks for when
 semantic search misses (basename search across the vault, checking both inbox folders).
 
