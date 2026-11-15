@@ -13,6 +13,18 @@ Policy lives in the shared presets at [technicalpickles/renovate-config](https:/
 - `gh` authenticated with read access to the repo.
 - The Renovate GitHub app has access to the repo. A config does nothing without it; see Gotchas.
 
+## What the shared presets do
+
+Know this before promising anyone when PRs will show up.
+
+- **Schedule: Monday before 5am UTC.** It gates when Renovate may create branches and PRs, not when it runs. The app runs all the time, so the Dependency Dashboard issue is ungated and appears or updates right away, even on a Wednesday. Grouped PRs wait for the window.
+- **Majors need dashboard approval.** They are listed on the Dependency Dashboard and only become PRs after someone ticks them.
+- **`:lockfile` is opt-in.** The base preset does not refresh lockfiles. Add `:lockfile` only when asked.
+- **7-day cooldown, 3 concurrent PRs.** A release younger than a week is not proposed yet, and no more than three PRs are open at once. Security fixes skip both, and the schedule.
+- **No automerge** unless the repo extends `:automerge`.
+
+So on a fresh adoption, expect the onboarding PR or dashboard issue now, grouped PRs after the next Monday window, and majors never until approved.
+
 ## Procedure
 
 ### 1. Detect ecosystems
@@ -92,6 +104,26 @@ Read the output:
 
 Use the `git:pull-request` skill. If Renovate already opened its own "Configure Renovate" onboarding PR, ours replaces it: merge ours and the onboarding PR autocloses. Mention the preset repo in the body, and the dry-run branch count.
 
+### Checking that the app is onboarded
+
+There is no API for whether the Renovate app has access to a repo. Look for evidence instead, any one of:
+
+- A "Configure Renovate" onboarding PR from the app.
+- A Dependency Dashboard issue.
+- The Mend portal job log for the repo (app.renovatebot.com), which shows runs and errors.
+
+None of these after a run, with the config merged, means the app is not installed on the repo.
+
+### Check the merge method
+
+Renovate's PRs and the onboarding PR follow the repo's allowed merge methods. Squash may be disabled on a repo, which makes `gh pr merge --squash` fail and automerge stall:
+
+```sh
+gh api repos/<owner>/<repo> -q '{squash: .allow_squash_merge, merge: .allow_merge_commit, rebase: .allow_rebase_merge}'
+```
+
+If squash is off, merge with a method that is on, or pick `automergeStrategy` to match, rather than changing repo settings unasked.
+
 ### 6. After it merges
 
 Enable dependency alerts so security fixes can be found (they skip the cooldown and the schedule):
@@ -101,6 +133,17 @@ gh api -X PUT repos/<owner>/<repo>/vulnerability-alerts
 ```
 
 Look for the Dependency Dashboard issue and the first grouped PRs after the next scheduled run (Monday before 5am UTC). If nothing appears, the app is probably not installed on the repo.
+
+## Pinning floating images
+
+Compose files and Dockerfiles often use floating tags (`image: postgres:latest`, `image: nginx`). Renovate cannot bump a floating tag, so pin it, and pin to what is actually running rather than to whatever is newest:
+
+```sh
+docker ps --format '{{.Names}} {{.Image}}'
+docker inspect --format '{{index .RepoDigests 0}}' <container>
+```
+
+Read the real version from the running container (its image label, or the binary's `--version`), write that tag into the file, and let Renovate propose the upgrade later. Pinning to the newest tag in the same PR mixes an upgrade into an adoption change.
 
 ## Gotchas
 
