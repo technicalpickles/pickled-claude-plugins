@@ -1,6 +1,6 @@
 ---
 name: woodpecker-investigating-pipelines
-description: Use when a Woodpecker CI pipeline failed or its status is unclear - a red `ci/woodpecker/...` check, "Pipeline failed" from `gh pr checks`, a Woodpecker `/repos/<id>/pipeline/<n>` URL, "why did CI fail" in a repo that builds with Woodpecker, or a push that has no CI result at all.
+description: Use when a Woodpecker CI pipeline failed or its status is unclear, or to check whether a pipeline or step ran - a red `ci/woodpecker/...` check, "Pipeline failed" from `gh pr checks`, a Woodpecker `/repos/<id>/pipeline/<n>` URL or pipeline number, "why did CI fail" in a repo that builds with Woodpecker, a push or `pull_request` pipeline that never showed up, testing whether a new step or secret works, or before reading webhook deliveries or asking the user to open a Woodpecker page.
 ---
 
 # Investigating Woodpecker pipelines
@@ -17,10 +17,12 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/woodpecker-snapshot" [REF] [--pr N | --sha S
 |-------|----------|
 | nothing | the pipeline for the current commit (repo from the git remote) |
 | `--pr N` or `--sha SHA` | the pipeline for that commit (needs `gh` for `--pr`) |
-| a number | that pipeline number |
+| a number | that pipeline number. Numbers count across every branch and event in the repo, so don't guess one from a neighbor; look it up by commit. |
 | a pipeline URL | the repo ID and number in it |
 
 Exit 0 means a state was reported, including `failed`. Exit 2 means it couldn't read Woodpecker; the `State:` line says why.
+
+A push and a `pull_request` pipeline can share a commit. The snapshot reports the newest and lists the rest as `Also for this commit:`. Check any of those that matter to the question.
 
 ## Read the State line first
 
@@ -28,7 +30,7 @@ The first line is always `State: <state>`. Report that state, not a guess from t
 
 | State | Do this |
 |-------|---------|
-| `failed` | Read the log tail for the **first** failure. Later skipped steps are fallout. If the tail cuts off before the error, rerun with a larger `--tail`. |
+| `failed` | Read the log tail for the **first** failure. Later skipped steps are fallout. If the tail cuts off before the error, rerun with a larger `--tail`. With no failed step, the `Pipeline errors:` lines are the cause (a config or secret error). |
 | `passed` | Mention any "failed but ignored" warning. It means a step fails on every run. |
 | `running`, `queued`, `blocked` | Say so and stop. Don't call it passed or failed. `blocked` needs approval in the Woodpecker UI, which is the user's step. |
 | `no pipeline` | Never read this as passing. Go through the listed causes. A silent webhook outage looks exactly like this. |

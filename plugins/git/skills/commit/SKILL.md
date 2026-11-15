@@ -21,6 +21,15 @@ Use `-F` (`--file`), NEVER `-t` (`--template`). A template opens the message in 
 
 Put any trailers your instructions require (e.g. `Co-Authored-By:`) at the end of the message file. Writing the message to a file first makes these easy to forget.
 
+### taskwarrior trailers
+
+When the work tracks a taskwarrior task, end the message with a trailer naming the task by its full UUID (`task _get <id>.uuid`), never the integer ID, which gets reused:
+
+- `Closes <uuid>` when this commit finishes the task.
+- `Refs <uuid>` when it moves the task along without finishing it.
+
+A task reconciler reads these trailers to decide which tasks to close. Never run `task <id> done` yourself on the strength of a commit.
+
 ### scope the commit to your paths
 
 PREFER `git commit -F <file> -- <path>...` over a bare `git commit`. A bare commit takes everything currently staged, including files another session or tool staged in the same working tree between your `git add` and your `git commit`. Naming the paths commits only what you meant to.
