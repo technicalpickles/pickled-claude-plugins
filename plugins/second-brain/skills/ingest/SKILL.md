@@ -20,6 +20,14 @@ See `../obsidian/references/pipeline.md` for stage definitions and status flow.
 
 A session notes file in the inbox with `status: raw` and `type: session-notes`.
 
+If the note names a Claude Code session (`source: claude-code session <id> ...`
+or a `session`/`session-id` key) and that session's transcript isn't on this
+machine, leave the note untouched and say so: it was written on another
+machine and waits for that one. `process-inbox` finds these in its survey;
+when you're run on a single note, check with
+`ls ~/.claude/projects/*/<id>*.jsonl` (each `CLAUDE_CONFIG_DIR` entry in
+place of `~/.claude` when it is set).
+
 ## Default: enrich whole
 
 Most session notes — including every `devlog`-produced one — are already

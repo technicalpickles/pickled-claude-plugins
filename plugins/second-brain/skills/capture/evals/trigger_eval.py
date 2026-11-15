@@ -127,7 +127,7 @@ def one_run(query: str, plugin_dir: Path, target: str, cwd: Path, turns: int, ti
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--eval-set", required=True, type=Path)
-    ap.add_argument("--plugin-src", required=True, type=Path)
+    ap.add_argument("--plugin-src", required=True, type=lambda p: Path(p).resolve())
     ap.add_argument("--skill", required=True, help="skill dir name, e.g. capture")
     ap.add_argument("--namespace", required=True, help="plugin namespace, e.g. second-brain")
     ap.add_argument("--cwd", required=True, type=Path, help="dir to run claude in")

@@ -13,6 +13,8 @@ allowed-tools:
   - Bash(qmd:collection list)
   - Bash(qmd:get *)
   - Bash(qmd:status)
+  - mcp__qmd__query
+  - mcp__qmd__get
   - Bash(ls:*)
   - Bash(date:*)
   - Bash(find:*)
@@ -41,13 +43,10 @@ Load skill references:
 
 ## Step 2: Check Prerequisites
 
-Follow `../skills/obsidian/references/connecting.md` prerequisites:
+Follow `../skills/obsidian/references/connecting.md` prerequisites: the qmd MCP tools if they
+are loaded, else the qmd CLI (`which qmd`).
 
-```bash
-which qmd
-```
-
-If qmd is not available:
+If neither is available:
 ```
 qmd is not installed. Connection discovery requires qmd for semantic search.
 Install via: bun add -g qmd
@@ -95,7 +94,7 @@ Check the path and try again.
 Follow the full `../skills/obsidian/references/connecting.md` algorithm:
 
 1. Extract query terms from the note's title and body
-2. Run `qmd query "{terms}" -c {collection} -n 15 --json`
+2. Run the semantic search from its Step 2 (qmd MCP tool or CLI, reranking off)
 3. Filter noise (self, already-linked, daily notes, and weak matches judged from the snippet; qmd scores are ranks, not a relevance scale)
 4. Enrich candidates (check for See Also, Related, TK sections)
 5. Rank by connection value

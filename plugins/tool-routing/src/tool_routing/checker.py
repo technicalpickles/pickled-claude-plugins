@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from tool_routing.config import Route
+from tool_routing.shell import strip_literals
 
 # Maps tool name to the field in tool_input to match against
 TOOL_INPUT_FIELDS = {
@@ -25,12 +26,18 @@ class CheckResult:
 
 
 def _target_value(tool_call: dict) -> tuple[str, str]:
-    """Return (tool_name, value to match), or (tool_name, "") if unmonitored."""
+    """Return (tool_name, value to match), or (tool_name, "") if unmonitored.
+
+    A Bash command is matched without its heredoc bodies and quoted strings.
+    """
     tool_name = tool_call.get("tool_name", "")
     input_field = TOOL_INPUT_FIELDS.get(tool_name)
     if not input_field:
         return tool_name, ""
-    return tool_name, tool_call.get("tool_input", {}).get(input_field, "")
+    value = tool_call.get("tool_input", {}).get(input_field, "")
+    if tool_name == "Bash":
+        value = strip_literals(value)
+    return tool_name, value
 
 
 def matching_routes(tool_call: dict, routes: dict[str, Route]) -> list[str]:

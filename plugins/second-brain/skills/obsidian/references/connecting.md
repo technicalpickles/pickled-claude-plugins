@@ -6,22 +6,22 @@ Systematic algorithm for finding related notes in the vault and weaving connecti
 
 ## Prerequisites
 
-Before running connection discovery:
+qmd is reachable two ways. Use the first that works:
 
-```bash
-# Verify qmd is available
-which qmd
-```
+1. **The qmd MCP tools** (`mcp__qmd__query`, `mcp__qmd__get`), when they are loaded. They work
+   when `qmd` isn't on PATH, and under the command sandbox, where the CLI can fail to start its
+   Metal backend.
+2. **The qmd CLI**, when `which qmd` finds it.
 
-If not found, inform user and skip connections (don't fail the capture workflow):
+If neither is available, inform the user and skip connections (don't fail the capture workflow):
 ```
-qmd not installed - skipping connection discovery.
+qmd not available - skipping connection discovery.
 Install via: bun add -g qmd
 ```
 
 Load collection name from `~/.claude/second-brain.md` (`qmd_collection` setting under the vault's settings section). If not set, default to `second-brain`.
 
-Verify the collection exists:
+With the CLI, verify the collection exists:
 ```bash
 qmd collection list
 ```
@@ -47,13 +47,31 @@ Build a single query string. Keep it natural, not a keyword dump. qmd handles ex
 
 ## Step 2: Run Semantic Search
 
-```bash
-qmd query "{query}" -c {collection} -n 15 --json
+Turn reranking off. The reranker runs a local LLM over every candidate, and on a CPU-only machine
+that is slow enough to time out. The ranking without it is good enough to pick candidates from,
+since you judge each one from its snippet anyway.
+
+With the MCP tool:
+
+```
+mcp__qmd__query
+  query: '{query}'
+  collections: ['{collection}']
+  limit: 15
+  rerank: false
+  intent: 'notes related to {note title}'
 ```
 
-Request 15 results to allow for filtering. The JSON output contains:
-- `file`: `qmd://{collection}/{path}` (strip the prefix to get vault-relative path)
-- `score`: 0.0-1.0 relevance score
+With the CLI:
+
+```bash
+qmd query "{query}" -c {collection} -n 15 --json --no-rerank
+```
+
+Request 15 results to allow for filtering. Each result contains:
+- `file`: the vault-relative path, prefixed with `qmd://{collection}/` (CLI) or `{collection}/` (MCP). Strip the prefix.
+- `score`: the result's rank, not a relevance scale (1, 0.5, 0.33, ... down the list). Don't
+  filter on it or quote it.
 - `title`: document title
 - `snippet`: matching content with context markers
 
@@ -77,9 +95,11 @@ Pattern: \[\[([^\]]+)\]\]
 
 Extract link targets, match against result filenames (without extension).
 
-### 3c: Remove Low-Relevance Results
+### 3c: Remove Weak Matches
 
-Drop any result with score below 0.30 (30%). This is a starting threshold, may need tuning.
+Read each snippet and drop the results that only share a word or a broad theme with the note.
+Keep the ones about the same thing: the same tool, person, project, or idea, or something the
+note names.
 
 ### 3d: Remove Daily Notes
 
@@ -117,18 +137,14 @@ From qmd metadata or file stat, note when the candidate was last modified. Recen
 
 ## Step 5: Rank by Connection Value
 
-Score each candidate using the qmd relevance as baseline, then apply boosts:
+Order candidates by how strong a match the snippet shows, using qmd's order to break ties. Then
+move a candidate up when it has one of these signals:
 
-| Signal | Effect | Reasoning |
-|--------|--------|-----------|
-| qmd relevance score | Primary (0-100%) | Semantic similarity is the strongest signal |
-| Has `TK` placeholder | +15% boost | Note is explicitly waiting for connections |
-| Same PARA area | +5% boost | Topically adjacent, likely related |
-| Modified in last 30 days | +5% boost | Fresh content, more actively relevant |
-
-Cap final score at 99%.
-
-Sort candidates by final score, descending.
+| Signal | Reasoning |
+|--------|-----------|
+| Has `TK` placeholder | Note is explicitly waiting for connections |
+| Same PARA area | Topically adjacent, likely related |
+| Modified in last 30 days | Fresh content, more actively relevant |
 
 ---
 
@@ -139,12 +155,12 @@ Show the top candidates (max 7, enough for a meaningful selection without overwh
 ```
 Found {N} related notes:
 
-1. **{title}** ({score}%)
+1. **{title}**
    `{path relative to vault}`
    > "{snippet, 1-2 lines}"
-   {signals: "(has TK placeholder)", "(same area)", etc.}
+   {why it looks strong or weak, plus signals: "(has TK placeholder)", "(same area)", etc.}
 
-2. **{title}** ({score}%)
+2. **{title}**
    ...
 ```
 
@@ -154,7 +170,7 @@ Use AskUserQuestion with multi-select to let the user choose which to connect:
 
 Include option: "Skip connections" (always available)
 
-If no candidates above threshold after filtering, skip silently or note:
+If no strong candidates are left after filtering, skip silently or note:
 ```
 No strong connections found for this note.
 ```
@@ -281,8 +297,8 @@ Follow `references/connecting.md` algorithm:
 
 1. Check qmd prerequisites (skip if not available)
 2. Extract query terms from note content
-3. Run semantic search via qmd
-4. Filter noise (self, already-linked, low-relevance, daily notes)
+3. Run semantic search via qmd (MCP or CLI, reranking off)
+4. Filter noise (self, already-linked, weak matches, daily notes)
 5. Enrich and rank candidates
 6. Present candidates for user selection (multi-select)
 7. Add forward links (## Related section)
@@ -321,7 +337,7 @@ If user picks (A), walk through each note's connections using the standard prese
 ## Constraints
 
 - **Best-effort** - Don't fail capture or routing if connection discovery fails
-- **User selects** - Never auto-connect, always present candidates for selection
+- **User selects** - Present candidates for selection. The exceptions are confident links (same subject, or named in the note) in `capture` and in `process-inbox`'s large-backlog mode
 - **Wiki-link format** - Use `[[filename]]` not `[text](path)`, no `.md` extension in links
 - **Descriptive links** - Always include a brief description of the relationship
 - **Respect existing structure** - Append to existing sections, don't reorganize notes

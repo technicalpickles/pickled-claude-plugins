@@ -66,7 +66,7 @@ Do these in order, then end the turn. Nothing is written yet.
      searches: [{type: 'lex', query: '<one distinctive term>'},
                 {type: 'lex', query: '<another term>'},
                 {type: 'vec', query: '<what the note would say>'}]
-     collection: <from sb config qmd-collection>
+     collections: [<from sb config qmd-collection>]
      intent: '<why you are searching>'
      rerank: false
    ```
