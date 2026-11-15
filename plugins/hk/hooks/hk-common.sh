@@ -1,4 +1,4 @@
-# Shared gate for the hk agent hooks and MCP launcher (sourced, not run).
+# Shared gate for the hk agent hooks (sourced, not run).
 #
 # Everything targets hk 2.6 and later. 2.5 added `hk agent stop-hook` and 2.6 made it
 # pass quietly in a project whose config has no `check` hook (2.5.x blocks there).
@@ -9,14 +9,11 @@
 # --version` failing covers the mise shim, which errors in directories with no hk
 # version set. Any miss means the sourcing script stays silent.
 #
-# One gate covers all three scripts on purpose. `hk agent instructions` and `hk mcp`
-# exist since hk 1.55, but the plugin is built around the Stop hook, and a project on
-# an older hk would otherwise get instructions and an MCP server with no Stop hook
-# behind them. Probing hk once is simpler than three capability checks. The config
-# walk goes up to `/`, same as hk's own discovery, and checks only that a file
-# exists: a broken hk.pkl still counts as present.
-#
-# This file reads nothing from stdin: the MCP launcher's stdin is the MCP stream.
+# One gate covers both scripts on purpose: the plugin is built around the Stop hook,
+# and a project on an older hk would otherwise get instructions with no Stop hook
+# behind them. The config walk goes up to `/`, same as hk's own discovery, and checks
+# only that a file exists: a broken hk.pkl still counts as present. It runs before
+# the `hk --version` probe, so a tool call outside any hk project never starts hk.
 
 # Project dir from a hook payload on $1 (JSON), else CLAUDE_PROJECT_DIR, else PWD.
 hk_payload_dir() {

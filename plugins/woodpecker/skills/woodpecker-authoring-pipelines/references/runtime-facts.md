@@ -27,6 +27,14 @@ Check the repo's own CLAUDE.md and sibling pipelines for conventions that alread
 - **Event filters** (`when: event:`) are a per-repo choice. With a push-only filter, pull requests still get a forge status because the status attaches to the commit.
 - **The linter** may recommend a `when:` block with an `event` filter. Run `woodpecker-cli lint` to see what the installed version says.
 
+## Secrets
+
+From the [secrets docs](https://woodpecker-ci.org/docs/usage/secrets) and a 3.18.1 server:
+
+- `from_secret: <name>` passes a secret into `environment:` or a plugin's `settings:`.
+- Secrets are not exposed to `pull_request` events unless the secret enables that event. The CLI's default is `push`, `tag` and `deployment` only.
+- An image filter restricts a secret to the listed plugin images. It does not work for normal steps. A `commands:` step that uses a filtered secret errors the pipeline before any step runs, with: `secret "<name>" is only allowed to be used by plugins (a filter has been set on the secret). Note: Image filters do not work for normal steps`. The forge shows only a failed status; `woodpecker-snapshot` prints the error under `Pipeline errors:`.
+
 ## Local runs with `exec`
 
 From `woodpecker-cli exec --help` (confirmed on 3.18.1):

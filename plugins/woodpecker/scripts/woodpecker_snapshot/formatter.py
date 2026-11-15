@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List, Optional, Sequence
 
 from . import states
 from .cli import ANSI_RE, Pipeline, Step, WpError
@@ -31,6 +31,8 @@ def format_pipeline(
     assessment: states.Assessment,
     log: Optional[str],
     tail: int,
+    others: Sequence[Pipeline] = (),
+    errors: Sequence[str] = (),
 ) -> str:
     out = ["State: %s" % assessment.state]
     if assessment.detail:
@@ -44,6 +46,11 @@ def format_pipeline(
         out.append("Pipeline: #%d (status %s)%s%s" % (pipeline.number, pipeline.status, " on " + where if where else "", commit))
     else:
         out.append("Pipeline: #%d (status not in the recent list, state taken from its steps)" % pipeline.number)
+    for other in others:
+        out.append("Also for this commit: #%d (status %s on %s). Check it with that number." % (other.number, other.status, other.event or "unknown event"))
+
+    if errors:
+        out += ["", "Pipeline errors:"] + ["  " + e for e in errors]
 
     if steps:
         out += ["", "Steps:"]
