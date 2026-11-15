@@ -1,5 +1,5 @@
 {
-  "description": "Register the /session-id command",
+  "description": "Register the /session-id command; tell the session a handoff came from when unpark resumes it",
   "modules": [
     "./register.ts"
   ]

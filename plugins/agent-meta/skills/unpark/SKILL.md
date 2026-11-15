@@ -76,7 +76,11 @@ Nothing else goes in the report. No bullet lists, no list of what landed or what
 
 Drift is a next step that already landed, a missing branch or worktree, a decision that no longer holds, or a newer devlog entry that contradicts the handoff. A moved `main` or an unrelated commit goes in the `✅` line. An old handoff's age goes there too.
 
-## 5. Extra context is where to ask
+## 5. The session it came from is told for you
+
+The `agent-meta` mod messages the session a `Parked:` or `Checkpoint:` handoff came from, at the moment this skill loads, when a path was given and that session is still live. Do not send that message yourself, and do not look for the session. The origin never needs a second note.
+
+## 6. Extra context is where to ask
 
 Ask one question with a default when:
 
@@ -84,7 +88,7 @@ Ask one question with a default when:
 - **An open question in the handoff blocks the first next step.** Others wait until the work reaches them.
 - **The next step is irreversible or outward** (deploy, publish, delete, message someone). The usual rules apply. Unpark adds no gate of its own.
 
-## 6. Wrapped files
+## 7. Wrapped files
 
 A `Wrapped:` file is a record, not a handoff. Skip validation. Show the Outcome's first paragraph and the Open Threads as one-liners, and ask what to do with them. If the user already said, do that. New work building on the record goes through `superpowers:brainstorming` with the file as context. If they say it was wrapped too early, run steps 2 to 4.
 
