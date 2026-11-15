@@ -46,7 +46,7 @@ This is Tailscale's out-of-the-box default and is easy to leave in place indefin
 
 ## Reading the live policy
 
-There's no local CLI equivalent; querying the policy programmatically means the Tailscale API. Once an OAuth client with the **Policy File → Read** scope exists (client ID/secret from Settings → OAuth clients in the admin console):
+There's no local CLI equivalent; querying the policy programmatically means the Tailscale API. Once an OAuth client with the `policy_file:read` scope exists (client ID/secret from Settings → Trust credentials in the admin console; older docs and consoles call this page "OAuth clients"):
 
 ```bash
 # Exchange client credentials for a short-lived (1hr) access token
@@ -60,6 +60,8 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 ```
 
 `tailnet/-/acl` uses `-` for "the tailnet this credential belongs to" — no need to look up the tailnet name separately.
+
+The same read-only client can also check a candidate policy without applying it; see [policy-review.md](policy-review.md).
 
 ## A tag can also be lost from an already-tagged, already-working node
 

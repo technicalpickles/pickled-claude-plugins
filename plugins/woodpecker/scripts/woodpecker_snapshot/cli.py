@@ -179,5 +179,11 @@ class WoodpeckerCli:
                 rows.append(Step(parts[0], parts[1], parts[2].strip()))
         return rows
 
+    def errors(self, repo: str, number: int) -> List[str]:
+        """Errors the server recorded on the pipeline itself, such as a config or secret error."""
+        template = '{{range .Errors}}{{if .IsWarning}}warning: {{end}}{{.Message}}{{"\\n"}}{{end}}'
+        out = self._run(["pipeline", "show", repo, str(number), "--output", "go-format=" + template])
+        return [line.strip() for line in out.splitlines() if line.strip()]
+
     def log(self, repo: str, number: int, step: str) -> str:
         return self._run(["pipeline", "log", "show", repo, str(number), step])
