@@ -7,7 +7,7 @@
 **Use the `second-brain:capture` skill.** It is canonical for both halves of this:
 
 - **Finding an existing note** - "do we have a note about X?", "is there a note for Y?", "check if we have notes on Z already"
-- **Creating one from a source** - "read \<url/pdf/tweet\> and make a note for it", "make an atomic note for X"
+- **Creating one from a source** - "read \<url/pdf/tweet/video/reddit thread\> and make a note for it", "make an atomic note for X", or a bare X, YouTube or Reddit link handed over with intent to write it up
 
 These are one skill because creating *starts* with finding: whether a note already exists decides
 whether to extend it or mint a new one. The procedure is search the vault first, read the primary

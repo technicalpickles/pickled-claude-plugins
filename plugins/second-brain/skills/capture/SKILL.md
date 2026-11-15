@@ -8,6 +8,9 @@ allowed-tools:
   - Glob
   - Grep
   - Bash(npx @techpickles/sb:*)
+  - Bash(xtweet:*)
+  - Bash(reddit-post:*)
+  - Bash(yt-digest:*)
   - mcp__qmd__query
   - mcp__qmd__get
   - mcp__qmd__multi_get
@@ -93,9 +96,20 @@ Then, keyed to what you observe:
 
 ## Step 2: Read the actual primary source
 
-Never write from search snippets. Read the real thing through the ladder in
-[references/fetch-ladder.md](references/fetch-ladder.md): lightpanda first, WebFetch last. If Josh
-names a fetch method, use it or say why you can't.
+Never write from search snippets. If Josh names a fetch method, use it or say why you can't.
+
+A few sites have their own playbook. Match the host; anything else goes down the ladder in
+[references/fetch-ladder.md](references/fetch-ladder.md) (lightpanda first, WebFetch last):
+
+| Source | Playbook |
+|--------|----------|
+| `x.com`, `twitter.com` | [references/sites/x.md](references/sites/x.md) |
+| `youtube.com`, `youtu.be` | [references/sites/youtube.md](references/sites/youtube.md) |
+| `reddit.com`, `redd.it` | [references/sites/reddit.md](references/sites/reddit.md) |
+| Any other URL, PDF, connector source | [references/sites/web.md](references/sites/web.md), which points at the ladder |
+
+Each playbook also names frontmatter fields to add beside `source` in Step 3; carry them into the
+note. New site: add `references/sites/<site>.md` and one row here.
 
 **If you cannot reach the source, or cannot find the thing the user described, stop and say so.**
 No URL you did not load, no title you inferred, no details from background knowledge. "I couldn't
@@ -108,7 +122,8 @@ npx @techpickles/sb note create --source auto --title "<title>"   # returns JSON
 ```
 
 Then replace the whole file at that path with this skeleton, filled in. Keep `captured` from sb's
-scaffold; everything else in the scaffold goes.
+scaffold; everything else in the scaffold goes. Add any site fields from the playbook to the
+frontmatter beside `source` (see [references/note-format.md](references/note-format.md#site-fields)).
 
 ```markdown
 ---

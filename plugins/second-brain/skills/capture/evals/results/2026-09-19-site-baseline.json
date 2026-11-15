@@ -1,0 +1,45 @@
+{
+  "summary": {
+    "label": "current",
+    "accuracy": 1.0,
+    "recall_on_should_trigger": 1.0,
+    "specificity_on_should_not": 1.0,
+    "passed": 4,
+    "total": 4
+  },
+  "results": [
+    {
+      "query": "https://www.youtube.com/watch?v=dQw4w9WgXcQ make a note for this",
+      "should_trigger": true,
+      "trigger_rate": 1.0,
+      "triggers": 3,
+      "runs": 3,
+      "pass": true
+    },
+    {
+      "query": "read this reddit thread and put together an atomic note https://www.reddit.com/r/commandline/comments/abc123/a_neat_tool/",
+      "should_trigger": true,
+      "trigger_rate": 1.0,
+      "triggers": 3,
+      "runs": 3,
+      "pass": true
+    },
+    {
+      "query": "https://x.com/karpathy/status/1917920338492977296 capture this",
+      "should_trigger": true,
+      "trigger_rate": 1.0,
+      "triggers": 3,
+      "runs": 3,
+      "pass": true
+    },
+    {
+      "query": "watch https://www.youtube.com/watch?v=dQw4w9WgXcQ and tell me if the demo at the end is worth trying, dont save anything",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 3,
+      "pass": true
+    }
+  ],
+  "description": "(from SKILL.md)"
+}

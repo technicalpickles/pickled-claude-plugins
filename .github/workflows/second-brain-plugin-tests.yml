@@ -4,6 +4,7 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'plugins/second-brain/bin/**'
       - 'plugins/second-brain/scripts/**'
       - 'plugins/second-brain/hooks/**'
       - 'plugins/second-brain/.claude-plugin/**'
@@ -32,7 +33,10 @@ jobs:
           npm install -g @anthropic-ai/claude-code
 
       - name: Run bats
-        run: bats scripts/tests/ hooks/tests/
+        run: bats bin/tests/ scripts/tests/ hooks/tests/
+
+      - name: Run Python tests
+        run: python3 -m unittest discover -s bin/tests -p 'test_*.py'
 
       - name: Test and validate the plugin's mods
         run: |
