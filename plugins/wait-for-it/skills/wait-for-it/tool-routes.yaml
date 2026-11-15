@@ -1,7 +1,7 @@
 routes:
   piped-build-exit-code:
     tool: Bash
-    pattern: "^(?!(?s:.*)(?:pipefail|<<|python3?[ \\t]+-c|git[ \\t]+commit))(?s:.*?)(?:^|[;&|(]|\\n)[ \\t]*(?:\\w+=\\S*[ \\t]+)*(?:timeout[ \\t]+\\d+[ \\t]+)?(?:uv[ \\t]+run[ \\t]+(?:--\\S+[ \\t]+)*|(?:[\\w.~/-]*/))?(?:cargo\\s+(?:test|build|check|clippy|nextest)|(?:npm|pnpm|yarn)\\s+(?:--filter\\s+\\S+\\s+)?(?:test|run|exec|install|ci|build|publish)|go\\s+(?:test|build|vet)|make|just|mise\\s+run|bats|tsc|xcodebuild|docker\\s+(?:build|compose)|git\\s+push)\\b(?:[^|;&\\n]|2>&1)*\\|[ \\t]*(?:tail|head)\\b"
+    pattern: "^(?!(?s:.*)pipefail)(?s:.*?)(?:^|[;&|(]|\\n)[ \\t]*(?:\\w+=\\S*[ \\t]+)*(?:timeout[ \\t]+\\d+[ \\t]+)?(?:uv[ \\t]+run[ \\t]+(?:--\\S+[ \\t]+)*|(?:[\\w.~/-]*/))?(?:cargo\\s+(?:test|build|check|clippy|nextest)|(?:npm|pnpm|yarn)\\s+(?:--filter\\s+\\S+\\s+)?(?:test|run|exec|install|ci|build|publish)|go\\s+(?:test|build|vet)|make|just|mise\\s+run|bats|tsc|xcodebuild|docker\\s+(?:build|compose)|git\\s+push)\\b(?:[^|;&\\n]|2>&1)*\\|[ \\t]*(?:tail|head)\\b"
     message: |
       Piping a build, test or push into tail or head reports tail's exit
       status, not the tool's. A failure looks like success.
@@ -97,3 +97,15 @@ routes:
           tool_input:
             command: "tee notes.md <<'EOF'\nrun make deploy 2>&1 | tail -5\nEOF"
         expect: allow
+      - desc: "tool name inside python -c code should allow"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "python3 -c 'print(\"make build | tail\")'"
+        expect: allow
+      - desc: "piped build on a line after a heredoc should block"
+        input:
+          tool_name: Bash
+          tool_input:
+            command: "tee notes.md <<'EOF'\nhi\nEOF\nmake build 2>&1 | tail -5"
+        expect: block
