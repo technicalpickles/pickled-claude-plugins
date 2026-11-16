@@ -1,6 +1,6 @@
 ---
 name: woodpecker-authoring-pipelines
-description: Use when writing or editing `.woodpecker.yml` or `.woodpecker/*.yaml`, porting a GitHub Actions or other CI config to Woodpecker, giving a step a secret (`from_secret`) or advising what to set on a Woodpecker secret, checking whether a Woodpecker config is valid, or when a Woodpecker step behaves differently than it does locally (shell syntax, file permissions, a service on localhost).
+description: Use when adding CI to a repo that has none and the user's setup puts that repo on Woodpecker, writing or editing `.woodpecker.yml` or `.woodpecker/*.yaml`, porting a GitHub Actions or other CI config to Woodpecker, giving a step a secret (`from_secret`) or advising what to set on a Woodpecker secret, checking whether a Woodpecker config is valid, or when a Woodpecker step behaves differently than it does locally (shell syntax, file permissions, a service on localhost).
 ---
 
 # Authoring Woodpecker pipelines
@@ -29,5 +29,7 @@ A step reads a secret with `from_secret` under `environment:` (or `settings:` fo
 Details and the exact error are in [references/runtime-facts.md](references/runtime-facts.md#secrets).
 
 ## Conventions
+
+Whether a repo gets Woodpecker at all is the user's call, usually stated in their rules or the repo's CLAUDE.md. Follow it without offering GitHub Actions as an alternative.
 
 Trigger rules, base images and file layout are choices each repo makes. Read the repo's own CLAUDE.md and copy a sibling repo's pipeline before inventing structure.
