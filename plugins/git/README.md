@@ -78,12 +78,12 @@ Update your branch with upstream changes, intelligently resolving conflicts.
 
 ### git:git-worktrees
 
-Create and remove worktrees with [worktrunk](https://github.com/max-sixty/worktrunk) (`wt`), and clean them up once their PR merges.
+Create and remove git worktrees, and clean them up once their PR merges. Tool-neutral, with notes for plain git, [worktrunk](https://github.com/max-sixty/worktrunk) (`wt`), and `EnterWorktree`.
 
 **Use when:**
-- Creating a worktree (`wt switch --create`)
-- A PR whose branch has a `.claude/worktrees/` checkout has merged
-- `wt remove` says "Branch unmerged", or a worktree hits `Operation not permitted` under the sandbox
+- Creating a worktree
+- A PR whose branch has a worktree checked out has merged
+- Removal says "Branch unmerged", or a worktree hits `Operation not permitted` under the sandbox
 
 ## Hooks
 

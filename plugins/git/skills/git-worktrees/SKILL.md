@@ -1,38 +1,35 @@
 ---
 name: git-worktrees
-description: Use when creating or removing a git worktree with worktrunk (`wt switch --create`, `wt remove`), when a PR whose branch has a worktree under `.claude/worktrees/` has merged, or when `wt` reports "Branch unmerged" or `Operation not permitted`. Covers the create flags, cleanup after merge, and the sandbox and EnterWorktree gotchas.
+description: Use when creating or removing a git worktree (`git worktree add`, `wt switch --create`, `EnterWorktree`), when a PR whose branch has a worktree checked out has merged, or when removing one reports "Branch unmerged" or `Operation not permitted`. Covers branching from the right base, cleanup after merge, and the sandbox gotchas.
 ---
 
-# Git worktrees with worktrunk
+# Git worktrees
 
-`wt` (worktrunk) puts worktrees at `<repo>/.claude/worktrees/<branch>`, the same place `EnterWorktree` uses. Prefer it when it's on `PATH`: it has non-interactive flags and lifecycle hooks (bootstrap on create, teardown on remove) that `EnterWorktree` lacks.
+Use whichever worktree tool the user prefers. If none is stated and `wt` (worktrunk) is on `PATH`, lean toward it: it has non-interactive flags and lifecycle hooks the others lack.
 
 ## Create
 
-```bash
-wt switch --create <name> --base origin/<default> --yes --no-cd --format=json
-```
+Branch from `origin/<default>`, not local `main`. When local `main` is ahead of origin, the first push drags unpushed commits into the PR.
 
-- Always pass `--base`. Without it `wt` branches from local `main`, and when that is ahead of origin the first push drags unpushed commits into the PR.
-- Parse `.path` from the JSON and `cd` there, or pass `-C <path>`. The binary can't change your shell's directory.
-- A trailing `git branch --unset-upstream ... has no upstream information` error after the worktree is created is harmless. Check `git worktree list` before retrying.
+- `git worktree add -b <branch> <path> origin/<default>`
+- wt: `wt switch --create <branch> --base origin/<default> --yes --no-cd --format=json`, then `cd` to `.path`. A trailing "has no upstream information" error after creation is harmless; check `git worktree list` before retrying.
+- `EnterWorktree`: it already branches from `origin/<default>`, so check `git log origin/main..main` for local-only commits first. Its guard rejects `&&`, `$(...)` and multi-line commands.
 
 ## Remove after merge
 
 Once a worktree's PR merges, remove it in the same session without asking, and report it as done. Cleanup is not a step to hand back to the user.
 
-```bash
-git fetch
-wt remove <branch> -y
-```
+- Keep it only when the user said they're still using it, or it is the root of a live session (a desktop-app worktree session, this one included), since removing that breaks the session. Say which exception applied.
+- `git fetch` first. After a squash-merge, stale refs make removal tools think the branch is unmerged.
+- `cd` out of the worktree before removing it.
+- Never force. Removal refuses a dirty worktree, and that refusal is the safety net. Read what it refused on and report it instead of passing `-f` or `-D`.
 
-- Fetch first. `wt remove` never fetches, so after a squash-merge stale refs make it report "Branch unmerged" ([worktrunk#3519](https://github.com/max-sixty/worktrunk/issues/3519)).
-- It refuses a dirty worktree and keeps an unmerged branch, so nothing uncommitted or unmerged is lost. Don't reach for `-f` or `-D` to get past a refusal. Read what it refused on and report it.
-- Keep the worktree only when the user said they're still using it, or it is the root of a live session (a desktop-app worktree session, this one included), since removing that breaks the session. Say which exception applied.
-- If the shell's cwd is inside the worktree, `cd` to the main checkout first.
-- Nothing cleans up at session end. A worktree you don't remove stays until someone notices.
+By tool:
 
-## Gotchas
+- `git worktree remove <path>`, then `git branch -d <branch>` if the branch isn't needed.
+- wt: `wt remove <branch> -y`. It keeps an unmerged branch on its own.
+- A worktree this session entered with `EnterWorktree`: `ExitWorktree` with the remove action.
 
-- Under the command sandbox, `Operation not permitted` in a worktree is usually the path denylist (`.claude/agents/*`, `.claude/commands/*`, `.mcp.json`, `.git/hooks/*`, rc files), not the worktree location. If `wt switch --create` fails that way, retry `wt switch <name>` (no `--create`) unsandboxed; the branch already exists.
-- Fall back to `EnterWorktree` only when `wt` isn't installed or you're outside a git repo. Pass a branch name you'd keep (it prefixes `worktree-`), keep Bash commands simple (its guard rejects `&&`, `$(...)`, multi-line), and check `git log origin/main..main` first, since it branches from `origin/<default>` and drops local-only commits.
+## Sandbox
+
+Under the command sandbox, `Operation not permitted` in a worktree is usually the path denylist (`.claude/agents/*`, `.claude/commands/*`, `.mcp.json`, `.git/hooks/*`, rc files), not the worktree location. If creating one fails that way partway through, the branch may already exist; retry without creating it (`wt switch <branch>`, or `git worktree add <path> <branch>`) unsandboxed.
