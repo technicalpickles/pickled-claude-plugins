@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""render.py PAGE [--out FILE] [--preview]: facts.json + config/pages/PAGE.json -> HTML. Pure function, no network.
+"""render.py PAGE [--out FILE] [--preview] [--brief]: facts.json + config/pages/PAGE.json -> HTML. Pure function, no network.
+With --brief it prints a plain-text briefing (needs, open PRs, sessions, things that contradict live state) and writes nothing.
 
 Config prose (ledes, row text, needs, history, fragment files) is trusted inline HTML written by the design skill.
 Text that comes from facts (PR titles, task descriptions) is escaped.
@@ -11,6 +12,7 @@ ap = argparse.ArgumentParser(); ap.add_argument("page"); ap.add_argument("--out"
 ap.add_argument("--config-dir", default=os.path.join(ROOT, "config")); ap.add_argument("--state-dir", default=os.path.join(ROOT, "data"))
 ap.add_argument("--preview", action="store_true", help="mark the page as a scratch preview, not the live page")
 ap.add_argument("--banner", default="", help="legacy: same as --preview, with custom bar text")
+ap.add_argument("--brief", action="store_true", help="print a plain-text briefing to stdout; write no files")
 a = ap.parse_args()
 CONFIG, STATE = os.path.expanduser(a.config_dir), os.path.expanduser(a.state_dir)
 PDIR = os.path.join(CONFIG, "pages", a.page)
@@ -293,6 +295,96 @@ done = lambda r: task_by.get(r, {}).get("status") != "pending"
 refs = sorted(r for r in set(re.findall(r'data-t="([0-9a-f]{8})"', body)) if not done(r))
 config_refs = set(CLAIM_T) | FRAG_T | {ref.partition(":")[2] for n in cfg.get("needs", []) for ref in n.get("refs", []) if ref.startswith("task:")}
 gone = sorted(r for r in config_refs if done(r))
+# --brief: a plain-text briefing built from the same scope, needs and liveness computed above, plus checks for rows that contradict live state.
+def plain(s):
+    s = re.sub(r'<span class="chip block">you</span>', "", str(s)); s = re.sub(r"<small>(.*?)</small>", r"(\1)", s)
+    s = re.sub(r'<span class="chip[^"]*">(.*?)</span>', r"[\1]", s)
+    return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]*>", " ", s))).strip().replace("( ", "(").replace(" )", ")")
+def cut(s, n=200): return s if len(s) <= n else s[:n - 1] + "…"
+PR_REF, PR_URL = re.compile(r"\b([\w.-]+)#(\d+)\b"), re.compile(r"github\.com/[^/\s\"']+/([^/\s\"']+)/pull/(\d+)")
+def pr_refs_in(text): return {f"{m[0]}#{m[1]}" for rx_ in (PR_REF, PR_URL) for m in rx_.findall(text)}
+def pr_state(p):
+    return f'{"draft" if p["draft"] else "open"}{" conflict" if p["mergeable"] == "CONFLICTING" else ""} {"CI " + {"success": "pass", "failure": "fail", "pending": "running"}[p["ci"]["state"]] if p["ci"]["state"] != "none" else "no CI"}'
+def row_refs(r):
+    bits = [r["task"]] if r.get("task") else []
+    if r.get("pr"): bits.append(f'{r["pr"]} {pr_state(pr_by[r["pr"]])}' if r["pr"] in pr_by else r["pr"])
+    return " ".join(bits)
+def brief_row(r): return cut(" ".join(x for x in ((f'[{r["kind"]}]' if r.get("kind") else ""), plain(r.get("text", "")), row_refs(r)) if x))
+
+# Everything a page says in prose: (where, text, PR refs it names for certain). Rows and needs are the items check 1 judges.
+def prose_items():
+    for n in cfg.get("needs", []):
+        if not n.get("refs") or not all(resolved(r) for r in n["refs"]):
+            yield "needs", n["text"], {r.partition(":")[2] for r in n.get("refs", []) if r.startswith("pr:")}
+    for t in cfg["threads"]:
+        for key in ROWS:
+            for r in t.get(key, []):
+                if row_live(r): yield t["id"], r.get("text", ""), ({r["pr"]} if r.get("pr") else set())
+def check_rows_vs_prs():
+    out = []
+    for where, text, named in prose_items():
+        txt = plain(text)
+        for ref in sorted((named | pr_refs_in(text)) & set(pr_by)):
+            p, why = pr_by[ref], []
+            if p["mergeable"] == "CONFLICTING" and not rx("conflict|rebase", txt): why.append("has merge conflicts")
+            if p["draft"] and not rx("draft", txt) and rx("ready|anytime|merge", txt): why.append("is still a draft")
+            if p["ci"]["state"] == "failure" and not rx(r"fail|\bred\b|\bCI\b", txt): why.append("has failing CI")
+            out += [(f"{where}: {txt[:40]}", f"{ref} {w}, the text does not say so") for w in why]
+    return out
+def check_finished_tasks():
+    homes = {r: [t["id"] for t in cfg["threads"] if any(x.get("task") == r for key in ROWS for x in t.get(key, []))] + [f for f, text in FRAGS.items() if f'data-t="{r}"' in text]
+             + (["needs"] if any("task:" + r in n.get("refs", []) for n in cfg.get("needs", [])) else []) for r in gone}
+    return [(", ".join(homes[r]) or "page", f"{r} is no longer pending, drop or reword its row") for r in gone]
+def check_uncited_prs():
+    corpus = " ".join([cfg.get("lede", "")] + [t.get("lede", t.get("goal", "")) for t in cfg["threads"]] + list(FRAGS.values()) + [text for _, text, _ in prose_items()])
+    cited = pr_refs_in(corpus) | set(CLAIM_P) | {ref for t in cfg["threads"] for ref in t.get("match", {}).get("pr_refs", [])} \
+        | {r.partition(":")[2] for n in cfg.get("needs", []) for r in n.get("refs", []) if r.startswith("pr:")}
+    miss = [ref_of(p) for p in prs if ref_of(p) not in cited]
+    if not miss: return []
+    return [("prs", f'{len(miss)} open PRs no row or prose cites: {", ".join(miss[:10])}' + (f" and {len(miss) - 10} more" if len(miss) > 10 else ""))]
+def check_dated_blocks():
+    found = []
+    for name, text in FRAGS.items():
+        for m in re.finditer(r'data-checked="(\d{4}-\d\d-\d\d)"', text):
+            days = (TODAY - datetime.date.fromisoformat(m[1])).days
+            if days < 2: continue
+            open_at = text.rfind("<", 0, m.start()); tag = re.match(r"<(\w+)", text[open_at:])[1]
+            summary = text.rfind("<summary", 0, open_at)
+            if summary >= 0 and "</summary>" not in text[summary:open_at]: label = plain(text[summary:open_at])[:60]
+            else:
+                start = text.find(">", m.end()) + 1; end = text.find("</" + tag, start)
+                label = plain(text[start:end if end > 0 else start + 300])[:40]
+            found.append((m[1], name, f'"{label}" checked {m[1]}, {days}d ago'))
+    return [(name, msg) for _, name, msg in sorted(found)]
+def check_old_facts():
+    h = int((datetime.datetime.now() - datetime.datetime.fromisoformat(facts["generated"])).total_seconds() // 3600)
+    return [("facts", f"facts are {h}h old, run gather before trusting PR and CI state")] if h > 6 else []
+CHECKS = [check_rows_vs_prs, check_finished_tasks, check_uncited_prs, check_dated_blocks, check_old_facts]
+
+def brief():
+    age = int((datetime.datetime.now() - datetime.datetime.fromisoformat(facts["generated"])).total_seconds() // 3600)
+    L = [" · ".join(x for x in (plain(cfg["title"]), f'facts {facts["generated"].replace("T", " ")} ({age}h old)', cfg.get("artifact_url")) if x)]
+    if cfg.get("lede"): L.append(cut(plain(cfg["lede"]), 400))
+    L += ["", f"Needs you ({len(needs)})" if needs else "Needs you: nothing"] + [f"- {cut(plain(n), 320)}" for n in needs]
+    up = [(t, [r for r in t.get("next", []) if row_live(r) and not is_you(r)]) for t in cfg["threads"] if t.get("status") == "now"]
+    if any(rows for _, rows in up):
+        L.append("Up next")
+        for t, rows in up:
+            if rows: L += [plain(t["title"])] + [f"- {brief_row(r)}" for r in rows]
+    if prs:
+        L.append(f"Open PRs ({len(prs)})")
+        L += [cut(f'- {ref_of(p)} {pr_state(p)} {p["title"]} ({T[p["thread"]]["title"]})') for p in prs]
+    if live_sessions:
+        L.append(f"Sessions ({len(live_sessions)})")
+        for s in live_sessions:
+            where = " · ".join(x for x in (s.get("repo"), s.get("branch")) if x)
+            L.append(cut(f'- {s.get("state", "?")} ' + " · ".join(x for x in (s.get("title"), where or s["id"]) if x) + (f' · waiting on: {s["waiting-on"]}' if s.get("waiting-on") else "") + (" (may be stale)" if s["_stale"] else "")))
+    found = [f for check in CHECKS for f in check()]
+    L += [f"Check ({len(found)})" if found else "Check: nothing found"] + [cut(f"- {w}: {m}") for w, m in found]
+    if unf_prs or unf_tasks: L.append(f"Unsorted: {len(unf_prs)} PRs, {len(unf_tasks)} tasks")
+    print("\n".join(L))
+if a.brief: brief(); sys.exit(0)
+
 popup = [{"uuid": task_by[r].get("uuid", r), "description": task_by[r]["desc"], "project": task_by[r]["project"], "tags": task_by[r]["tags"],
           "annotations": task_by[r].get("annotations", [])} for r in refs]
 sess_js = [{k: s.get(k) for k in ("id", "title", "state", "note", "tasks")} for s in live_sessions if s.get("tasks")]
