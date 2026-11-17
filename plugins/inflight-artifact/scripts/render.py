@@ -298,6 +298,7 @@ gone = sorted(r for r in config_refs if done(r))
 # --brief: a plain-text briefing built from the same scope, needs and liveness computed above, plus checks for rows that contradict live state.
 def plain(s):
     s = re.sub(r'<span class="chip block">you</span>', "", str(s)); s = re.sub(r"<small>(.*?)</small>", r"(\1)", s)
+    s = re.sub(r'<span class="chip[^"]*">(.*?)</span>', r"[\1]", s)
     return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]*>", " ", s))).strip().replace("( ", "(").replace(" )", ")")
 def cut(s, n=200): return s if len(s) <= n else s[:n - 1] + "…"
 PR_REF, PR_URL = re.compile(r"\b([\w.-]+)#(\d+)\b"), re.compile(r"github\.com/[^/\s\"']+/([^/\s\"']+)/pull/(\d+)")
@@ -347,9 +348,12 @@ def check_dated_blocks():
         for m in re.finditer(r'data-checked="(\d{4}-\d\d-\d\d)"', text):
             days = (TODAY - datetime.date.fromisoformat(m[1])).days
             if days < 2: continue
-            tag = re.match(r"<(\w+)", text[text.rfind("<", 0, m.start()):])[1]
-            start = text.find(">", m.end()) + 1; end = text.find("</" + tag, start)
-            label = plain(text[start:end if end > 0 else start + 300])[:40] or plain(text[start:start + 300])[:40]
+            open_at = text.rfind("<", 0, m.start()); tag = re.match(r"<(\w+)", text[open_at:])[1]
+            summary = text.rfind("<summary", 0, open_at)
+            if summary >= 0 and "</summary>" not in text[summary:open_at]: label = plain(text[summary:open_at])[:60]
+            else:
+                start = text.find(">", m.end()) + 1; end = text.find("</" + tag, start)
+                label = plain(text[start:end if end > 0 else start + 300])[:40]
             found.append((m[1], name, f'"{label}" checked {m[1]}, {days}d ago'))
     return [(name, msg) for _, name, msg in sorted(found)]
 def check_old_facts():
@@ -361,7 +365,7 @@ def brief():
     age = int((datetime.datetime.now() - datetime.datetime.fromisoformat(facts["generated"])).total_seconds() // 3600)
     L = [" · ".join(x for x in (plain(cfg["title"]), f'facts {facts["generated"].replace("T", " ")} ({age}h old)', cfg.get("artifact_url")) if x)]
     if cfg.get("lede"): L.append(cut(plain(cfg["lede"]), 400))
-    L += ["", f"Needs you ({len(needs)})" if needs else "Needs you: nothing"] + [f"- {cut(plain(n))}" for n in needs]
+    L += ["", f"Needs you ({len(needs)})" if needs else "Needs you: nothing"] + [f"- {cut(plain(n), 320)}" for n in needs]
     up = [(t, [r for r in t.get("next", []) if row_live(r) and not is_you(r)]) for t in cfg["threads"] if t.get("status") == "now"]
     if any(rows for _, rows in up):
         L.append("Up next")
@@ -374,7 +378,7 @@ def brief():
         L.append(f"Sessions ({len(live_sessions)})")
         for s in live_sessions:
             where = " · ".join(x for x in (s.get("repo"), s.get("branch")) if x)
-            L.append(cut(f'- {s.get("state", "?")} {s.get("title") or where or s["id"]} · {where}' + (f' · waiting on: {s["waiting-on"]}' if s.get("waiting-on") else "") + (" (may be stale)" if s["_stale"] else "")))
+            L.append(cut(f'- {s.get("state", "?")} ' + " · ".join(x for x in (s.get("title"), where or s["id"]) if x) + (f' · waiting on: {s["waiting-on"]}' if s.get("waiting-on") else "") + (" (may be stale)" if s["_stale"] else "")))
     found = [f for check in CHECKS for f in check()]
     L += [f"Check ({len(found)})" if found else "Check: nothing found"] + [cut(f"- {w}: {m}") for w, m in found]
     if unf_prs or unf_tasks: L.append(f"Unsorted: {len(unf_prs)} PRs, {len(unf_tasks)} tasks")

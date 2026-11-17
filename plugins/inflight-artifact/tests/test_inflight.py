@@ -346,6 +346,10 @@ class BriefTest(unittest.TestCase):
         self.assertIn(f'prod.html: "Prod runs v1" checked {self.ago(3)}, 3d ago', out)
         self.assertNotIn("Staging runs v2", out)
 
+    def test_a_date_in_a_summary_is_labelled_by_the_row_it_sits_in(self):
+        self.block(f'<details><summary><b>Error tracker</b> 7 reports open<small data-checked="{self.ago(4)}">checked then</small></summary><p>Body</p></details>')
+        self.assertIn(f'prod.html: "Error tracker 7 reports open" checked {self.ago(4)}, 4d ago', self.brief())
+
     def test_open_prs_no_prose_cites_are_reported(self):
         out = self.brief()
         self.assertIn("1 open PRs no row or prose cites: stray#1", out)
