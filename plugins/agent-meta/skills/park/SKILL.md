@@ -1,6 +1,6 @@
 ---
 name: park
-description: Use when the user asks to park, hand off, wrap up or checkpoint the current session, or an automated idle prompt invokes a park
+description: Use when the user asks to park, hand off, wrap up, close out or checkpoint the current session (including "i've merged, /park" and "clean up, close what's closable, then park"), or an automated idle prompt invokes a park
 allowed-tools: Bash(scripts/get-session-id.sh)
 ---
 
@@ -22,7 +22,7 @@ Pick one mode by checking these signals in order. Stop at the first one that res
 
 0. **Automated trigger.** If the invoking prompt explicitly identifies itself as an automated/idle-triggered park (e.g. names a watchdog, cron, or "idle-triggered" rather than a person asking) → idle checkpoint. Skip every other signal below. Automated callers run headless and cannot answer a question.
 1. **Explicit user hint.**
-   - "park, I'm done" / "wrap this up" / "park to close it out" / "park as record" → close-out
+   - "park, I'm done" / "wrap this up" / "park to close it out" / "park as record" / "i've merged, park" / "cleanup, close out, then park" → close-out
    - "park, switching sessions" / "park to continue" / "park, picking back up later" → continuation
 2. **Terminal-state inference.** If all major next steps are done, no blockers remain, and the current state reads as terminal → close-out. If concrete unfinished next actions exist → continuation.
 3. **Ambiguity fallback.** Use the AskUserQuestion tool with one A/B question:
@@ -31,7 +31,11 @@ Pick one mode by checking these signals in order. Stop at the first one that res
 
 Signal 3 requires an interactive caller. A headless or automated invocation must already have resolved at signal 0.
 
-Pick once and commit. Do not switch modes mid-write.
+Pick once and commit. Do not switch modes mid-write. The tie-off's Trigger step is the one sanctioned re-pick, and it happens before writing.
+
+## Tie-off
+
+Before writing, tie off the session per [references/tie-off.md](references/tie-off.md). Close-out runs all of it. Continuation runs only its Loose ends step, read-only. Idle checkpoint skips it.
 
 ## Before Writing
 
@@ -119,8 +123,8 @@ Use when the work is done and the user is walking away. There may be open thread
 - path/to/file.ts (new|modified)
 
 ## Open Threads
-[Optional. Things noticed but not done. One line each.
-List follow-up candidates; don't file them in a tracker.]
+[Optional. Things noticed but not done, one line each.
+Link the items the tie-off filed instead of restating them.]
 ~~~
 
 **A Wrapped file has to earn its place.** Write one only when Key Decisions or Open Threads holds something the commits and PR do not show: a decision with its reason, a thread someone should pick up. List those two sections first. If both come out empty, or only restate the commit log, write no file. Say so in one line (`Nothing to record beyond the commits, so no file written.`) and stop, apart from Superseding below. Outcome alone is not a reason to write.
@@ -163,7 +167,7 @@ unpark [path]
 ```
 ~~~
 
-Close-out:
+Close-out, after the tie-off's tally line:
 
 ~~~
 Wrapped to:

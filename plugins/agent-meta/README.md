@@ -34,6 +34,23 @@ Invoke by asking naturally ("park this session", "wrap this up", "unpark docs/ha
 
 A close-out only writes a file when it holds a decision or open thread the commits do not show. A park made in a session resumed from another park records `**Supersedes:**` and deletes that predecessor, saying so. `unpark` in listing mode flags handoffs whose branch is merged or whose tasks are done and offers one batched delete.
 
+Before a close-out writes anything, park ties off the session ([`skills/park/references/tie-off.md`](skills/park/references/tie-off.md)): confirm the work actually landed, commit and push, sweep loose ends, update the tracker, fix docs, clean up what the session created, and record lessons, with one batched question for anything destructive or undecided. A continuation only inventories loose ends into Next Steps.
+
+#### Extending the close-out
+
+The tie-off steps have fixed names (Trigger, Durable, Loose ends, Tracker, Docs, Cleanup, Lessons, Ask once). Two ways to add to them:
+
+- **A `## Close-out` section** in your global instructions or a repository's `CLAUDE.md`/`AGENTS.md`. Each line names a step and what it adds:
+
+  ```markdown
+  ## Close-out
+
+  - Tracker: pt beans, never raw beans
+  - Cleanup: cenv sandboxes and coder workspaces this session started
+  ```
+
+- **A `skill.prompt` hook** that appends live state to park's prompt when `e.skill` is park. agent-meta's own mod appends `git status --short --branch`. second-brain's `park-vault` mod appends the vault location the same way.
+
 Mode is picked at park time from your phrasing ("park to continue" vs "wrap this up"), inferred from the work's state, or asked if ambiguous.
 
 ## Scripts
