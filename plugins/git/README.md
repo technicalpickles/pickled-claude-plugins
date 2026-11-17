@@ -76,6 +76,21 @@ Update your branch with upstream changes, intelligently resolving conflicts.
 - Analyzes conflicts using git history for context
 - Resolves autonomously, presents for approval
 
+### git:git-worktrees
+
+Create and remove worktrees with [worktrunk](https://github.com/max-sixty/worktrunk) (`wt`), and clean them up once their PR merges.
+
+**Use when:**
+- Creating a worktree (`wt switch --create`)
+- A PR whose branch has a `.claude/worktrees/` checkout has merged
+- `wt remove` says "Branch unmerged", or a worktree hits `Operation not permitted` under the sandbox
+
+## Hooks
+
+### Post-merge worktree cleanup
+
+`PostToolUse` on Bash. After a `gh pr merge`, the hook asks `gh pr view` whether the PR is merged. If it is, and the head branch still has a worktree under `.claude/worktrees/`, it tells the agent to remove that worktree now. A queued `--auto` merge, a branch with no worktree, or any other Bash call stays silent, and only `gh pr merge` commands make a network call.
+
 ## Installation
 
 Requires the [pickled-claude-plugins marketplace](../../README.md#installation). Then:
