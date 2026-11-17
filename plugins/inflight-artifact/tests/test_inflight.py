@@ -283,6 +283,83 @@ def registry_rows(d):
     return {f: json.load(open(os.path.join(d, "sessions", f))) for f in sorted(os.listdir(os.path.join(d, "sessions")))}
 
 
+class BriefTest(unittest.TestCase):
+    """render.py --brief: a plain-text briefing, nothing written, and findings for rows that contradict live state."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.state = os.path.join(self.tmp, "state")
+        os.makedirs(self.state)
+        shutil.copy(FIXTURE, os.path.join(self.state, "facts.json"))
+        self.cfg = os.path.join(self.tmp, "cfg")
+        shutil.copytree(EXAMPLE_CONFIG, self.cfg)
+        self.page_path = os.path.join(self.cfg, "pages", "example.json")
+        with open(self.page_path) as f: self.page = json.load(f)
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp)
+
+    def brief(self, *extra):
+        with open(self.page_path, "w") as f: json.dump(self.page, f)
+        return run("render.py", "example", "--brief", "--config-dir", self.cfg, "--state-dir", self.state, *extra).stdout
+
+    def ago(self, days): return (datetime.date.today() - datetime.timedelta(days=days)).isoformat()
+
+    def block(self, html):
+        os.makedirs(os.path.join(self.cfg, "pages", "example"), exist_ok=True)
+        with open(os.path.join(self.cfg, "pages", "example", "prod.html"), "w") as f: f.write(html)
+        self.page["overview_html"] = ["prod.html"]
+
+    def test_lists_needs_and_open_prs_with_their_state(self):
+        out = self.brief()
+        self.assertIn("Needs you (1)", out)
+        self.assertIn("Review the open widgets PR.", out)
+        self.assertIn("infra#7 draft conflict CI fail Migrate database to v2", out)
+        self.assertIn("widgets#12 open CI pass", out)
+
+    def test_is_plain_text_and_writes_nothing(self):
+        self.page["lede"] = "Fish &amp; <b>chips</b>"
+        out = self.brief()
+        self.assertIn("Fish & chips", out)
+        self.assertNotRegex(out, r"<|&\w+;")
+        self.assertEqual(os.listdir(self.state).count("example.html"), 0)
+        self.assertNotIn("example.unsorted.json", os.listdir(self.state))
+
+    def test_without_brief_the_html_is_still_written(self):
+        run("render.py", "example", "--config-dir", self.cfg, "--state-dir", self.state)
+        self.assertIn("example.html", os.listdir(self.state))
+
+    def test_a_conflicting_pr_row_that_does_not_say_so_is_flagged(self):
+        self.assertRegex(self.brief(), r"Check \(.*\)[\s\S]*platform: Land the migration PR: infra#7 has merge conflicts")
+
+    def test_a_row_that_says_it_needs_a_rebase_is_not_flagged_for_conflicts(self):
+        self.page["threads"][0]["next"] = [{"text": "Rebase the migration, then land it", "pr": "infra#7"}]
+        self.assertNotIn("has merge conflicts", self.brief())
+
+    def test_a_row_on_a_finished_task_is_flagged(self):
+        self.page["threads"][0]["next"].append({"text": "Old ADR", "task": "cccc3333"})
+        self.assertIn("platform: cccc3333 is no longer pending", self.brief())
+
+    def test_a_block_row_checked_days_ago_is_flagged_and_one_from_today_is_not(self):
+        self.block(f'<li data-checked="{self.ago(3)}">Prod runs v1</li><li data-checked="{self.ago(0)}">Staging runs v2</li>')
+        out = self.brief()
+        self.assertIn(f'prod.html: "Prod runs v1" checked {self.ago(3)}, 3d ago', out)
+        self.assertNotIn("Staging runs v2", out)
+
+    def test_a_date_in_a_summary_is_labelled_by_the_row_it_sits_in(self):
+        self.block(f'<details><summary><b>Error tracker</b> 7 reports open<small data-checked="{self.ago(4)}">checked then</small></summary><p>Body</p></details>')
+        self.assertIn(f'prod.html: "Error tracker 7 reports open" checked {self.ago(4)}, 4d ago', self.brief())
+
+    def test_open_prs_no_prose_cites_are_reported(self):
+        out = self.brief()
+        self.assertIn("1 open PRs no row or prose cites: stray#1", out)
+        self.page["lede"] = "Waiting on stray#1."
+        self.assertNotIn("no row or prose cites", self.brief())
+
+    def test_old_facts_are_flagged(self):
+        self.assertIn("run gather before trusting PR and CI state", self.brief())
+
+
 class LocalTimeTest(unittest.TestCase):
     def setUp(self):
         self.old_tz = os.environ.get("TZ")
