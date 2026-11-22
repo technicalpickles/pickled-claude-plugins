@@ -24,9 +24,29 @@ export const parseHandoff = (content: string): Handoff | undefined => {
   return { kind: heading[1] as Handoff['kind'], sessionId }
 }
 
+const FYI = 'FYI, no reply needed: the work you parked is being picked up in a new session.'
+
 export const buildMessage = (handoffPath: string): string =>
   [
-    'FYI, no reply needed: the work you parked is being picked up in a new session.',
+    FYI,
     `Handoff: ${handoffPath}`,
     "Treat it as handed off. Don't keep working on it here unless the user says so.",
+  ].join('\n')
+
+export type Fyi = { path: string }
+
+// Unanchored, so a delivery wrapped in a cross-session envelope still parses.
+export const parseMessage = (text: string): Fyi | undefined => {
+  if (!text.includes(FYI)) return undefined
+  const path = /^\s*Handoff: (.+?)\s*$/m.exec(text)?.[1]
+  return path ? { path } : undefined
+}
+
+export const noticeFor = ({ path }: Fyi): string => `Handed off: ${path} is being picked up in another session.`
+
+export const modelNoteFor = ({ path }: Fyi): string =>
+  [
+    // Says who it is from: some engine versions send the row bare, inside the user's turn.
+    `Note from the agent-meta plugin, not from the user: the handoff at ${path} was resumed in another session while this one was parked.`,
+    "Treat that work as handed off. Don't keep working on it here unless the user says so.",
   ].join('\n')

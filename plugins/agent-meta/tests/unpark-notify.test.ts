@@ -119,3 +119,78 @@ describe('unpark tells the session a handoff came from', () => {
     expect(sent).toHaveLength(1)
   })
 })
+
+describe('the origin notes the FYI without a model turn', () => {
+  // Registers every engine stub before the test first calls $.
+  const stubs = (on: any, opts: { appendFails?: boolean } = {}) => {
+    const seen = { appended: [] as { type: string; text: string }[], passedOn: false, sent: '' }
+    on('session.id', () => ({ value: ME }))
+    on('skill.prompt', (_$: any, e: any) => ({ text: e.text }))
+    on('fs.read', () => ({ value: handoff('Parked') }))
+    on('session.send', (_$: any, e: any) => {
+      seen.sent = e.text
+      return { isDelivered: true }
+    })
+    on('session.append', (_$: any, e: any, next: any) => {
+      if (opts.appendFails) return { deny: 'refused by policy' }
+      seen.appended.push({ type: e.message.type, text: e.message.content[0].text })
+      return next(e)
+    })
+    on('session.receive', (_$: any, e: any) => {
+      seen.passedOn = true
+      return { text: e.text }
+    })
+    return seen
+  }
+
+  // What the sender really writes, wrapped the way a cross-session delivery can arrive.
+  const sentFyi = async ($: any, seen: { sent: string }) => {
+    await $.skill.prompt({ skill: 'agent-meta:unpark', text: unparkPrompt(PATH) })
+    return `<cross-session-message from="uds:/tmp/x.sock" from-plugin="agent-meta">\n${seen.sent}\n</cross-session-message>`
+  }
+
+  const receive = ($: any, text: string, extra: Record<string, unknown> = {}) =>
+    $.session.receive({ origin: { kind: 'peer', plugin: 'agent-meta' }, text, ...extra })
+
+  test('an FYI is consumed and leaves a notice and a note for the next turn', async ($, on) => {
+    const seen = stubs(on)
+    const result = await receive($, await sentFyi($, seen))
+
+    expect(seen.passedOn).toBe(false)
+    expect(result.consumed).toBeTruthy()
+    const byType = Object.fromEntries(seen.appended.map(a => [a.type, a.text]))
+    expect(Object.keys(byType).sort()).toEqual(['system', 'user'])
+    expect(byType.system).toContain(PATH)
+    expect(byType.user).toContain(PATH)
+    expect(byType.user).toContain('handed off')
+  })
+
+  test('an ordinary peer message passes through', async ($, on) => {
+    const seen = stubs(on)
+    const result = await receive($, 'can you rerun the tests?')
+    expect(seen.passedOn).toBe(true)
+    expect(result.text).toBe('can you rerun the tests?')
+    expect(seen.appended).toHaveLength(0)
+  })
+
+  test('an FYI to a subagent passes through', async ($, on) => {
+    const seen = stubs(on)
+    await receive($, await sentFyi($, seen), { agentId: 'agent-1' })
+    expect(seen.passedOn).toBe(true)
+    expect(seen.appended).toHaveLength(0)
+  })
+
+  test('an FYI-shaped prompt that is not from a peer passes through', async ($, on) => {
+    const seen = stubs(on)
+    await receive($, await sentFyi($, seen), { origin: { kind: 'bridge' } })
+    expect(seen.passedOn).toBe(true)
+    expect(seen.appended).toHaveLength(0)
+  })
+
+  test('a failed append falls back to delivering the FYI', async ($, on) => {
+    const seen = stubs(on, { appendFails: true })
+    const result = await receive($, await sentFyi($, seen))
+    expect(seen.passedOn).toBe(true)
+    expect(result.text).toContain(`Handoff: ${PATH}`)
+  })
+})

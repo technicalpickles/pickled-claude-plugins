@@ -78,7 +78,7 @@ Drift is a next step that already landed, a missing branch or worktree, a decisi
 
 ## 5. The session it came from is told for you
 
-The `agent-meta` mod messages the session a `Parked:` or `Checkpoint:` handoff came from, at the moment this skill loads, when a path was given and that session is still live. Do not send that message yourself, and do not look for the session. The origin never needs a second note.
+The `agent-meta` mod messages the session a `Parked:` or `Checkpoint:` handoff came from, at the moment this skill loads, when a path was given and that session is still live. The mod in that session turns the message into a notice and a note for its next turn, so the origin is not woken. Do not send that message yourself, and do not look for the session. The origin never needs a second note.
 
 ## 6. Extra context is where to ask
 
